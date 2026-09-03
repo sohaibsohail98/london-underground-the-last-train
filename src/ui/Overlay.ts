@@ -35,7 +35,7 @@ export class Overlay {
       'pointer-events:none',
     ].join(';');
     this.hint.textContent =
-      'WASD move   mouse aim   F torch   B blackout   H damage   1/2/3 preset   F3 profiler   F4 probe';
+      'WASD move   click fire   F torch   B blackout   G flood   H damage   F2 fly   F3 profiler   F4 probe   1/2/3 preset';
     root.appendChild(this.hint);
   }
 

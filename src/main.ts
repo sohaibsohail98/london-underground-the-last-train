@@ -1,19 +1,26 @@
 /**
  * Boot.
  *
- * Phase 2 has no game systems, so this file stands in for them: it moves a
- * proxy capsule around the test room on a fixed 60Hz tick and feeds the
- * renderer interpolated positions, which is enough to judge the camera, the
- * torch and the whole post chain at Gate B.
- *
- * Everything here between the clock and the render call is replaced by the
- * real World and system order in Phase 4.
+ * Phase 3 target: a station generated entirely from an ASCII grid, with a full
+ * crowd of animated zombies wandering it, gore on hit, and a debug fly camera
+ * to inspect the geometry. There is still no game here: no rounds, no weapons,
+ * no pathfinding toward the player. The wander behaviour and the sphere hit
+ * test below are debug scaffolding and are replaced wholesale by the real
+ * systems in Phase 4.
  */
 
 import { Plane, Raycaster, Vector2, Vector3 } from 'three';
 import { Clock, DT } from './engine/Clock';
+import { Random } from './engine/Random';
 import { GameRenderer } from './render/Renderer';
-import { TestRoom, TEST_ROOM_SETS } from './render/debug/TestRoom';
+import { Crowd, type CrowdSlot } from './render/crowd/Crowd';
+import { bakeCrowd } from './render/crowd/VatBaker';
+import { Decals } from './render/gore/Decals';
+import { Particles } from './render/gore/Particles';
+import { FlyCamera } from './render/debug/FlyCamera';
+import { generateStation, type GeneratedStation } from './gen/Generator';
+import { debugYard } from './data/stations/debug-yard';
+import { validateStation } from './data/schemas';
 import { Overlay } from './ui/Overlay';
 import { PRESET_ORDER, type PresetName } from './render/Presets';
 import type { StageName } from './render/RenderGraph';
@@ -28,7 +35,15 @@ if (!canvas || !overlayRoot) {
 const overlay = new Overlay(overlayRoot);
 const renderer = new GameRenderer(canvas, overlayRoot);
 
-/** Proxy player state. Replaced by World in Phase 4. */
+/** Debug wander state, one per crowd slot. Replaced by Zombies.ts in Phase 4. */
+interface Wanderer {
+  slot: CrowdSlot;
+  target: Vector3;
+  speed: number;
+  hp: number;
+  dying: number;
+}
+
 const player = {
   position: new Vector3(),
   previous: new Vector3(),
@@ -45,150 +60,293 @@ const aim = new Vector3();
 const raycaster = new Raycaster();
 const floorPlane = new Plane(new Vector3(0, 1, 0), 0);
 const clock = new Clock();
+const random = new Random(0xc0ffee);
 
 let torchOn = true;
 let blackout = false;
 let firing = false;
 let fireCooldown = 0;
+let floodHeight = 0;
 
-function onKeyDown(event: KeyboardEvent): void {
-  keys.add(event.code);
+function pickWanderTarget(station: GeneratedStation, out: Vector3): Vector3 {
+  const { grid, nav } = station;
 
-  switch (event.code) {
-    case 'KeyF':
-      torchOn = !torchOn;
-      renderer.torch.setEnabled(torchOn);
-      break;
-    case 'KeyB':
-      blackout = !blackout;
-      renderer.lighting.setBlackout(blackout);
-      break;
-    case 'KeyH':
-      // Stands in for taking a hit until the health system exists.
-      player.health = Math.max(0, player.health - 0.22);
-      overlay.flash(0.7);
-      renderer.rig.addShake(0.5);
-      break;
-    case 'KeyJ':
-      player.health = 1;
-      break;
-    case 'Digit1':
-    case 'Digit2':
-    case 'Digit3': {
-      const index = Number(event.code.slice(-1)) - 1;
-      const name = PRESET_ORDER[index] as PresetName | undefined;
-      if (name) renderer.setPreset(name);
-      break;
+  // Rejection sampling rather than building a list of walkable cells: the
+  // grids are open enough that this converges in a handful of attempts.
+  for (let attempt = 0; attempt < 32; attempt += 1) {
+    const x = random.int(0, grid.width - 1);
+    const y = random.int(0, grid.height - 1);
+    if (nav.walkable[y * grid.width + x] === 1) {
+      return grid.worldPosition(x, y, out);
     }
-    case 'F3':
-      event.preventDefault();
-      renderer.profiler.toggle();
-      break;
-    case 'F4':
-      event.preventDefault();
-      renderer.profiler.startProbe();
-      break;
-    default:
-      break;
   }
 
-  // F5 to F9 toggle the expensive stages individually, which is the quickest
-  // way to judge what each one is contributing at Gate B.
-  const stageKeys: Partial<Record<string, StageName>> = {
-    F6: 'ssao',
-    F7: 'ssr',
-    F8: 'volumetric',
-    F9: 'bloom',
+  return out.copy(station.playerSpawn);
+}
+
+/** Scale, tint and rate variation, which is most of what stops 46 clones. */
+function variation(): Partial<CrowdSlot> {
+  return {
+    facing: random.range(0, Math.PI * 2),
+    scale: random.range(0.9, 1.12),
+    tint: new Vector3(
+      random.range(0.72, 1.05),
+      random.range(0.68, 0.95),
+      random.range(0.66, 0.92),
+    ),
+    playbackRate: random.range(0.82, 1.18),
+    timeOffset: random.range(0, 4),
   };
-  const stage = stageKeys[event.code];
-  if (stage) {
-    event.preventDefault();
-    renderer.setStageEnabled(stage, !renderer.graph.currentToggles[stage]);
+}
+
+function spawnCrowd(crowd: Crowd, station: GeneratedStation, count: number): Wanderer[] {
+  const wanderers: Wanderer[] = [];
+  const position = new Vector3();
+
+  for (let i = 0; i < count; i += 1) {
+    pickWanderTarget(station, position);
+
+    const slot = crowd.spawn(position, variation());
+    if (!slot) break;
+
+    crowd.play(slot, random.chance(0.35) ? 'walk' : 'shamble');
+
+    wanderers.push({
+      slot,
+      target: pickWanderTarget(station, new Vector3()),
+      speed: random.range(0.9, 1.9),
+      hp: 100,
+      dying: 0,
+    });
+  }
+
+  return wanderers;
+}
+
+/** Debug wander: walk to a random walkable cell, pick another on arrival. */
+function updateWanderers(
+  wanderers: Wanderer[],
+  crowd: Crowd,
+  station: GeneratedStation,
+  dt: number,
+): void {
+  const toTarget = new Vector3();
+
+  for (const wanderer of wanderers) {
+    const slot = wanderer.slot;
+    if (!slot.active) continue;
+
+    if (wanderer.dying > 0) {
+      wanderer.dying -= dt;
+
+      if (wanderer.dying <= 0) {
+        // Recycled rather than left lying about, so the live instance count
+        // stays at the figure the budget was tested against.
+        crowd.release(slot);
+        const fresh = crowd.spawn(pickWanderTarget(station, new Vector3()), variation());
+        if (fresh) {
+          wanderer.slot = fresh;
+          wanderer.hp = 100;
+          crowd.play(fresh, 'shamble');
+          pickWanderTarget(station, wanderer.target);
+        }
+      }
+
+      continue;
+    }
+
+    toTarget.copy(wanderer.target).sub(slot.position);
+    toTarget.y = 0;
+
+    const distance = toTarget.length();
+    if (distance < 0.6) {
+      pickWanderTarget(station, wanderer.target);
+      continue;
+    }
+
+    toTarget.divideScalar(distance);
+    slot.position.addScaledVector(toTarget, wanderer.speed * dt);
+    slot.facing = Math.atan2(toTarget.x, toTarget.z);
   }
 }
 
-function onKeyUp(event: KeyboardEvent): void {
-  keys.delete(event.code);
-}
+/** Debug hit test: nearest crowd slot within a thin cylinder about the shot. */
+function resolveShot(
+  wanderers: Wanderer[],
+  crowd: Crowd,
+  decals: Decals,
+  particles: Particles,
+  origin: Vector3,
+  direction: Vector3,
+): void {
+  let best: Wanderer | null = null;
+  let bestDistance = Infinity;
 
-function onPointerMove(event: PointerEvent): void {
-  pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-  pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
-}
+  const toZombie = new Vector3();
 
-function updateAim(): void {
-  raycaster.setFromCamera(pointer, renderer.rig.camera);
-  const hit = raycaster.ray.intersectPlane(floorPlane, aim);
-  if (!hit) {
-    // Cursor above the horizon: aim far along the ray instead of nowhere.
-    aim.copy(renderer.rig.camera.position).addScaledVector(raycaster.ray.direction, 40);
-    aim.y = 0;
-  }
-}
+  for (const wanderer of wanderers) {
+    if (!wanderer.slot.active || wanderer.dying > 0) continue;
 
-/** One fixed simulation tick. Movement only, in Phase 2. */
-function tick(room: TestRoom): void {
-  player.previous.copy(player.position);
+    toZombie.copy(wanderer.slot.position).sub(origin);
+    toZombie.y = 0;
 
-  const forward = (keys.has('KeyW') ? 1 : 0) - (keys.has('KeyS') ? 1 : 0);
-  const strafe = (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0);
-  const sprinting = keys.has('ShiftLeft') || keys.has('ShiftRight');
+    const along = toZombie.dot(direction);
+    if (along <= 0 || along > 40) continue;
 
-  // Camera relative movement, since the camera never rotates in yaw this is
-  // simply world space with z inverted.
-  player.velocity.set(strafe, 0, -forward);
-  if (player.velocity.lengthSq() > 0) {
-    player.velocity.normalize().multiplyScalar(sprinting ? player.sprintSpeed : player.speed);
-  }
+    const lateral = Math.hypot(
+      toZombie.x - direction.x * along,
+      toZombie.z - direction.z * along,
+    );
+    if (lateral > 0.45) continue;
 
-  player.position.addScaledVector(player.velocity, DT);
-
-  player.position.x = Math.min(Math.max(player.position.x, room.bounds.minX), room.bounds.maxX);
-  player.position.z = Math.min(Math.max(player.position.z, room.bounds.minZ), room.bounds.maxZ);
-
-  if (fireCooldown > 0) fireCooldown -= DT;
-
-  if (firing && fireCooldown <= 0) {
-    fireCooldown = 0.12;
-
-    const muzzle = player.position.clone();
-    muzzle.y = 1.3;
-    const direction = aim.clone().sub(muzzle).setY(0);
-    if (direction.lengthSq() > 1e-6) muzzle.addScaledVector(direction.normalize(), 0.55);
-
-    renderer.muzzle.fire(muzzle, 130, 0.05);
-    renderer.rig.punch(2.2);
+    if (along < bestDistance) {
+      bestDistance = along;
+      best = wanderer;
+    }
   }
 
-  // Slow regen, so the grain and vignette ramp can be watched recovering.
-  player.health = Math.min(1, player.health + DT * 0.06);
+  if (!best) return;
+
+  const impact = best.slot.position.clone();
+  impact.y = 1.05;
+
+  crowd.flash(best.slot);
+  particles.burst(impact, direction, 24);
+  decals.placeOnFloor(impact);
+
+  best.hp -= 45;
+
+  if (best.hp <= 0) {
+    crowd.play(best.slot, 'death', { hold: true });
+    best.dying = 4;
+  } else {
+    crowd.play(best.slot, 'stagger', { rate: 1.4 });
+  }
 }
 
 async function boot(): Promise<void> {
   await renderer.init((text) => overlay.setStatus(text));
 
+  for (const issue of validateStation(debugYard)) {
+    console.warn(`[last-train] ${issue.station}: ${issue.message}`);
+  }
+
   overlay.setStatus('Loading surfaces');
-  await renderer.preloadMaterials(TEST_ROOM_SETS);
+  await renderer.preloadMaterials([
+    'concrete',
+    'tile',
+    'wet_tile',
+    'steel',
+    'painted_brick',
+    'rubber',
+    'glass',
+  ]);
 
   overlay.setStatus('Lighting the station');
   await renderer.applyEnvironment({
-    file: 'sodium_interior.hdr',
-    intensity: 0.2,
-    tint: 0xe0a030,
+    file: debugYard.hdri.file,
+    intensity: debugYard.hdri.intensity,
+    tint: debugYard.hdri.tint,
     surface: false,
   });
 
-  const room = new TestRoom(renderer.materials, renderer.lighting, renderer.occlusion);
-  renderer.scene.add(room.group);
+  overlay.setStatus('Generating station geometry');
+  const station = generateStation(
+    debugYard,
+    renderer.materials,
+    renderer.lighting,
+    renderer.occlusion,
+  );
+  renderer.scene.add(station.group);
+  console.info('[last-train] generated', station.def.id, station.stats);
 
-  player.position.copy(room.spawn);
-  player.previous.copy(room.spawn);
+  overlay.setStatus('Baking crowd animation textures');
+  const bake = await bakeCrowd();
+  const crowd = new Crowd(renderer.scene, renderer.renderer, bake);
+  crowd.lodDistances = renderer.preset.crowdLodDistances;
+  crowd.castShadows = renderer.preset.crowdShadows;
+
+  const decals = new Decals(renderer.scene);
+  const particles = new Particles(renderer.scene);
+  const flyCamera = new FlyCamera(renderer.rig.camera);
+  const detachFly = flyCamera.attach(window);
+
+  overlay.setStatus('Spawning');
+  const wanderers = spawnCrowd(crowd, station, renderer.preset.zombieCap);
+
+  player.position.copy(station.playerSpawn);
+  player.previous.copy(station.playerSpawn);
+
+  const onKeyDown = (event: KeyboardEvent): void => {
+    keys.add(event.code);
+
+    switch (event.code) {
+      case 'KeyF':
+        torchOn = !torchOn;
+        renderer.torch.setEnabled(torchOn);
+        break;
+      case 'KeyB':
+        blackout = !blackout;
+        renderer.lighting.setBlackout(blackout);
+        break;
+      case 'KeyG':
+        // Flood test: each press raises the water by roughly a round's worth.
+        floodHeight = floodHeight >= 1.2 ? 0 : floodHeight + 0.3;
+        station.water?.setHeight(floodHeight);
+        break;
+      case 'KeyH':
+        player.health = Math.max(0, player.health - 0.22);
+        overlay.flash(0.7);
+        renderer.rig.addShake(0.5);
+        break;
+      case 'KeyJ':
+        player.health = 1;
+        break;
+      case 'Digit1':
+      case 'Digit2':
+      case 'Digit3': {
+        const index = Number(event.code.slice(-1)) - 1;
+        const name = PRESET_ORDER[index] as PresetName | undefined;
+        if (name) {
+          renderer.setPreset(name);
+          crowd.lodDistances = renderer.preset.crowdLodDistances;
+          crowd.castShadows = renderer.preset.crowdShadows;
+        }
+        break;
+      }
+      case 'F3':
+        event.preventDefault();
+        renderer.profiler.toggle();
+        break;
+      case 'F4':
+        event.preventDefault();
+        renderer.profiler.startProbe();
+        break;
+      default:
+        break;
+    }
+
+    const stageKeys: Partial<Record<string, StageName>> = {
+      F6: 'ssao',
+      F7: 'ssr',
+      F8: 'volumetric',
+      F9: 'bloom',
+    };
+    const stage = stageKeys[event.code];
+    if (stage) {
+      event.preventDefault();
+      renderer.setStageEnabled(stage, !renderer.graph.currentToggles[stage]);
+    }
+  };
 
   window.addEventListener('keydown', onKeyDown);
-  window.addEventListener('keyup', onKeyUp);
-  window.addEventListener('pointermove', onPointerMove);
-  window.addEventListener('pointerdown', () => {
-    firing = true;
+  window.addEventListener('keyup', (event) => keys.delete(event.code));
+  window.addEventListener('pointermove', (event) => {
+    pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  });
+  window.addEventListener('pointerdown', (event) => {
+    if (event.button === 0 && !flyCamera.active) firing = true;
   });
   window.addEventListener('pointerup', () => {
     firing = false;
@@ -200,36 +358,99 @@ async function boot(): Promise<void> {
   });
 
   renderer.torch.setEnabled(torchOn);
-  renderer.profiler.setEntityCounts(1, 0);
-
   overlay.dismissBoot();
+
+  const shotDirection = new Vector3();
+  const muzzle = new Vector3();
+  const nextPosition = new Vector3();
+
+  const tick = (): void => {
+    player.previous.copy(player.position);
+
+    const forward = (keys.has('KeyW') ? 1 : 0) - (keys.has('KeyS') ? 1 : 0);
+    const strafe = (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0);
+    const sprinting = keys.has('ShiftLeft') || keys.has('ShiftRight');
+
+    player.velocity.set(strafe, 0, -forward);
+    if (player.velocity.lengthSq() > 0) {
+      player.velocity.normalize().multiplyScalar(sprinting ? player.sprintSpeed : player.speed);
+    }
+
+    // Nav grid collision, crude but enough to keep the proxy out of walls
+    // until the real capsule solver lands in Phase 4.
+    nextPosition.copy(player.position).addScaledVector(player.velocity, DT);
+    const cell = station.grid.gridFromWorld(nextPosition.x, nextPosition.z);
+    if (station.nav.walkable[cell.y * station.grid.width + cell.x] === 1) {
+      player.position.copy(nextPosition);
+    }
+
+    updateWanderers(wanderers, crowd, station, DT);
+
+    if (fireCooldown > 0) fireCooldown -= DT;
+
+    if (firing && fireCooldown <= 0) {
+      fireCooldown = 0.12;
+
+      muzzle.copy(player.position);
+      muzzle.y = 1.3;
+      shotDirection.copy(aim).sub(muzzle).setY(0);
+
+      if (shotDirection.lengthSq() > 1e-6) {
+        shotDirection.normalize();
+        muzzle.addScaledVector(shotDirection, 0.55);
+        renderer.muzzle.fire(muzzle, 130, 0.05);
+        renderer.rig.punch(2.2);
+        resolveShot(wanderers, crowd, decals, particles, muzzle, shotDirection);
+      }
+    }
+
+    player.health = Math.min(1, player.health + DT * 0.06);
+  };
 
   const frame = (nowMs: number): void => {
     const ticks = clock.advance(nowMs);
-    for (let i = 0; i < ticks; i += 1) tick(room);
+    for (let i = 0; i < ticks; i += 1) tick();
 
-    // Interpolate the proxy for rendering, exactly as the crowd sync will.
     player.interpolated.lerpVectors(player.previous, player.position, clock.alpha);
-    room.playerProxy.position.set(
-      player.interpolated.x,
-      room.playerProxy.position.y,
-      player.interpolated.z,
+
+    raycaster.setFromCamera(pointer, renderer.rig.camera);
+    if (!raycaster.ray.intersectPlane(floorPlane, aim)) {
+      aim.copy(renderer.rig.camera.position).addScaledVector(raycaster.ray.direction, 40);
+      aim.y = 0;
+    }
+
+    const dt = Math.max(clock.frameDelta, 1e-4);
+
+    station.update(dt);
+    crowd.sync(dt, renderer.rig.camera.position, torchOn ? renderer.torch : null);
+    decals.update(dt);
+    particles.update(dt, renderer.rig.camera);
+    overlay.update(renderer.graph, player.health, dt);
+
+    renderer.profiler.setEntityCounts(
+      crowd.counts.active + 1,
+      crowd.counts.near + crowd.counts.mid + crowd.counts.far,
     );
 
-    updateAim();
-    overlay.update(renderer.graph, player.health, clock.frameDelta);
-    renderer.render(clock, player.interpolated, aim);
+    if (flyCamera.active) flyCamera.update(dt);
+    renderer.render(clock, player.interpolated, aim, !flyCamera.active);
 
     window.requestAnimationFrame(frame);
   };
 
   window.requestAnimationFrame(frame);
+
+  window.addEventListener('beforeunload', () => {
+    detachFly();
+    particles.dispose();
+    decals.dispose();
+    crowd.dispose();
+    station.dispose();
+  });
 }
 
 boot().catch((error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);
   overlay.setStatus(`Boot failed: ${message}`);
-  // Surfaced rather than swallowed: a failed backend init is the single most
-  // likely thing to go wrong on unfamiliar hardware.
   console.error('[last-train] boot failed', error);
 });

@@ -129,14 +129,17 @@ export class GameRenderer {
    * Renders one frame. Order matches the plan's render section: camera, then
    * lighting selection, then the torch, then occlusion, then the graph.
    */
-  render(clock: Clock, focus: Vector3, aim: Vector3): void {
+  render(clock: Clock, focus: Vector3, aim: Vector3, driveCamera = true): void {
     const dt = Math.max(clock.frameDelta, 1e-4);
 
     this.profiler.beginFrame();
 
     this.rig.focus.copy(focus);
     this.rig.aim.copy(aim);
-    this.rig.update(dt);
+
+    // The debug fly camera writes the same camera transform directly, so the
+    // spring arm is skipped rather than fighting it.
+    if (driveCamera) this.rig.update(dt);
 
     this.lighting.update(this.rig.camera);
     this.torch.update(focus, aim, dt, clock.elapsed);
