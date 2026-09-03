@@ -1,0 +1,22 @@
+{
+  "name": "last-train",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "description": "Round based zombie survival on a fictionalised Elizabeth line",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "three": "^0.185.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "@types/three": "^0.185.4",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.5"
+  }
+}
