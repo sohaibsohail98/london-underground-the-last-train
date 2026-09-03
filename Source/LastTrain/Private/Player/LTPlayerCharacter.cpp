@@ -35,8 +35,7 @@ ALTPlayerCharacter::ALTPlayerCharacter()
 	ViewModel->CastShadow = false;
 	ViewModel->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-	// The third person body is not needed in single player and would appear in
-	// the view model's shadow if left enabled.
+	// Not needed in single player, and it would show in the view model's shadow.
 	if (USkeletalMeshComponent* Body = GetMesh())
 	{
 		Body->SetOwnerNoSee(true);
@@ -70,7 +69,7 @@ void ALTPlayerCharacter::BeginPlay()
 	if (const APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
-			ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
+				ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
 		{
 			if (InputMapping)
 			{
@@ -150,8 +149,7 @@ void ALTPlayerCharacter::StartSprint()
 {
 	bSprinting = true;
 
-	// Sprinting cancels aiming rather than blocking it, so the transition is
-	// smooth and the player is never left in a half state.
+	// Cancel rather than block, so the player is never left in a half state.
 	if (Weapon)
 	{
 		Weapon->SetAiming(false);
@@ -212,7 +210,6 @@ void ALTPlayerCharacter::Tick(const float DeltaSeconds)
 		return;
 	}
 
-	// Movement speed is the sprint or walk base, scaled by the aim blend.
 	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
 	{
 		const float Base = bSprinting ? SprintSpeed : WalkSpeed;
@@ -220,7 +217,6 @@ void ALTPlayerCharacter::Tick(const float DeltaSeconds)
 		Movement->MaxWalkSpeed = Base * Scale;
 	}
 
-	// Field of view follows the aim blend toward the weapon's aimed value.
 	if (Camera && Weapon)
 	{
 		const ULTWeaponData* Data = Weapon->WeaponData;
@@ -238,10 +234,7 @@ void ALTPlayerCharacter::Tick(const float DeltaSeconds)
 }
 
 float ALTPlayerCharacter::TakeDamage(
-	const float Damage,
-	FDamageEvent const& DamageEvent,
-	AController* EventInstigator,
-	AActor* DamageCauser)
+	const float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
 	if (bDead || Damage <= 0.f)
 	{

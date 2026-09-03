@@ -8,15 +8,7 @@ class ULTPointsComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnZombieDied, ALTZombieCharacter*, Zombie, bool, bHeadshot);
 
-/**
- * The base zombie. Threatening because of numbers and positioning rather than
- * because it is a bullet sponge, per the style guide: health scales, but
- * modestly, and the early rounds must stay readable.
- *
- * Navigation is delegated to the AI controller and the navigation mesh rather
- * than calculated here. This class owns health, damage, attack timing and
- * death only.
- */
+/** Health, damage, attack timing and death. Navigation belongs to the AI controller. */
 UCLASS()
 class LASTTRAIN_API ALTZombieCharacter : public ACharacter
 {
@@ -33,7 +25,8 @@ public:
 
 	/** Applies a hit from the weapon component. */
 	UFUNCTION(BlueprintCallable, Category = "Zombie")
-	void ReceiveShot(float Damage, bool bHeadshot, const FHitResult& Hit, const FVector& ShotDirection, AActor* Instigator);
+	void
+	ReceiveShot(float Damage, bool bHeadshot, const FHitResult& Hit, const FVector& ShotDirection, AActor* Instigator);
 
 	/** Scales health and speed for the given round. Called on spawn. */
 	UFUNCTION(BlueprintCallable, Category = "Zombie")
@@ -49,13 +42,13 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Zombie")
 	float BaseHealth = 150.f;
 
-	/** Health multiplier compounded per round. 1.1 is the design value. */
+	/** Compounded per round. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Zombie")
 	float HealthGrowthPerRound = 1.1f;
 
 	/** Rounds at which the walk speed steps up. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Zombie")
-	TArray<int32> SpeedStepRounds = { 5, 10, 20 };
+	TArray<int32> SpeedStepRounds = {5, 10, 20};
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Zombie")
 	float BaseWalkSpeed = 130.f;
@@ -74,7 +67,7 @@ public:
 
 	/** Bone names treated as the head. Set to match the imported skeleton. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
-	TArray<FName> HeadBoneNames = { TEXT("head"), TEXT("Head"), TEXT("neck_01") };
+	TArray<FName> HeadBoneNames = {TEXT("head"), TEXT("Head"), TEXT("neck_01")};
 
 	/** Seconds the corpse remains before being destroyed. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Zombie")

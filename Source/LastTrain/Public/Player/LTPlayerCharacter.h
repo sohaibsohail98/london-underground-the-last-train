@@ -14,14 +14,7 @@ struct FInputActionValue;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHealthChanged, float, HealthFraction);
 
-/**
- * First person player. Wide default field of view so the platform reads,
- * because in a game about being surrounded, peripheral awareness is the
- * primary defensive tool.
- *
- * Sprinting forces hip fire: you cannot aim at a run. That is deliberate, and
- * it is what makes the choice between mobility and precision real.
- */
+/** First person player. Sprinting forces hip fire. */
 UCLASS()
 class LASTTRAIN_API ALTPlayerCharacter : public ACharacter
 {
@@ -37,10 +30,7 @@ public:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
 	virtual float TakeDamage(
-		float Damage,
-		FDamageEvent const& DamageEvent,
-		AController* EventInstigator,
-		AActor* DamageCauser) override;
+		float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
 	UFUNCTION(BlueprintPure, Category = "Player")
 	ULTWeaponComponent* GetWeapon() const { return Weapon; }
@@ -67,7 +57,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement")
 	float SprintSpeed = 640.f;
 
-	/** Hip fire field of view. Wide, so the platform reads. */
+	/** Wide, so the platform reads. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Camera")
 	float BaseFieldOfView = 95.f;
 
@@ -94,7 +84,6 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	TObjectPtr<UCameraComponent> Camera;
 
-	/** First person arms and weapon, visible to the owner only. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	TObjectPtr<USkeletalMeshComponent> ViewModel;
 

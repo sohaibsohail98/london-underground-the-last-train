@@ -1,32 +1,74 @@
 # Last Train
 
-Round-based zombie survival on a fictionalised Elizabeth line, rendered in real
-time 3D in the browser. A station is the arena. A train arrives every 100
-seconds and dwells for 25, and boarding it is an optional escape to an adjacent
-station. Staying raises the station's heat.
+First person round-based zombie survival on a fictionalised London Underground
+line, built in Unreal Engine 5. A station is the arena. A train arrives every
+100 seconds and dwells for 25, and boarding it is an optional escape to an
+adjacent station. Staying raises the station's heat.
 
 Not affiliated with, endorsed by, or connected to Transport for London. No TfL
 trademarks are used: no roundel, no official logo, no Johnston typeface, no
 reproduction of the official line diagram, no recorded announcements. Station
 names and geography are factual and used as such.
 
-## Running it
+## Layout
+
+```
+LastTrain.uproject      Unreal Engine 5 project, the current target
+Source/LastTrain/       C++ module: Player Weapons Zombies Rounds Economy Interaction
+Content/                Unreal assets, Git LFS, see Content/README.md
+Config/                 Engine and project configuration
+docs/                   Briefs, plan, art direction, setup
+tools/ci/               Static checks run by CI
+web/                    Superseded Three.js build, kept as a fallback
+```
+
+The Unreal target is current. The web target under `web/` is the earlier
+browser build, retained because it runs and is a viable fallback.
+
+## Running the Unreal target
+
+Follow `docs/unreal-setup.md`. The C++ has never been compiled, so expect to
+fix build errors on the first pass.
+
+## Running the web target
 
 ```bash
+cd web
 npm install
 npm run dev
 ```
 
-Needs a browser with WebGPU for the full pipeline. Without it the build falls
-back to WebGL2 automatically and thins the post-processing rather than
-disabling it.
+Needs a browser with WebGPU for the full pipeline; it falls back to WebGL2
+automatically and thins the post-processing rather than disabling it.
 
 ```bash
-npm run build       # strict typecheck, then production bundle
-npm run typecheck   # typecheck only
+npm run lint          # eslint, type aware
+npm run format        # prettier
+npm run typecheck     # tsc, strict
+npm run build         # typecheck then production bundle
 ```
 
-## Controls
+## Checks
+
+CI runs on every push and pull request:
+
+| Job | What it does |
+|---|---|
+| Web target | prettier check, eslint, tsc, vite build |
+| Unreal source | clang-format check, then `tools/ci/check_cpp_conventions.py` for naming, `#pragma once`, generated header ordering, `TObjectPtr` in containers, unfinished markers and British spelling |
+| Repository hygiene | `tools/ci/check_hygiene.py` for secrets, absolute paths and trademark leakage |
+
+The engine is not available in CI, so the C++ cannot be compiled there. The
+convention script catches what does not need a compiler.
+
+Run everything locally:
+
+```bash
+cd web && npm run format:check && npm run lint && npm run typecheck && npx vite build
+cd .. && python3 tools/ci/check_cpp_conventions.py && python3 tools/ci/check_hygiene.py
+```
+
+## Web target controls
 
 | Input | Action |
 |---|---|
@@ -46,11 +88,18 @@ npm run typecheck   # typecheck only
 
 ## Current state
 
-Phases 2 and 3 of the build plan are complete and merged. There is no game loop
-yet: no rounds, no train, no weapons beyond a debug pistol, no HUD, no audio,
-no save. The zombies wander rather than hunting.
+The project pivoted to Unreal Engine 5 and first person. See
+`docs/brief-v3-unreal.md`.
 
-What does exist:
+**Unreal target.** Phase 1 combat slice written, not yet compiled: player,
+weapon component with hip fire and aim down sights, zombie with head hitboxes
+and round scaling, round manager, spawn points, points economy, interaction
+interface. Everything in `docs/unreal-setup.md` still needs doing in the
+editor.
+
+**Web target.** Phases 2 and 3 complete, builds clean, browser playable. No
+game loop: no rounds, no train, no HUD, no audio, no save, and the zombies
+wander rather than hunting. What exists:
 
 - **Renderer.** WebGPU primary with a WebGL2 fallback from one codebase. Full
   post chain in the planned order: SSAO, SSR, volumetric fog, bloom, ACES
@@ -74,11 +123,14 @@ What does exist:
 
 ## Documents
 
-- `docs/brief-v2.md` — the build brief, authoritative for game design
-- `docs/phase-1-plan.md` — architecture and render graph plan
-- `docs/strategy.md` — remaining phases, asset plan, and model split
+- `docs/brief-v3-unreal.md` — current brief: engine, camera, phases, model split
+- `docs/art-direction.md` — palette, composition, and the trademark substitutions
+- `docs/unreal-setup.md` — editor steps the source cannot do for you
+- `docs/brief-v2.md` — superseded for engine, still authoritative on game design
+- `docs/strategy.md` — asset plan and phase history
 - `docs/repo-workflow.md` — token scoping and git conventions
-- `assets/README.md` — provenance and licence for every sourced binary
+- `docs/reference/` — superseded material, kept rather than deleted
+- `Content/ATTRIBUTION.md` — provenance and licence for every imported asset
 
 ## Licence
 

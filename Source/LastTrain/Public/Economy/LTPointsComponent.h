@@ -6,11 +6,7 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPointsChanged, int32, NewTotal, int32, Delta);
 
-/**
- * The points economy. Awards are data driven rather than scattered through
- * Blueprints, per the architecture document. Values are the ones established
- * in the design brief: 10 per hit, 60 per kill, 130 per headshot kill.
- */
+/** The points economy. Award values are data, never literals in Blueprints. */
 UCLASS(ClassGroup = (LastTrain), meta = (BlueprintSpawnableComponent))
 class LASTTRAIN_API ULTPointsComponent : public UActorComponent
 {
@@ -44,15 +40,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Economy")
 	void AddPoints(int32 Amount);
 
-	/** True if the player can afford the cost. Does not spend. */
+	/** Does not spend. */
 	UFUNCTION(BlueprintPure, Category = "Economy")
 	bool CanAfford(int32 Cost) const { return Points >= Cost; }
 
-	/**
-	 * Spends points if affordable. Returns false and changes nothing if not,
-	 * which is the boundary case the testing document calls out: exactly the
-	 * purchase price must succeed.
-	 */
+	/** Spends if affordable. Returns false and changes nothing otherwise. */
 	UFUNCTION(BlueprintCallable, Category = "Economy")
 	bool TrySpend(int32 Cost);
 

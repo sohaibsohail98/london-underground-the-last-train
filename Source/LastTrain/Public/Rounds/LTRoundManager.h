@@ -10,15 +10,7 @@ class ALTSpawnPoint;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRoundStarted, int32, Round);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRoundEnded, int32, Round);
 
-/**
- * The round loop. Spawn points are supplied by the level rather than hardcoded
- * here, per the architecture document, so the same manager drives every
- * station without modification.
- *
- * Round composition uses a formula rather than a table beyond the opening
- * rounds, which are hand set because the first five rounds do most of the work
- * teaching the player what the game is.
- */
+/** The round loop. Spawn points come from the level, so this is station agnostic. */
 UCLASS()
 class LASTTRAIN_API ALTRoundManager : public AActor
 {
@@ -47,13 +39,13 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Rounds")
 	int32 GetZombiesRemaining() const { return PendingSpawns + LiveZombies.Num(); }
 
-	/** Zombie class to spawn. Set per station to vary the roster. */
+	/** Set per station to vary the roster. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rounds")
 	TSubclassOf<ALTZombieCharacter> ZombieClass;
 
-	/** Hand set counts for the opening rounds. Formula takes over after. */
+	/** Formula takes over past the end of this array. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Rounds")
-	TArray<int32> OpeningRoundCounts = { 6, 8, 10, 12, 14 };
+	TArray<int32> OpeningRoundCounts = {6, 8, 10, 12, 14};
 
 	/** Additional zombies per round once the formula applies. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Rounds")

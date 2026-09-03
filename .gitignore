@@ -1,11 +1,30 @@
+# Unreal
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+.vscode/
+.vs/
+*.VC.db
+*.opensdf
+*.sdf
+*.sln
+*.suo
+*.xcodeproj
+*.xcworkspace
+
+# Web target
+web/node_modules/
+web/dist/
+web/.vite/
 node_modules/
 dist/
-dist-ssr/
-.vite/
-*.local
+
+# Environment and local
 .env
 .env.*
 !.env.example
+*.local
 .DS_Store
 *.log
 coverage/

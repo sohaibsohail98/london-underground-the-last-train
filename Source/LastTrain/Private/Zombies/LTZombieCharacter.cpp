@@ -13,7 +13,7 @@ ALTZombieCharacter::ALTZombieCharacter()
 
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 
-	// Mesh needs per-bone collision so that head shots are distinguishable.
+	// Per-bone collision, so head shots are distinguishable.
 	if (USkeletalMeshComponent* Mesh = GetMesh())
 	{
 		Mesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
@@ -22,8 +22,7 @@ ALTZombieCharacter::ALTZombieCharacter()
 		Mesh->SetGenerateOverlapEvents(false);
 	}
 
-	// The capsule handles movement, not weapon traces, otherwise every shot
-	// would report a body hit before reaching the head bone.
+	// The capsule must ignore weapon traces or every shot reports a body hit.
 	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
 	{
 		Capsule->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Ignore);
@@ -87,8 +86,6 @@ void ALTZombieCharacter::Tick(const float DeltaSeconds)
 		return;
 	}
 
-	// Navigation is the controller's job. This only asks for the move and
-	// handles the attack when close enough.
 	if (AAIController* AI = Cast<AAIController>(GetController()))
 	{
 		AI->MoveToActor(CurrentTarget, AttackRange * 0.75f);
@@ -121,11 +118,7 @@ bool ALTZombieCharacter::IsHeadBone(const FName BoneName) const
 }
 
 void ALTZombieCharacter::ReceiveShot(
-	const float Damage,
-	const bool bHeadshot,
-	const FHitResult& Hit,
-	const FVector& ShotDirection,
-	AActor* Instigator)
+	const float Damage, const bool bHeadshot, const FHitResult& Hit, const FVector& ShotDirection, AActor* Instigator)
 {
 	if (bDead)
 	{
@@ -142,8 +135,7 @@ void ALTZombieCharacter::ReceiveShot(
 		return;
 	}
 
-	// A small positional nudge so hits read even without a montage. Replaced
-	// by hit reaction animation in the art pass.
+	// Placeholder until hit reaction montages land in the art pass.
 	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
 	{
 		Movement->AddImpulse(ShotDirection.GetSafeNormal() * 400.f, true);

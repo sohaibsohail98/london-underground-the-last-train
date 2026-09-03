@@ -4,14 +4,7 @@
 #include "GameFramework/Actor.h"
 #include "LTSpawnPoint.generated.h"
 
-/**
- * A place zombies come from. Placed by hand in the level: automatic placement
- * produces spawns that are technically valid and feel unfair, which is the
- * opposite of what this game needs.
- *
- * Spawn points carry an area so that the round manager can respect door
- * progression, and a weight so that some routes see more traffic than others.
- */
+/** A hand placed zombie spawn. Carries an area for door gating and a weight for traffic. */
 UCLASS()
 class LASTTRAIN_API ALTSpawnPoint : public AActor
 {

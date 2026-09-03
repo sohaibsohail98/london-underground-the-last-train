@@ -14,7 +14,6 @@ void ALTRoundManager::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Spawn points come from the level, so the manager stays station agnostic.
 	for (TActorIterator<ALTSpawnPoint> It(GetWorld()); It; ++It)
 	{
 		SpawnPoints.Add(*It);
@@ -78,8 +77,7 @@ void ALTRoundManager::StartRound(const int32 Round)
 
 void ALTRoundManager::EndRound()
 {
-	// Exactly once per round, which is the condition the testing document
-	// calls out specifically.
+	// Exactly once per round.
 	OnRoundEnded.Broadcast(CurrentRound);
 
 	bInBreather = true;
@@ -164,10 +162,7 @@ void ALTRoundManager::TrySpawnOne()
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
 	ALTZombieCharacter* Zombie = GetWorld()->SpawnActor<ALTZombieCharacter>(
-		ZombieClass,
-		Chosen->GetActorLocation(),
-		Chosen->GetActorRotation(),
-		Params);
+		ZombieClass, Chosen->GetActorLocation(), Chosen->GetActorRotation(), Params);
 
 	if (!Zombie)
 	{

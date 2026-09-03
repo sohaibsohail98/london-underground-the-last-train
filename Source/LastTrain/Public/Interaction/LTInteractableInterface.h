@@ -10,11 +10,7 @@ class ULTInteractableInterface : public UInterface
 	GENERATED_BODY()
 };
 
-/**
- * Shared by wall buys, purchasable doors, perk machines, the upgrade bench and
- * the lost property office, so the player has one interaction path rather than
- * five special cases. This is the pattern the architecture document specifies.
- */
+/** One interaction path for wall buys, doors, perk machines, the bench and lost property. */
 class LASTTRAIN_API ILTInteractableInterface
 {
 	GENERATED_BODY()

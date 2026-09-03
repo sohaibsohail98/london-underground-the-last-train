@@ -1,11 +1,11 @@
 #include "Weapons/LTWeaponComponent.h"
 
-#include "LastTrain.h"
 #include "Economy/LTPointsComponent.h"
 #include "Engine/DamageEvents.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/Pawn.h"
 #include "Kismet/GameplayStatics.h"
+#include "LastTrain.h"
 #include "Weapons/LTWeaponData.h"
 #include "Zombies/LTZombieCharacter.h"
 
@@ -51,7 +51,8 @@ void ULTWeaponComponent::SetWeapon(ULTWeaponData* NewWeapon, const bool bRefillR
 	OnAmmoChanged.Broadcast(Magazine, Reserve);
 }
 
-void ULTWeaponComponent::TickComponent(const float DeltaSeconds, const ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void ULTWeaponComponent::TickComponent(
+	const float DeltaSeconds, const ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaSeconds, TickType, ThisTickFunction);
 
@@ -60,8 +61,7 @@ void ULTWeaponComponent::TickComponent(const float DeltaSeconds, const ELevelTic
 		return;
 	}
 
-	// Aim blend. Sprinting is handled by the character, which drops aiming
-	// before this ever sees it.
+	// Sprinting is handled by the character, which drops aiming before this sees it.
 	const float TransitionRate = DeltaSeconds / FMath::Max(WeaponData->AimTransitionSeconds, KINDA_SMALL_NUMBER);
 	AimAlpha = FMath::Clamp(AimAlpha + (bAiming ? TransitionRate : -TransitionRate), 0.f, 1.f);
 
@@ -203,9 +203,8 @@ FVector ULTWeaponComponent::ApplySpread(const FVector& Direction, const float Sp
 		return Direction;
 	}
 
-	// The square root of a uniform variable gives uniform density over the
-	// disc. Without it, pellets cluster at the centre and a shotgun pattern
-	// reads as a single hole rather than a spread.
+	// Square root of a uniform variable gives uniform density over the disc.
+	// Without it, pellets cluster centrally and a shotgun reads as one hole.
 	const float MaxAngle = FMath::DegreesToRadians(SpreadDegrees);
 	const float Angle = MaxAngle * FMath::Sqrt(FMath::FRand());
 
@@ -269,8 +268,7 @@ bool ULTWeaponComponent::TracePellet(const FVector& Origin, const FVector& Direc
 	Params.bReturnPhysicalMaterial = false;
 	Params.bTraceComplex = true;
 
-	// Penetration: keep tracing through zombies until the budget is spent or
-	// the shot hits geometry, which stops it regardless.
+	// Trace through zombies until the penetration budget is spent. Geometry always stops the shot.
 	int32 Remaining = FMath::Max(1, WeaponData->Penetration);
 	FVector TraceStart = Origin;
 	bool bHitAnything = false;
@@ -311,14 +309,10 @@ bool ULTWeaponComponent::TracePellet(const FVector& Origin, const FVector& Direc
 		bHitAnything = true;
 		bOutHeadshot = bOutHeadshot || bHeadshot;
 
-		if (Points)
+		// Kills are awarded from the zombie's death broadcast, so this is the hit award only.
+		if (Points && !Zombie->IsDead())
 		{
-			// A kill awards separately, from the zombie's death broadcast, so
-			// this is the hit award only.
-			if (!Zombie->IsDead())
-			{
-				Points->AwardHit();
-			}
+			Points->AwardHit();
 		}
 
 		Params.AddIgnoredActor(Zombie);

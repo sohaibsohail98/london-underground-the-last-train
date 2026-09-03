@@ -4,23 +4,14 @@
 #include "Engine/DataAsset.h"
 #include "LTWeaponData.generated.h"
 
-/**
- * Every tunable property of a weapon. Data asset rather than hardcoded values,
- * so that Phase 6's ten additional weapons need no code changes at all.
- *
- * The spread model is the important part. Hip fire and aiming down sights must
- * differ mechanically, not cosmetically: a wider cone, full movement speed and
- * no field of view change when hip firing, against a tight cone, a walking
- * pace and a narrowed field of view when aiming. Recoil bloom accumulates per
- * shot and decays, so holding the trigger stops being accurate.
- */
+/** Every tunable property of a weapon. See docs/brief-v3-unreal.md for the aiming model. */
 UCLASS(BlueprintType)
 class LASTTRAIN_API ULTWeaponData : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
 
 public:
-	/** Original name. Never reuse a name from another game. */
+	/** Original names only. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Identity")
 	FText DisplayName;
 
@@ -30,7 +21,6 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Damage")
 	float BaseDamage = 34.f;
 
-	/** Headshots are the skill expression, so this is generous. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Damage")
 	float HeadshotMultiplier = 2.5f;
 
@@ -54,7 +44,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Firing")
 	bool bAutomatic = true;
 
-	/** Pellets per shot. Above one, this is a shotgun. */
+	/** Above one, this is a shotgun. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Firing")
 	int32 PelletsPerShot = 1;
 
@@ -97,7 +87,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aiming")
 	float AimTransitionSeconds = 0.18f;
 
-	/** Field of view while aimed. The hip value comes from the character. */
+	/** Hip fire value comes from the character. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aiming")
 	float AimedFieldOfView = 65.f;
 
@@ -122,8 +112,5 @@ public:
 
 	/** Seconds between shots, derived from the fire rate. */
 	UFUNCTION(BlueprintPure, Category = "Firing")
-	float GetShotInterval() const
-	{
-		return RoundsPerMinute > 0 ? 60.f / static_cast<float>(RoundsPerMinute) : 0.1f;
-	}
+	float GetShotInterval() const { return RoundsPerMinute > 0 ? 60.f / static_cast<float>(RoundsPerMinute) : 0.1f; }
 };
