@@ -70,6 +70,10 @@ Phase 5.
 The reference frame contains protected material. Every item below has a
 substitution. If an art task does not restate these, they creep back in.
 
+For why this is the normal path rather than an unusually cautious one, including
+the Modern Warfare 3 and Watch Dogs: Legion precedents and why assets from other
+London games are not reusable, see `docs/reference/branding-precedent.md`.
+
 | In the reference | Status | Substitute |
 |---|---|---|
 | Roundel on the platform wall | TfL trademark | Original station mark: a violet horizontal bar over a charcoal field, station name in the project typeface. Distinct silhouette, no circle-and-bar |
