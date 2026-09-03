@@ -1,0 +1,18 @@
+{
+  "FileVersion": 3,
+  "EngineAssociation": "5.4",
+  "Category": "",
+  "Description": "Round based zombie survival on a fictionalised London Underground line.",
+  "Modules": [
+    {
+      "Name": "LastTrain",
+      "Type": "Runtime",
+      "LoadingPhase": "Default",
+      "AdditionalDependencies": [ "Engine", "AIModule" ]
+    }
+  ],
+  "Plugins": [
+    { "Name": "EnhancedInput", "Enabled": true },
+    { "Name": "ModelingToolsEditorMode", "Enabled": true }
+  ]
+}
