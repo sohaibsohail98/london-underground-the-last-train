@@ -56,7 +56,7 @@ export interface SurfaceOptions {
   roughnessBias?: number;
 }
 
-interface TextureSet {
+export interface TextureSet {
   albedo: Texture;
   normal: Texture;
   roughness: Texture;
@@ -342,6 +342,17 @@ export class MaterialLibrary {
 
     this.sets.set(set, result);
     return result;
+  }
+
+  /**
+   * The loaded textures for a set. Emitters that need custom node materials,
+   * such as the scrolling escalator handrail and the flow mapped water, build
+   * against these rather than going through surface().
+   */
+  textures(set: MaterialSet): TextureSet {
+    const textures = this.sets.get(set);
+    if (!textures) throw new Error(`Material set "${set}" was requested before it was loaded`);
+    return textures;
   }
 
   /** Preloads every set used by the current station. */

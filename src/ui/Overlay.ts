@@ -13,6 +13,7 @@ export class Overlay {
   readonly root: HTMLElement;
 
   private readonly hint: HTMLDivElement;
+  private readonly reticle: HTMLDivElement;
   private readonly boot: HTMLElement | null;
   private readonly status: HTMLElement | null;
   private hitFlash = 0;
@@ -34,9 +35,40 @@ export class Overlay {
       'text-align:center',
       'pointer-events:none',
     ].join(';');
+    this.reticle = document.createElement('div');
+    this.reticle.style.cssText = [
+      'position:absolute',
+      'left:50%',
+      'top:50%',
+      'border:1px solid rgba(224,224,232,0.72)',
+      'border-radius:50%',
+      'transform:translate(-50%,-50%)',
+      'pointer-events:none',
+      'transition:border-color 0.12s ease',
+    ].join(';');
+    root.appendChild(this.reticle);
+
     this.hint.textContent =
-      'WASD move   mouse aim   F torch   B blackout   H damage   1/2/3 preset   F3 profiler   F4 probe';
+      'WASD move   left click fire   right click aim   F torch   B blackout   G flood   [ ] brightness   F2 fly   F3 profiler   1/2/3 preset';
     root.appendChild(this.hint);
+  }
+
+  /**
+   * Sizes the reticle to the current spread cone. This is the only honest way
+   * to communicate hip fire versus aimed: the circle is the actual cone the
+   * shot can land in, not a decorative crosshair.
+   */
+  setReticle(spreadDeg: number, aiming: boolean, screenHeight = window.innerHeight): void {
+    // Convert the cone half angle to a pixel radius at the screen centre,
+    // assuming a 62 degree vertical field of view.
+    const pixels = (spreadDeg / 31) * (screenHeight / 2);
+    const diameter = Math.max(8, Math.min(240, pixels * 2));
+
+    this.reticle.style.width = `${diameter.toFixed(1)}px`;
+    this.reticle.style.height = `${diameter.toFixed(1)}px`;
+    this.reticle.style.borderColor = aiming
+      ? 'rgba(224,160,48,0.9)'
+      : 'rgba(224,224,232,0.6)';
   }
 
   setStatus(text: string): void {
@@ -73,5 +105,6 @@ export class Overlay {
 
   dispose(): void {
     this.hint.remove();
+    this.reticle.remove();
   }
 }
