@@ -10,6 +10,7 @@
  */
 
 import {
+  AmbientLight,
   Color,
   DataTexture,
   DirectionalLight,
@@ -102,6 +103,27 @@ export class Lighting {
   private readonly sun: DirectionalLight;
   private readonly cameraPosition = new Vector3();
 
+  /**
+   * Readability floor. A pitch black station is atmospheric for about thirty
+   * seconds and then it is simply unplayable: you cannot read a horde you
+   * cannot see. This ambient term is deliberately not physically motivated.
+   * It exists so that geometry, zombie silhouettes and the platform edge are
+   * always legible, with the torch providing contrast on top rather than
+   * being the only source of information.
+   */
+  private readonly ambient: AmbientLight;
+
+  /**
+   * A dim light carried with the player, independent of the torch. Even with
+   * the torch off or during a blackout, the player's immediate surroundings
+   * stay readable, which is what stops a blackout round becoming a guessing
+   * game.
+   */
+  private readonly playerFill: PointLight;
+
+  /** Master brightness in 0..1, exposed as a setting. */
+  private brightness = 1;
+
   private environmentTexture: Texture | null = null;
   private settings: EnvironmentSettings = DEFAULT_ENVIRONMENT;
   private budget = 8;
@@ -116,6 +138,13 @@ export class Lighting {
     // PMREMGenerator is typed against WebGLRenderer but works with any renderer
     // exposing the same render surface, which WebGPURenderer does.
     this.pmrem = new PMREMGenerator(renderer as unknown as ConstructorParameters<typeof PMREMGenerator>[0]);
+
+    this.ambient = new AmbientLight(0xb8c2d8, 0.55);
+    scene.add(this.ambient);
+
+    this.playerFill = new PointLight(0xffe3bc, 5.5, 9, 2);
+    this.playerFill.castShadow = false;
+    scene.add(this.playerFill);
 
     this.sun = new DirectionalLight(0xbfd0e4, 0);
     this.sun.position.set(-24, 40, 18);
@@ -172,8 +201,8 @@ export class Lighting {
 
     this.environmentTexture = target.texture;
     this.scene.environment = target.texture;
-    this.scene.environmentIntensity = settings.intensity;
     this.scene.environmentRotation.set(0, 0, 0);
+    this.applyLevels();
 
     this.sun.visible = settings.surface;
     this.sun.intensity = settings.surface ? 1.6 : 0;
@@ -198,11 +227,44 @@ export class Lighting {
     return this.candidates.length;
   }
 
-  /** Kills or restores emissives and blackout sensitive lights. */
+  /**
+   * Master brightness, 0.4 to 1.6. Exposed in settings because the acceptable
+   * level for a dark game varies enormously between panels, and asking the
+   * player to play a horror game they cannot see is not a design decision.
+   */
+  setBrightness(value: number): void {
+    this.brightness = Math.min(1.6, Math.max(0.4, value));
+    this.applyLevels();
+  }
+
+  get currentBrightness(): number {
+    return this.brightness;
+  }
+
+  /**
+   * Kills or restores emissives and blackout sensitive lights. Note that the
+   * ambient floor and the player fill survive a blackout at reduced strength:
+   * a blackout should feel like losing the station lighting, not like losing
+   * the ability to see.
+   */
   setBlackout(active: boolean): void {
     this.blackout = active;
-    this.emissiveScale.value = active ? 0 : 1;
-    this.scene.environmentIntensity = active ? this.settings.intensity * 0.08 : this.settings.intensity;
+    this.applyLevels();
+  }
+
+  private applyLevels(): void {
+    const blackoutScale = this.blackout ? 0.22 : 1;
+
+    this.emissiveScale.value = this.blackout ? 0 : this.brightness;
+    this.ambient.intensity = 0.55 * this.brightness * blackoutScale;
+    this.playerFill.intensity = 5.5 * this.brightness * (this.blackout ? 0.75 : 1);
+    this.scene.environmentIntensity =
+      this.settings.intensity * this.brightness * (this.blackout ? 0.12 : 1);
+  }
+
+  /** Follows the player. Called once per rendered frame. */
+  syncPlayerFill(position: Vector3): void {
+    this.playerFill.position.set(position.x, position.y + 1.5, position.z);
   }
 
   /**
@@ -260,6 +322,9 @@ export class Lighting {
     this.pool.length = 0;
     this.scene.remove(this.sun);
     this.sun.dispose();
+    this.scene.remove(this.ambient);
+    this.scene.remove(this.playerFill);
+    this.playerFill.dispose();
     this.environmentTexture?.dispose();
     this.pmrem.dispose();
     void this.renderer;

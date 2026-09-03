@@ -12,6 +12,8 @@
 import { Plane, Raycaster, Vector2, Vector3 } from 'three';
 import { Clock, DT } from './engine/Clock';
 import { Random } from './engine/Random';
+import { floorHeightAt, moveCapsule, type CollisionWorld } from './engine/Collision';
+import { Aim } from './systems/Aim';
 import { GameRenderer } from './render/Renderer';
 import { Crowd, type CrowdSlot } from './render/crowd/Crowd';
 import { bakeCrowd } from './render/crowd/VatBaker';
@@ -61,10 +63,16 @@ const raycaster = new Raycaster();
 const floorPlane = new Plane(new Vector3(0, 1, 0), 0);
 const clock = new Clock();
 const random = new Random(0xc0ffee);
+const aimSystem = new Aim();
+
+/** Capsule radii. The player is slightly slimmer than a zombie. */
+const PLAYER_RADIUS = 0.32;
+const ZOMBIE_RADIUS = 0.36;
 
 let torchOn = true;
 let blackout = false;
 let firing = false;
+let aiming = false;
 let fireCooldown = 0;
 let floodHeight = 0;
 
@@ -128,6 +136,7 @@ function updateWanderers(
   wanderers: Wanderer[],
   crowd: Crowd,
   station: GeneratedStation,
+  world: CollisionWorld,
   dt: number,
 ): void {
   const toTarget = new Vector3();
@@ -165,8 +174,22 @@ function updateWanderers(
     }
 
     toTarget.divideScalar(distance);
-    slot.position.addScaledVector(toTarget, wanderer.speed * dt);
+
+    // Zombies collide with the world too: nothing walks through a wall, and a
+    // blocked wanderer repicks rather than grinding into the geometry.
+    const step = wanderer.speed * dt;
+    const blocked = moveCapsule(
+      world,
+      slot.position,
+      toTarget.x * step,
+      toTarget.z * step,
+      ZOMBIE_RADIUS,
+    );
+
+    slot.position.y = floorHeightAt(world, slot.position.x, slot.position.z);
     slot.facing = Math.atan2(toTarget.x, toTarget.z);
+
+    if (blocked) pickWanderTarget(station, wanderer.target);
   }
 }
 
@@ -251,6 +274,7 @@ async function boot(): Promise<void> {
   });
 
   overlay.setStatus('Generating station geometry');
+  const world: CollisionWorld = { grid: {} as never, nav: {} as never };
   const station = generateStation(
     debugYard,
     renderer.materials,
@@ -258,6 +282,8 @@ async function boot(): Promise<void> {
     renderer.occlusion,
   );
   renderer.scene.add(station.group);
+  world.grid = station.grid;
+  world.nav = station.nav;
   console.info('[last-train] generated', station.def.id, station.stats);
 
   overlay.setStatus('Baking crowd animation textures');
@@ -301,6 +327,12 @@ async function boot(): Promise<void> {
         break;
       case 'KeyJ':
         player.health = 1;
+        break;
+      case 'BracketLeft':
+        renderer.setBrightness(renderer.brightness - 0.1);
+        break;
+      case 'BracketRight':
+        renderer.setBrightness(renderer.brightness + 0.1);
         break;
       case 'Digit1':
       case 'Digit2':
@@ -346,14 +378,21 @@ async function boot(): Promise<void> {
     pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
   });
   window.addEventListener('pointerdown', (event) => {
-    if (event.button === 0 && !flyCamera.active) firing = true;
+    if (flyCamera.active) return;
+    if (event.button === 0) firing = true;
+    if (event.button === 2) aiming = true;
   });
-  window.addEventListener('pointerup', () => {
-    firing = false;
+  window.addEventListener('pointerup', (event) => {
+    if (event.button === 0) firing = false;
+    if (event.button === 2) aiming = false;
+  });
+  window.addEventListener('contextmenu', (event) => {
+    if (!flyCamera.active) event.preventDefault();
   });
   window.addEventListener('blur', () => {
     keys.clear();
     firing = false;
+    aiming = false;
     clock.resync();
   });
 
@@ -361,8 +400,8 @@ async function boot(): Promise<void> {
   overlay.dismissBoot();
 
   const shotDirection = new Vector3();
+  const spreadDirection = new Vector3();
   const muzzle = new Vector3();
-  const nextPosition = new Vector3();
 
   const tick = (): void => {
     player.previous.copy(player.position);
@@ -372,19 +411,25 @@ async function boot(): Promise<void> {
     const sprinting = keys.has('ShiftLeft') || keys.has('ShiftRight');
 
     player.velocity.set(strafe, 0, -forward);
+    const movementFraction = player.velocity.lengthSq() > 0 ? (sprinting ? 1 : 0.6) : 0;
+
+    aimSystem.update(DT, aiming, sprinting, movementFraction);
+
     if (player.velocity.lengthSq() > 0) {
-      player.velocity.normalize().multiplyScalar(sprinting ? player.sprintSpeed : player.speed);
+      const speed = (sprinting ? player.sprintSpeed : player.speed) * aimSystem.moveScale;
+      player.velocity.normalize().multiplyScalar(speed);
     }
 
-    // Nav grid collision, crude but enough to keep the proxy out of walls
-    // until the real capsule solver lands in Phase 4.
-    nextPosition.copy(player.position).addScaledVector(player.velocity, DT);
-    const cell = station.grid.gridFromWorld(nextPosition.x, nextPosition.z);
-    if (station.nav.walkable[cell.y * station.grid.width + cell.x] === 1) {
-      player.position.copy(nextPosition);
-    }
+    moveCapsule(
+      world,
+      player.position,
+      player.velocity.x * DT,
+      player.velocity.z * DT,
+      PLAYER_RADIUS,
+    );
+    player.position.y = floorHeightAt(world, player.position.x, player.position.z);
 
-    updateWanderers(wanderers, crowd, station, DT);
+    updateWanderers(wanderers, crowd, station, world, DT);
 
     if (fireCooldown > 0) fireCooldown -= DT;
 
@@ -398,9 +443,16 @@ async function boot(): Promise<void> {
       if (shotDirection.lengthSq() > 1e-6) {
         shotDirection.normalize();
         muzzle.addScaledVector(shotDirection, 0.55);
+
+        // The shot goes where the cone says, not where the cursor says. Hip
+        // fire is meaningfully less accurate than aiming, and holding the
+        // trigger degrades both.
+        aimSystem.applySpread(shotDirection, random, spreadDirection);
+        aimSystem.registerShot();
+
         renderer.muzzle.fire(muzzle, 130, 0.05);
-        renderer.rig.punch(2.2);
-        resolveShot(wanderers, crowd, decals, particles, muzzle, shotDirection);
+        renderer.rig.punch(aimSystem.mode === 'aimed' ? 1.1 : 2.2);
+        resolveShot(wanderers, crowd, decals, particles, muzzle, spreadDirection);
       }
     }
 
@@ -420,6 +472,10 @@ async function boot(): Promise<void> {
     }
 
     const dt = Math.max(clock.frameDelta, 1e-4);
+
+    renderer.rig.fovOffset = aimSystem.fovOffset;
+    renderer.rig.distanceScale = aimSystem.distanceScale;
+    overlay.setReticle(aimSystem.spreadDeg, aimSystem.mode === 'aimed');
 
     station.update(dt);
     crowd.sync(dt, renderer.rig.camera.position, torchOn ? renderer.torch : null);

@@ -121,6 +121,15 @@ export class GameRenderer {
     this.applySize();
   }
 
+  /** Master brightness, wired to a settings slider in Phase 7. */
+  setBrightness(value: number): void {
+    this.lighting.setBrightness(value);
+  }
+
+  get brightness(): number {
+    return this.lighting.currentBrightness;
+  }
+
   setStageEnabled(name: StageName, enabled: boolean): void {
     this.graph.setStageEnabled(name, enabled);
   }
@@ -142,6 +151,7 @@ export class GameRenderer {
     if (driveCamera) this.rig.update(dt);
 
     this.lighting.update(this.rig.camera);
+    this.lighting.syncPlayerFill(focus);
     this.torch.update(focus, aim, dt, clock.elapsed);
     this.muzzle.update(dt);
     this.occlusion.update(this.rig, dt);

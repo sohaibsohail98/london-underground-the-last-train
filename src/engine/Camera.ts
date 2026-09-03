@@ -39,6 +39,12 @@ export class CameraRig {
   /** Base field of view in degrees before any punch is applied. */
   baseFov = 62;
 
+  /** Additive FOV offset, written by the aim system. Negative narrows. */
+  fovOffset = 0;
+
+  /** Spring arm length multiplier, written by the aim system. */
+  distanceScale = 1;
+
   /** The point the rig is trying to frame, normally the interpolated player. */
   readonly focus = new Vector3();
 
@@ -111,7 +117,8 @@ export class CameraRig {
     this.smoothLookahead.z = damp(this.smoothLookahead.z, leanZ, 5, dt);
 
     const pitch = MathUtils.degToRad(o.pitchDeg);
-    this.offset.set(0, Math.sin(pitch) * o.distance, Math.cos(pitch) * o.distance);
+    const distance = o.distance * this.distanceScale;
+    this.offset.set(0, Math.sin(pitch) * distance, Math.cos(pitch) * distance);
 
     this.lookAt.copy(this.smoothFocus);
     this.lookAt.y += o.targetHeight;
@@ -137,7 +144,7 @@ export class CameraRig {
 
     this.velocityMagnitude = this.camera.position.distanceTo(this.previousPosition) / Math.max(dt, 1e-4);
 
-    const targetFov = this.baseFov + this.fovPunch;
+    const targetFov = this.baseFov + this.fovPunch + this.fovOffset;
     if (Math.abs(this.camera.fov - targetFov) > 0.001) {
       this.camera.fov = targetFov;
       this.camera.updateProjectionMatrix();

@@ -49,10 +49,10 @@ export const debugYard: StationDef = {
   seed: 20260903,
 
   accent: 0x6c4c9c,
-  hdri: { file: 'sodium_interior.hdr', intensity: 0.2, tint: 0xe0a030 },
+  hdri: { file: 'sodium_interior.hdr', intensity: 0.55, tint: 0xe0a030 },
   exposure: 1,
 
-  fogDensity: 0.042,
+  fogDensity: 0.03,
   fogColour: 0x16161c,
   wetness: 0.25,
 
