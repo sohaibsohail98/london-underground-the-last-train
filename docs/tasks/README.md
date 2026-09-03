@@ -28,6 +28,16 @@ Read `docs/reference/reference-frame-notes.md` before any art or layout task.
 | `phase-a4-editor-setup.md` | The in editor work: trace channel, Input assets, Blueprints, data asset, grey box test map | you, in the editor |
 | `phase-a5-acceptance.md` | Run the ten point acceptance test, record failures | you |
 
+## Phase B tasks
+
+Written ahead. Run them in order; each assumes the one before it landed.
+
+| File | Task | Who |
+|---|---|---|
+| `phase-b1-throttled-repath.md` | Throttle per zombie `MoveToActor` to a jittered cadence | Opus |
+| `phase-b2-interaction.md` | Interaction component, `Interact` input, first wall buy | Opus or Sonnet |
+| `phase-b3-feedback-widgets.md` | Hit marker, crosshair, prompt, restrained HUD. No C++ | you, in the editor |
+
 ## How to resume in a fresh context window
 
 Start with `docs/tasks/NEXT.md`. It carries the current state, what was just done,

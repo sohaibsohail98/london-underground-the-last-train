@@ -51,6 +51,17 @@ the user in the Unreal editor.
   it to a jittered ~0.35s cadence in the two zombie files. Opus, small diff,
   compile after. It does not depend on the editor work, only on Phase A having
   passed so there is a map to test the crowd on.
+- `docs/tasks/phase-b2-interaction.md` (2026-09-04). The interaction path:
+  `ULTInteractionComponent` on the player, an `Interact` input action, and
+  `ALTWallBuy` as the first concrete interactable. This is the piece everything
+  in Phases C and E is blocked on, since the interface currently has no
+  implementation and no caller. Six new files plus the two player files.
+- `docs/tasks/phase-b3-feedback-widgets.md` (2026-09-04). Hit marker, crosshair,
+  prompt and the restrained HUD block. Editor only. Note that
+  `OnHitConfirmed`, `OnAmmoChanged`, `OnPointsChanged` and `OnHealthChanged` all
+  already exist and already fire, so this task needs no C++ at all. The spec
+  carries a table of every existing delegate; if a session proposes new C++ for
+  feedback, it has not read the headers.
 
 ## Phase plan in brief
 
