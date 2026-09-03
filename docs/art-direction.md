@@ -1,8 +1,12 @@
 # Art direction
 
-Keyed to the reference frame in `docs/reference/reference-frame-notes.md`. Read
-alongside `06_ASSET_AND_LEVEL_GUIDE.md` and
-`08_CLASSIC_ZOMBIES_STYLE_GUIDE.md`, which remain authoritative on restraint.
+Keyed to the reference frame in `docs/reference/reference-frame-notes.md`.
+
+The `06_ASSET_AND_LEVEL_GUIDE.md` and `08_CLASSIC_ZOMBIES_STYLE_GUIDE.md`
+documents cited below were external Project Knowledge uploads. They were never
+committed to this repository and are not present here. Their guidance on
+restraint is summarised in `docs/reference/reference-frame-notes.md` and the HUD
+section of `docs/brief-v3-unreal.md`.
 
 ---
 

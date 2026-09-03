@@ -1,6 +1,6 @@
 {
   "FileVersion": 3,
-  "EngineAssociation": "5.4",
+  "EngineAssociation": "5.8",
   "Category": "",
   "Description": "Round based zombie survival on a fictionalised London Underground line.",
   "Modules": [

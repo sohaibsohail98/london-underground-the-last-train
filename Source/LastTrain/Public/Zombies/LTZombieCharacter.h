@@ -26,7 +26,7 @@ public:
 	/** Applies a hit from the weapon component. */
 	UFUNCTION(BlueprintCallable, Category = "Zombie")
 	void
-	ReceiveShot(float Damage, bool bHeadshot, const FHitResult& Hit, const FVector& ShotDirection, AActor* Instigator);
+	ReceiveShot(float Damage, bool bHeadshot, const FHitResult& Hit, const FVector& ShotDirection, AActor* ShotInstigator);
 
 	/** Scales health and speed for the given round. Called on spawn. */
 	UFUNCTION(BlueprintCallable, Category = "Zombie")

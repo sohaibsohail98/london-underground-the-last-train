@@ -8,12 +8,16 @@ Status of the earlier documents:
 - `brief-v2.md` — superseded for engine, renderer and camera. Still
   authoritative for the round loop, the train mechanic, station tiering, the
   mechanic library, the economy and the legal constraints.
-- `phase-1-plan.md` — obsolete. It describes a Three.js render graph.
-- The `00` to `08` series in Project Knowledge — reinstated as the primary
-  design reference, since they always assumed UE5 and first person. Their
-  gameplay, art and testing guidance now applies directly. Their roadmap is
-  replaced by Part 3 below.
-- `docs/reference/` — where superseded material is kept rather than deleted.
+- `phase-1-plan.md`. Removed. It described a Three.js render graph and the
+  `web/` tree is the record of that build.
+- The `00` to `08` series in Project Knowledge. These were external Project
+  Knowledge uploads and were never committed to this repo. They always assumed
+  UE5 and first person, so their gameplay, art and testing guidance still
+  applies in spirit, but the surviving authoritative documents are the ones in
+  `docs/`. The roadmap they carried is replaced by Part 3 below.
+- `docs/reference/`. Holds `reference-frame.png` and `reference-frame-notes.md`
+  only. Any other `docs/reference/` design notes cited below were Project
+  Knowledge files and are not in the repo.
 
 ---
 

@@ -27,8 +27,9 @@ browser build, retained because it runs and is a viable fallback.
 
 ## Running the Unreal target
 
-Follow `docs/unreal-setup.md`. The C++ has never been compiled, so expect to
-fix build errors on the first pass.
+Unreal Engine 5.8. The `LastTrain` C++ module compiles. Follow
+`docs/unreal-setup.md` and `docs/tasks/phase-a4-editor-setup.md` for the editor
+work that creates the first playable map. `CLAUDE.md` has the build specifics.
 
 ## Running the web target
 
@@ -91,11 +92,12 @@ cd .. && python3 tools/ci/check_cpp_conventions.py && python3 tools/ci/check_hyg
 The project pivoted to Unreal Engine 5 and first person. See
 `docs/brief-v3-unreal.md`.
 
-**Unreal target.** Phase 1 combat slice written, not yet compiled: player,
+**Unreal target.** Phase 1 combat slice written and compiling on UE 5.8: player,
 weapon component with hip fire and aim down sights, zombie with head hitboxes
 and round scaling, round manager, spawn points, points economy, interaction
-interface. Everything in `docs/unreal-setup.md` still needs doing in the
-editor.
+interface. `Content/` is still empty, so the editor work in
+`docs/tasks/phase-a4-editor-setup.md` is what produces the first playable map.
+Current plan and status in `docs/tasks/README.md`.
 
 **Web target.** Phases 2 and 3 complete, builds clean, browser playable. No
 game loop: no rounds, no train, no HUD, no audio, no save, and the zombies
@@ -123,13 +125,14 @@ wander rather than hunting. What exists:
 
 ## Documents
 
+- `CLAUDE.md` — build specifics, module layout, conventions, model split
+- `docs/tasks/` — the current plan and one bounded task per file
 - `docs/brief-v3-unreal.md` — current brief: engine, camera, phases, model split
+- `docs/brief-v2.md` — superseded for engine, still authoritative on game design
 - `docs/art-direction.md` — palette, composition, and the trademark substitutions
 - `docs/unreal-setup.md` — editor steps the source cannot do for you
-- `docs/brief-v2.md` — superseded for engine, still authoritative on game design
-- `docs/strategy.md` — asset plan and phase history
-- `docs/repo-workflow.md` — token scoping and git conventions
-- `docs/reference/` — superseded material, kept rather than deleted
+- `docs/strategy.md` — phase history and the honest risk position
+- `docs/reference/` — the reference frame and notes on what to lift from it
 - `Content/ATTRIBUTION.md` — provenance and licence for every imported asset
 
 ## Licence

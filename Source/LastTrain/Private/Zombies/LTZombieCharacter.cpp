@@ -118,7 +118,7 @@ bool ALTZombieCharacter::IsHeadBone(const FName BoneName) const
 }
 
 void ALTZombieCharacter::ReceiveShot(
-	const float Damage, const bool bHeadshot, const FHitResult& Hit, const FVector& ShotDirection, AActor* Instigator)
+	const float Damage, const bool bHeadshot, const FHitResult& Hit, const FVector& ShotDirection, AActor* ShotInstigator)
 {
 	if (bDead)
 	{
@@ -131,7 +131,7 @@ void ALTZombieCharacter::ReceiveShot(
 
 	if (Health <= 0.f)
 	{
-		Die(bHeadshot, Instigator);
+		Die(bHeadshot, ShotInstigator);
 		return;
 	}
 

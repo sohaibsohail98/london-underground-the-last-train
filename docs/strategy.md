@@ -4,6 +4,14 @@ Live working document. Supersedes the credit split in `brief-v2.md` Part 3
 where the two disagree, because the phase allocation there assumed Fable would
 carry phases 1 to 5.
 
+Note on external references: the `00` to `08` numbered documents and the
+`docs/reference/` design notes referred to across the project's planning
+material were external Project Knowledge uploads. They were never committed to
+this repository and are not present here. The authoritative documents are the
+ones in `docs/`. Much of this file also predates the move to Unreal Engine 5
+and describes the browser render pipeline; `brief-v3-unreal.md` is the current
+plan.
+
 ---
 
 ## 1. Where we are

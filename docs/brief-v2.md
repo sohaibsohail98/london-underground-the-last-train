@@ -2,6 +2,15 @@
 
 Supersedes v1. Same game design, new rendering target.
 
+Note on external references: the `00` to `08` numbered documents and the
+`docs/reference/` design notes mentioned across the project's planning
+material were external Project Knowledge uploads. They were never committed to
+this repository and are not present here. The surviving authoritative
+documents are the ones in `docs/`. This brief remains design-authoritative for
+the round loop, the train mechanic, station tiering, the mechanic library, the
+economy and the legal constraints; the engine and renderer are superseded by
+`brief-v3-unreal.md`.
+
 Round-based zombie survival on a fictionalised Elizabeth line, rendered in real
 time 3D with a full post-processing stack. Visual target is stylised realism with
 heavy atmospheric lighting, not photorealism.

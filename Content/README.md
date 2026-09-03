@@ -2,7 +2,8 @@
 
 Unreal asset packages. Binary, tracked with Git LFS, never merged by hand.
 
-Layout mirrors `03_TECHNICAL_ARCHITECTURE.md`:
+Layout follows the structure described in `docs/brief-v3-unreal.md` and
+`CLAUDE.md`:
 
 ```
 Content/LastTrain/
