@@ -147,3 +147,28 @@ Restraint, per the style guide. High-value moments beat uniform coverage. Blood
 concentrated in the immediate combat area and on the zombies themselves rather
 than sprayed across every surface. Impact decals pooled and capped, oldest
 recycled.
+
+---
+
+## 7. UI typeface
+
+Overpass was the intended choice for `WBP_HUD` and all downstream UI: OFL
+licensed, US highway heritage, reads as transit signage without being Johnston
+or a clone of it. It is not present in the project or the engine, and the
+NeoStack editor tooling used to build the HUD has no font import path exposed
+(`AssetImport` can import a `.ttf` given a source file, but none exists in the
+repository yet and fetching one was out of scope for an editor only task).
+
+`WBP_HUD` uses the closest clean grotesque already shipped with the engine
+instead: `/Engine/EngineFonts/DroidSansMono.DroidSansMono` for all numeric
+readouts and short labels (round number, points, ammunition, the round label),
+and `/Engine/EngineFonts/Roboto.Roboto` (Regular weight) for body text (player
+name, weapon name, the interaction prompt). Two families is one more than the
+"one family, two weights" target; the mono face carries every tabular number so
+the HUD still reads as one system, and Roboto is confined to plain sentence
+case text where a mono face would look like a debug overlay.
+
+When Overpass (or Overpass Mono) is sourced as a `.ttf`, import it under
+`/Game/LastTrain/Fonts/` with `AssetImport.import_asset` and swap the two
+`FontObject` references throughout `WBP_HUD`. Nothing else about the HUD
+layout depends on the specific typeface.
