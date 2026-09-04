@@ -3,6 +3,37 @@ Binaries/
 DerivedDataCache/
 Intermediate/
 Saved/
+
+# Third party editor plugin, fetched from Fab, not ours to redistribute
+Plugins/NeoStackAI/
+.neostack/
+.agents/
+
+# Imported third party content packs. UE-Only Content and Fab Standard
+# licences let us ship these compiled into the game but not re host the raw
+# assets in a public repo. Fetch them per docs/reference/free-assets.md.
+# Our own work under Content/LastTrain/ is committed via LFS as normal.
+/Content/ThirdPerson/
+/Content/FirstPerson/
+/Content/Input/
+/Content/Characters/
+/Content/StarterContent/
+/Content/Megascans/
+/Content/MSPresets/
+/Content/LevelPrototyping/
+/Content/Lyra/
+/Content/CitySample/
+/Content/GameAnimationSample/
+/Content/NiagaraExamples/
+/Content/Subway/
+/Content/Audio/Sonniss/
+
+# One File Per Actor data for template maps we do not commit. Our own map's
+# OFPA data, if any, lives under Content/LastTrain/ and is not matched here.
+/Content/__ExternalActors__/ThirdPerson/
+/Content/__ExternalActors__/FirstPerson/
+/Content/__ExternalObjects__/ThirdPerson/
+/Content/__ExternalObjects__/FirstPerson/
 .vscode/
 .vs/
 *.VC.db

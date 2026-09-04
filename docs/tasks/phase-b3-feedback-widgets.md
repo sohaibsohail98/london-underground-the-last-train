@@ -26,37 +26,52 @@ Stop it and point at this table.
 ## What to build
 
 One widget, `WBP_HUD`, added to the viewport by the player Blueprint on
-`BeginPlay`. Keep it restrained. `docs/art-direction.md` and the classic
-restraint rules mean no kill feed, no floating damage numbers, no permanent
-minimap.
+`BeginPlay`. Barebones, clean, classic: the four screen corners and a centre
+reticle, nothing else. Thin strokes, generous edge margins, one weight of type,
+tabular figures. Let the world read through. `docs/art-direction.md` and the
+classic restraint rules mean no kill feed, no floating damage numbers, no
+minimap, no powerup banners.
 
 ### Elements
 
-1. **Hit marker.** Four short strokes around screen centre, hidden by default.
-   Bind `OnHitConfirmed`. On a body hit, show in near white for about 0.12s. On
-   a headshot, show in sodium `#E0A030`, slightly larger, for about 0.16s.
-   Drive both with a short animation rather than a tick and a timer.
-2. **Crosshair.** A small static dot or four-line reticle. Drive its spread from
+1. **Round.** Top left. From `OnRoundStarted`. The number, large, with a small
+   "ROUND" label above it in muted grey. No banner, no round change animation
+   beyond a quiet fade.
+2. **Player name.** Bottom left, above the points. Plain text from the player
+   state display name, muted grey, small. No portrait, no level, no icons.
+3. **Points.** Bottom left, the primary readout of that corner. Bind
+   `OnPointsChanged`. Total in near white, tabular. On a change, briefly show
+   the delta beside it, sodium for a gain, crimson for a spend, then fade and
+   settle to the new total.
+4. **Health.** Bottom left, a thin horizontal bar under the points. Bind
+   `OnHealthChanged`. Violet fill on a dark track, no numbers. It drains and
+   refills; the regeneration is felt through the bar, not labelled.
+5. **Weapon block.** Bottom right. Magazine and reserve from `OnAmmoChanged`,
+   magazine large and reserve smaller with a thin divider. Weapon name above,
+   small, from the held `ULTWeaponData` `DisplayName`. Text is enough; any icon
+   is a flat muted silhouette.
+6. **Crosshair.** A small static dot or four-line reticle. Drive its spread from
    `GetCurrentSpreadDegrees()` so it opens on movement and recoil bloom and
    tightens when aiming. It should visibly disappear or shrink to a dot at full
    `GetAimAlpha()`.
-3. **Interaction prompt.** Bottom centre, above the weapon block. Bind
+7. **Hit marker.** Four short strokes just outside the crosshair, hidden by
+   default. Bind `OnHitConfirmed`. On a body hit, show in near white for about
+   0.12s. On a headshot, show in sodium `#E0A030`, slightly larger, for about
+   0.16s. Drive both with a short animation rather than a tick and a timer.
+8. **Interaction prompt.** Bottom centre, clear of the weapon block. Bind
    `OnInteractableChanged`: set the text and fade in when `bAvailable`, fade out
-   when not. Show the key glyph and the prompt text on one line.
-4. **Weapon block.** Bottom right. Magazine and reserve from `OnAmmoChanged`,
-   weapon name from the held `ULTWeaponData`.
-5. **Points.** Bottom left. Bind `OnPointsChanged`. Flash the delta briefly in
-   sodium on a gain and crimson on a spend, then settle back to the total.
-6. **Round.** Top left, from the round manager. Number only, no banner.
-7. **Damage vignette.** Not a widget element. It is a post process material
+   when not. Key glyph then prompt text, one line, centred. No flicker at the
+   edge of range.
+9. **Damage vignette.** Not a widget element. It is a post process material
    driven from the existing `OnDamageTaken` Blueprint event on the player. Keep
    it there rather than faking it with a red image in UMG.
 
 ### Do not add yet
 
-Perk icons, equipment slots, the station schematic, the train countdown and the
-heat indicator all belong to Phase C or later, once the systems behind them
-exist. An empty slot on screen is worse than no slot.
+Perk icons, equipment slots, the challenge tracker, the special weapon meter,
+the station schematic, the train countdown, the exfil prompt and the heat
+indicator all belong to Phase C or later, once the systems behind them exist.
+An empty slot on screen is worse than no slot, so do not reserve space for them.
 
 ## Constraints
 

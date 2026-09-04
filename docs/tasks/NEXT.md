@@ -5,10 +5,36 @@ pick up without re reading the whole history.
 
 ## The one line
 
-B1 and B2 C++ is written and compiles on UE 5.8. There is still no playable map.
-Every remaining task is editor work and nothing can be verified until the grey
-box map exists. The next action is `docs/tasks/phase-a4-editor-setup.md` in the
-Unreal editor, done by the user.
+Phase A is DONE. `L_GreyboxTest` plays: move, look, jump, sprint, fire, aim,
+zombies spawn and attack, points award, all verified with numbers in A5. B1 and
+B2 C++ landed and compile; their editor wiring was done in the A4 pass. Next is
+Phase B acceptance: the crowd frame rate check, the wall buy interaction test,
+and building the B3 HUD so the combat is visible.
+
+## Editor tooling note
+
+The repo has a `Plugins/NeoStackAI/` tree, a third party Unreal editor plugin
+that lets a NeoStack agent build `.uasset` and `.umap` files through
+`execute_script`. It is now gitignored (`Plugins/NeoStackAI/`, `.neostack/`,
+`.agents/`), not ours to redistribute. The NeoStack agent brief is
+`docs/tasks/neostack-build.md`. What it cannot do: custom trace and object
+channels, and other bespoke Project Settings UI, those stay human only. The
+`Weapon` trace channel was created by hand and is in slot 1. NeoStack also
+enabled `CommonUI` as a dependency without its modules built, which crashed PIE
+with a `CommonInput` SIGSEGV; fixed by adding `CommonUI` explicitly to
+`LastTrain.uproject` and rebuilding the editor target. NeoStack's
+`execute_script` connector goes stale on every editor restart and needs a fresh
+NeoStack chat to pick it up again.
+
+## Content in git
+
+Decided 2026-09-04. Our own assets under `Content/LastTrain/` are committed via
+Git LFS as `.gitattributes` sets up. Imported third party packs are gitignored
+by their landing folders (`Content/ThirdPerson/`, `Content/Characters/`,
+`Content/Megascans/`, `Content/Lyra/`, etc.) because UE-Only Content and Fab
+Standard licences forbid re hosting raw assets in a public repo. The vetted
+free asset list and fetch instructions are `docs/reference/free-assets.md`. If a
+pack imports to a new folder, add it to `.gitignore` before committing.
 
 ## What just happened (2026-09-04, later session)
 
