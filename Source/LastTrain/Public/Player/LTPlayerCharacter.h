@@ -10,6 +10,7 @@ class UInputAction;
 class UInputMappingContext;
 class ULTWeaponComponent;
 class ULTPointsComponent;
+class ULTInteractionComponent;
 struct FInputActionValue;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHealthChanged, float, HealthFraction);
@@ -37,6 +38,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Player")
 	ULTPointsComponent* GetPoints() const { return Points; }
+
+	UFUNCTION(BlueprintPure, Category = "Player")
+	ULTInteractionComponent* GetInteraction() const { return Interaction; }
 
 	UFUNCTION(BlueprintPure, Category = "Health")
 	float GetHealthFraction() const { return MaxHealth > 0.f ? Health / MaxHealth : 0.f; }
@@ -73,6 +77,7 @@ protected:
 	void StartAim();
 	void StopAim();
 	void Reload();
+	void Interact();
 
 	/** Blueprint hook for the damage vignette and audio. */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Health")
@@ -92,6 +97,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Economy")
 	TObjectPtr<ULTPointsComponent> Points;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
+	TObjectPtr<ULTInteractionComponent> Interaction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputMappingContext> InputMapping;
@@ -116,6 +124,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> ReloadAction;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> InteractAction;
 
 private:
 	float Health = 0.f;

@@ -65,6 +65,15 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	float AttackCooldownSeconds = 1.3f;
 
+	/** Seconds between navmesh repath requests. Path following steers between them. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	float RepathIntervalSeconds = 0.35f;
+
+	/** Fraction of the interval added as a random per-instance offset, so repaths
+	    across the crowd do not land on the same frame. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	float RepathJitterFraction = 0.4f;
+
 	/** Bone names treated as the head. Set to match the imported skeleton. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	TArray<FName> HeadBoneNames = {TEXT("head"), TEXT("Head"), TEXT("neck_01")};
@@ -90,6 +99,7 @@ private:
 
 	float Health = 0.f;
 	float AttackCooldown = 0.f;
+	float RepathTimer = 0.f;
 	bool bDead = false;
 
 	UPROPERTY() TObjectPtr<AActor> CurrentTarget;

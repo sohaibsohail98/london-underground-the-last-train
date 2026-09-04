@@ -5,11 +5,27 @@ pick up without re reading the whole history.
 
 ## The one line
 
-The C++ combat slice compiles on UE 5.8. There is no playable map yet. The next
-action is the in editor setup in `docs/tasks/phase-a4-editor-setup.md`, done by
-the user in the Unreal editor.
+B1 and B2 C++ is written and compiles on UE 5.8. There is still no playable map.
+Every remaining task is editor work and nothing can be verified until the grey
+box map exists. The next action is `docs/tasks/phase-a4-editor-setup.md` in the
+Unreal editor, done by the user.
 
-## What just happened
+## What just happened (2026-09-04, later session)
+
+- Implemented `docs/tasks/phase-b1-throttled-repath.md`. `LTZombieCharacter`
+  now throttles its `MoveToActor` repath to a jittered 0.35s cadence instead of
+  once per tick. Two files, compiles, unverified until there is a crowd to test.
+- Implemented `docs/tasks/phase-b2-interaction.md`. New
+  `ULTInteractionComponent` on the player traces on `ECC_Visibility` for an
+  interactable and holds it; `Interact()` and an `InteractAction` input slot on
+  the player; `ALTWallBuy` is the first concrete `ILTInteractableInterface`
+  actor. Six new files plus the two player files, compiles clean.
+- Nothing committed yet in this session. Diff is confined to the eight source
+  files B1 and B2 name.
+- Still no `Content/` assets. B1, B2, B3 acceptance and the Phase A5 test all
+  wait on Phase A4 building `L_GreyboxTest`.
+
+## What just happened (earlier)
 
 - Fixed four build blockers so `LastTrain` compiles and the editor opens on
   UE 5.8: target settings to `V7` and `Unreal5_8`, renamed a shadowed
@@ -36,26 +52,38 @@ the user in the Unreal editor.
 
 ## Exact next action
 
-1. User: work through `docs/tasks/phase-a4-editor-setup.md` in the editor.
-2. User: run `docs/tasks/phase-a5-acceptance.md`.
-3. If it passes: mark Phase A done in `docs/tasks/README.md`, then hand a session
-   `docs/tasks/phase-b1-throttled-repath.md`. That spec is already written and
-   ready. If it fails: failures go in a new `docs/tasks/phase-b-bugs.md` and are
-   brought to a session one at a time.
+Everything left is in the Unreal editor. Do it in this order:
 
-## Written ahead, not yet started
+1. `docs/tasks/phase-a4-editor-setup.md`: trace channel, seven input actions
+   plus `IMC_Default`, `DA_Weapon_SMG`, the four Blueprints, `L_GreyboxTest`.
+   Add an eighth input action `IA_Interact` bound to `E` in `IMC_Default` and
+   assign it to `BP_PlayerCharacter`'s `InteractAction` slot (this is the B2
+   editor step). Place one `ALTWallBuy` in the map with a cube on its Plate and
+   `DA_Weapon_SMG` in its Weapon slot.
+2. `docs/tasks/phase-a5-acceptance.md`: the ten point combat test.
+3. B1 crowd check: raise `BP_RoundManager` `OpeningRoundCounts[0]` to 30, open
+   `stat unit`, confirm the game thread holds near 60fps with 24 or more alive.
+4. B2 acceptance: checks 3 to 7 in `phase-b2-interaction.md` (look at the plate,
+   prompt appears; `E` with too few points does nothing; `E` with enough buys
+   once; `E` again offers ammunition).
+5. `docs/tasks/phase-b3-feedback-widgets.md`: `WBP_HUD`. No C++.
+6. If A5 passes, mark Phase A done in `docs/tasks/README.md`. If anything fails,
+   record it in a new `docs/tasks/phase-b-bugs.md` with check number, observed
+   behaviour, the likely file, and whether it blocks the next phase.
 
-- `docs/tasks/phase-b1-throttled-repath.md` (2026-09-04). Phase B's first task:
-  `LTZombieCharacter::Tick` issues a `MoveToActor` pathfind every frame per
-  zombie, which is the load the Phase B 60fps gate measures. The spec throttles
-  it to a jittered ~0.35s cadence in the two zombie files. Opus, small diff,
-  compile after. It does not depend on the editor work, only on Phase A having
-  passed so there is a map to test the crowd on.
-- `docs/tasks/phase-b2-interaction.md` (2026-09-04). The interaction path:
-  `ULTInteractionComponent` on the player, an `Interact` input action, and
-  `ALTWallBuy` as the first concrete interactable. This is the piece everything
-  in Phases C and E is blocked on, since the interface currently has no
-  implementation and no caller. Six new files plus the two player files.
+There is a click by click walkthrough of steps 1 to 5 written for a first time
+UE5 user. If it is still around it was produced as an HTML artifact in the
+session that wrote B1 and B2.
+
+## Written ahead, code landed, editor and acceptance pending
+
+- `docs/tasks/phase-b1-throttled-repath.md` (2026-09-04). CODE DONE, compiles.
+  `LTZombieCharacter` throttles its `MoveToActor` repath to a jittered 0.35s
+  cadence. Acceptance is step 3 above and needs the map.
+- `docs/tasks/phase-b2-interaction.md` (2026-09-04). CODE DONE, compiles.
+  `ULTInteractionComponent` on the player, `Interact()` plus `InteractAction`,
+  and `ALTWallBuy`. Eight source files. Editor wiring and acceptance are steps
+  1 and 4 above.
 - `docs/tasks/phase-b3-feedback-widgets.md` (2026-09-04). Hit marker, crosshair,
   prompt and the restrained HUD block. Editor only. Note that
   `OnHitConfirmed`, `OnAmmoChanged`, `OnPointsChanged` and `OnHealthChanged` all

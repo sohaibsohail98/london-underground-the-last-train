@@ -32,11 +32,11 @@ Read `docs/reference/reference-frame-notes.md` before any art or layout task.
 
 Written ahead. Run them in order; each assumes the one before it landed.
 
-| File | Task | Who |
-|---|---|---|
-| `phase-b1-throttled-repath.md` | Throttle per zombie `MoveToActor` to a jittered cadence | Opus |
-| `phase-b2-interaction.md` | Interaction component, `Interact` input, first wall buy | Opus or Sonnet |
-| `phase-b3-feedback-widgets.md` | Hit marker, crosshair, prompt, restrained HUD. No C++ | you, in the editor |
+| File | Task | Who | State |
+|---|---|---|---|
+| `phase-b1-throttled-repath.md` | Throttle per zombie `MoveToActor` to a jittered cadence | Opus | C++ landed, compiles. Acceptance needs the map. |
+| `phase-b2-interaction.md` | Interaction component, `Interact` input, first wall buy | Opus or Sonnet | C++ landed, compiles. Editor wiring and acceptance pending. |
+| `phase-b3-feedback-widgets.md` | Hit marker, crosshair, prompt, restrained HUD. No C++ | you, in the editor | not started |
 
 ## How to resume in a fresh context window
 

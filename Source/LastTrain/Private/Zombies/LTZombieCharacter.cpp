@@ -46,6 +46,8 @@ void ALTZombieCharacter::BeginPlay()
 	}
 
 	CurrentTarget = UGameplayStatics::GetPlayerPawn(this, 0);
+
+	RepathTimer = FMath::FRandRange(0.f, RepathIntervalSeconds);
 }
 
 void ALTZombieCharacter::ApplyRoundScaling(const int32 Round)
@@ -86,9 +88,16 @@ void ALTZombieCharacter::Tick(const float DeltaSeconds)
 		return;
 	}
 
-	if (AAIController* AI = Cast<AAIController>(GetController()))
+	RepathTimer -= DeltaSeconds;
+	if (RepathTimer <= 0.f)
 	{
-		AI->MoveToActor(CurrentTarget, AttackRange * 0.75f);
+		if (AAIController* AI = Cast<AAIController>(GetController()))
+		{
+			AI->MoveToActor(CurrentTarget, AttackRange * 0.75f);
+		}
+
+		const float Jitter = RepathIntervalSeconds * RepathJitterFraction;
+		RepathTimer = RepathIntervalSeconds + FMath::FRandRange(-Jitter, Jitter);
 	}
 
 	TryAttack();

@@ -7,6 +7,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
+#include "Interaction/LTInteractionComponent.h"
 #include "LastTrain.h"
 #include "Weapons/LTWeaponComponent.h"
 #include "Weapons/LTWeaponData.h"
@@ -43,6 +44,7 @@ ALTPlayerCharacter::ALTPlayerCharacter()
 
 	Weapon = CreateDefaultSubobject<ULTWeaponComponent>(TEXT("Weapon"));
 	Points = CreateDefaultSubobject<ULTPointsComponent>(TEXT("Points"));
+	Interaction = CreateDefaultSubobject<ULTInteractionComponent>(TEXT("Interaction"));
 
 	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
 	{
@@ -122,6 +124,10 @@ void ALTPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 	{
 		Input->BindAction(ReloadAction, ETriggerEvent::Started, this, &ALTPlayerCharacter::Reload);
 	}
+	if (InteractAction)
+	{
+		Input->BindAction(InteractAction, ETriggerEvent::Started, this, &ALTPlayerCharacter::Interact);
+	}
 }
 
 void ALTPlayerCharacter::Move(const FInputActionValue& Value)
@@ -198,6 +204,14 @@ void ALTPlayerCharacter::Reload()
 	if (!bDead && Weapon)
 	{
 		Weapon->StartReload();
+	}
+}
+
+void ALTPlayerCharacter::Interact()
+{
+	if (!bDead && Interaction)
+	{
+		Interaction->TryInteract();
 	}
 }
 
