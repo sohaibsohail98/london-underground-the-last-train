@@ -93,14 +93,22 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Zombie")
 	void OnDeathPresentation(bool bHeadshot);
 
+	/** Read only so the attack state is inspectable in the editor and PIE. */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Combat", Transient)
+	float Health = 0.f;
+
+	/** Counts down from AttackCooldownSeconds after each hit. */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Combat", Transient)
+	float AttackCooldown = 0.f;
+
 private:
 	void Die(bool bHeadshot, AActor* Killer);
 	void TryAttack();
 
-	float Health = 0.f;
-	float AttackCooldown = 0.f;
 	float RepathTimer = 0.f;
 	bool bDead = false;
 
-	UPROPERTY() TObjectPtr<AActor> CurrentTarget;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Combat", Transient,
+		meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<AActor> CurrentTarget;
 };

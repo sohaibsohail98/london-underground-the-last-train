@@ -1,129 +1,181 @@
 # NEXT — resume point for a fresh context window
 
-Written 2026-09-04. Update this whenever you finish a task so a cold session can
-pick up without re reading the whole history.
+Last updated 2026-09-05. Update this whenever you finish a task so a cold
+session can pick up without re reading the whole history.
 
 ## The one line
 
-Phase A is DONE. `L_GreyboxTest` plays: move, look, jump, sprint, fire, aim,
-zombies spawn and attack, points award, all verified with numbers in A5. B1 and
-B2 C++ landed and compile; their editor wiring was done in the A4 pass. Next is
-Phase B acceptance: the crowd frame rate check, the wall buy interaction test,
-and building the B3 HUD so the combat is visible.
+Phase A is DONE and pushed. Phase B code (B1 throttled repath, B2 interaction,
+B3 HUD) is all landed. Phase B **acceptance is not signed off yet**: two PIE
+findings are still open (zombie attack lands nothing, round 1 spawns plateau at
+6). Diagnostic instrumentation is compiled and waiting for one more PIE pass.
+After that clears, Phase B is done and Phase C (the train, station heat, five
+zombie types, the departure board) begins as C++ work.
+
+## What just happened (2026-09-05)
+
+- A long autonomous NeoStack run worked the checklist in
+  `docs/tasks/neostack-run-2026-09-05.md`. Results:
+  - Section 1 (verify the two fixes): only 1.1 passed. 1.2 to 1.6 BLOCKED.
+  - Section 2 (B1 crowd frame check): 2.1 and 2.4 passed (count set to 30, then
+    reverted). 2.2 and 2.3 BLOCKED, spawns never climbed past 6.
+  - Section 3 (Canary Wharf grey box blockout, Phase D pulled forward): 17 of
+    18 items PASS. The whole blockout is built in
+    `Content/LastTrain/Maps/L_CanaryWharf_Greybox.umap`. Only 3.14 is left, the
+    Level Blueprint `BeginPlay` wiring, which is a NeoStack API gap not a
+    decision.
+  - Section 4 wrap up complete. No crashes, no git run, all levels saved.
+- A follow up NeoStack diagnosis chat pinned both blocked findings:
+  - **1.2 zombie attack lands nothing.** Two independent problems.
+    (a) `WBP_HUD` `HealthBar.Percent` has *zero* bindings, confirmed
+    structurally, so the bar can never move regardless of damage. (b) 15+
+    seconds of point blank contact produced no economy tick and no damage
+    vignette, which points to the attack genuinely not firing, not just a
+    display bug. Could not confirm from tooling because `Health`,
+    `AttackCooldown`, `CurrentTarget` were plain private members with no
+    reflection.
+  - **2.2 spawn plateau.** The placed `GreyboxTest_RoundManager` instance in
+    `L_GreyboxTest` carries a per instance `OpeningRoundCounts` override still
+    at `(6,8,10,12,14)`. NeoStack edited the asset, not the instance, so PIE
+    kept spawning 6. `MaximumAlive = 24` is correct and intended. Not a code
+    bug.
+- This agent then, without the editor:
+  - Exposed `Health` and `AttackCooldown` on `ALTZombieCharacter` as
+    `VisibleInstanceOnly, BlueprintReadOnly, Transient`, and `CurrentTarget`
+    the same with `AllowPrivateAccess`. So the attack state is now inspectable
+    in PIE.
+  - Added temporary `LT_LOG` diagnostics to `ALTZombieCharacter::TryAttack`
+    (logs every early out and every `ApplyDamage` call) and to
+    `ALTRoundManager::TrySpawnOne` (logs alive count, pending, cap, round on
+    each spawn). Both marked `// DIAGNOSTIC, remove after ... confirmed`.
+  - Compiled clean with the batch build. `LTZombieCharacter.cpp` and
+    `LTRoundManager.cpp` rebuilt and relinked. **The running editor needs a
+    restart or Live Coding to pick up the new binary.**
+  - Noted the RVO fix supersedes the "do not change the movement setup" line in
+    `docs/tasks/phase-b1-throttled-repath.md`.
+- Uncommitted before this session: the two earlier fixes
+  (`LTZombieCharacter.cpp` RVO 90 to 45 and acceptance `0.75f` to `0.5f`,
+  `WBP_HUD.uasset` Bug 1 branch rewire), plus the new docs and the new map.
+
+## Exact next actions
+
+1. **Restart the editor** so it loads the recompiled binary. Fresh NeoStack
+   chat after (its `execute_script` connector goes stale on every restart).
+2. **Fix the round manager instance override.** In `L_GreyboxTest`, select
+   `GreyboxTest_RoundManager` in the World Outliner, find `Opening Round
+   Counts` in Details, hit the yellow reset arrow so it inherits the asset. For
+   the B1 test, set index 0 to 30 *on the instance*. This unblocks 2.2 and 2.3.
+3. **PIE `L_GreyboxTest`, watch the Output Log.**
+   - Filter for `LogLastTrain`. Confirm `Spawned zombie. Alive N ...` lines
+     climb past 6 toward the `MaximumAlive` cap of 24. That closes the B1
+     crowd check once `stat unit` holds near 60fps at 24+ alive.
+   - Let a zombie reach the player and stand in contact. Watch for
+     `TryAttack firing ApplyDamage ...` lines. If they appear and the player
+     health does not drop, the bug is downstream of `ApplyDamage`. If they do
+     not appear, read the early out lines to see which gate is failing
+     (`cooldown`, `target null`, or `out of range`), and read the zombie's now
+     visible `AttackCooldown` and `CurrentTarget` in the Details panel while
+     PIE is paused.
+4. **Act on what the log shows.** Likely one of:
+   - Attack fires, health drops, only the HUD bar is dead. Then it is a pure
+     `WBP_HUD` fix, bind `HealthBar.Percent` to `GetHealthFraction()` or drive
+     it from `OnHealthChanged`. NeoStack territory.
+   - Attack never fires. Then fix `ALTZombieCharacter` in C++ (compile), most
+     likely the repath acceptance still parks the zombie just outside
+     `AttackRange`, or `CurrentTarget` is being lost.
+5. **Strip the diagnostics.** Remove the `// DIAGNOSTIC` `LT_LOG` lines from
+   `TryAttack` and `TrySpawnOne`. Keep the `BlueprintReadOnly` field exposure,
+   it is worth keeping. Recompile.
+6. **Re run B2/B3 acceptance** (checklist 1.2 to 1.6): attack plus health
+   drain, regen refills, vignette on real hits, interaction prompt in and out,
+   wall buy under 500 no ops then buys then re buys ammo at 250. Use direct
+   editor input, not simulated, the simulated input was unreliable all run.
+7. **Wire the Level Blueprint in `L_CanaryWharf_Greybox`** (checklist item
+   3.14): `Event BeginPlay`, `Get All Actors Of Class BP_RoundManager`, index
+   0, `BeginRounds`. Then place one `BP_RoundManager` in that map if 3.14 did
+   not. Re run the PIE smoke test as a real horde playtest, only composition
+   and no fall through are proven so far.
+8. **Commit.** When 3 to 6 pass: the two earlier fixes, the new C++ field
+   exposure (diagnostics stripped), the `WBP_HUD` binding fix, the new docs
+   (`canary-wharf-grid.md`, `neostack-run-2026-09-05.md`, `drive-migration.md`,
+   `canary-wharf-research/`), and `L_CanaryWharf_Greybox.umap` via LFS. Confirm
+   before pushing.
+9. **Mark Phase B done** in `docs/tasks/README.md` and update the one line
+   here. Then Phase C begins.
+
+## Phase C, the next real code work
+
+All C++, no NeoStack dependency. Numbers from `docs/brief-v2.md`.
+
+- `ALTTrain` actor: 100s arrival interval, 25s dwell, doors open and close on
+  the dwell, boarding the train is the optional escape that ends the run.
+- Station heat component: staying in the station raises heat over time,
+  boarding releases it. Heat drives spawn pressure or roster.
+- Five zombie types: either five `ALTZombieCharacter` subclasses or a data
+  driven variant on a `LTZombieData` asset. Decide the approach first.
+- Departure board actor showing the countdown to the next train, tied to
+  `ALTTrain`.
+
+Phase D grey box Canary Wharf was pulled forward and is mostly built already
+(see above), so Phase C has a second arena to test in beyond `L_GreyboxTest`.
 
 ## Editor tooling note
 
-The repo has a `Plugins/NeoStackAI/` tree, a third party Unreal editor plugin
-that lets a NeoStack agent build `.uasset` and `.umap` files through
-`execute_script`. It is now gitignored (`Plugins/NeoStackAI/`, `.neostack/`,
-`.agents/`), not ours to redistribute. The NeoStack agent brief is
-`docs/tasks/neostack-build.md`. What it cannot do: custom trace and object
-channels, and other bespoke Project Settings UI, those stay human only. The
-`Weapon` trace channel was created by hand and is in slot 1. NeoStack also
-enabled `CommonUI` as a dependency without its modules built, which crashed PIE
-with a `CommonInput` SIGSEGV; fixed by adding `CommonUI` explicitly to
-`LastTrain.uproject` and rebuilding the editor target. NeoStack's
-`execute_script` connector goes stale on every editor restart and needs a fresh
-NeoStack chat to pick it up again.
+- `Plugins/NeoStackAI/` is a third party Unreal editor plugin that lets a
+  NeoStack agent build `.uasset` and `.umap` through `execute_script`. It is
+  gitignored (`Plugins/NeoStackAI/`, `.neostack/`, `.agents/`), not ours to
+  redistribute. Agent brief is `docs/tasks/neostack-build.md`.
+- **NeoStack trial expires around 2026-09-07.** Spend remaining chats on the
+  PIE verification above and the `L_CanaryWharf_Greybox` Level Blueprint wiring,
+  not on new building.
+- NeoStack cannot do: custom trace and object channels, other bespoke Project
+  Settings UI (`write_config` silently no ops), and it could not reach the
+  Level Blueprint EventGraph in `L_CanaryWharf_Greybox` (API gap, item 3.14
+  needs a human).
+- The `Weapon` trace channel (slot 1, `ECC_GameTraceChannel1`, response Ignore)
+  was created by hand and is in `Config/DefaultEngine.ini`. Do not expect
+  NeoStack to recreate it.
+- `CommonUI` is in `LastTrain.uproject` `Plugins` explicitly because NeoStack
+  enabled it as a dependency without its modules built, which SIGSEGV'd PIE in
+  `UCommonInputSubsystem::Initialize`. Do not remove that entry.
+- NeoStack's `execute_script` connector goes stale on every editor restart.
+  Fix: restart the editor fully, start a fresh NeoStack chat, first message
+  "list your tools".
+- NeoStack's simulated movement input (`playtest_key`, `playtest_axis`)
+  intermittently stops producing player displacement mid session, reproduced on
+  clean sessions with no zombies. Treat it as unreliable, drive PIE by hand.
+
+## Build and toolchain
+
+- Editor build, run after any C++ change:
+  `"/Users/Shared/Epic Games/UE_5.8"/Engine/Build/BatchFiles/Mac/Build.sh LastTrainEditor Mac Development -Project="$PWD/LastTrain.uproject"`
+- External Xcode on `/Volumes/DriveSohaib` must be mounted. `xcode-select -p`
+  points at `/Volumes/DriveSohaib/Applications/Xcode.app/Contents/Developer`.
+- No CI compile. Compile locally after every C++ change, keep changes small.
+- **Pending: engine move to the external drive.** See
+  `docs/tasks/drive-migration.md`. Do it when NeoStack is idle and the editor
+  is fully closed, not mid run. Frees ~43 GiB on the internal SSD.
 
 ## Content in git
 
-Decided 2026-09-04. Our own assets under `Content/LastTrain/` are committed via
-Git LFS as `.gitattributes` sets up. Imported third party packs are gitignored
-by their landing folders (`Content/ThirdPerson/`, `Content/Characters/`,
-`Content/Megascans/`, `Content/Lyra/`, etc.) because UE-Only Content and Fab
-Standard licences forbid re hosting raw assets in a public repo. The vetted
-free asset list and fetch instructions are `docs/reference/free-assets.md`. If a
-pack imports to a new folder, add it to `.gitignore` before committing.
-
-## What just happened (2026-09-04, later session)
-
-- Implemented `docs/tasks/phase-b1-throttled-repath.md`. `LTZombieCharacter`
-  now throttles its `MoveToActor` repath to a jittered 0.35s cadence instead of
-  once per tick. Two files, compiles, unverified until there is a crowd to test.
-- Implemented `docs/tasks/phase-b2-interaction.md`. New
-  `ULTInteractionComponent` on the player traces on `ECC_Visibility` for an
-  interactable and holds it; `Interact()` and an `InteractAction` input slot on
-  the player; `ALTWallBuy` is the first concrete `ILTInteractableInterface`
-  actor. Six new files plus the two player files, compiles clean.
-- Nothing committed yet in this session. Diff is confined to the eight source
-  files B1 and B2 name.
-- Still no `Content/` assets. B1, B2, B3 acceptance and the Phase A5 test all
-  wait on Phase A4 building `L_GreyboxTest`.
-
-## What just happened (earlier)
-
-- Fixed four build blockers so `LastTrain` compiles and the editor opens on
-  UE 5.8: target settings to `V7` and `Unreal5_8`, renamed a shadowed
-  `Instigator` parameter, moved `LastTrain.h/.cpp` into `Private/`, installed the
-  Metal toolchain. External Xcode is on `/Volumes/DriveSohaib`.
-- Added the reference frame at `docs/reference/reference-frame.png` with notes in
-  `docs/reference/reference-frame-notes.md`. This is the Phase F art target and
-  should stay in mind for every layout and art decision.
-- Wrote `CLAUDE.md` at the repo root: engine facts, module layout, conventions,
-  legal line, model split, working rules.
-- Wrote this `docs/tasks/` scaffold: `README.md` with the phase plan, Phase A
-  task specs, this file.
-- On branch `phase/04-combat-slice`. Pending source changes from the build fix
-  are committed in this branch.
-
-## Repo state to be aware of
-
-- `Content/` is empty apart from markdown. No maps, Blueprints, Input assets or
-  data assets. Phase A4 creates the first ones.
-- `LastTrain.uproject` `EngineAssociation` is now `5.8`.
-- `web/` is the discarded Three.js build, tagged `phase-03`. Not part of this
-  work. Do not touch it.
-- CI has no compile step. Compile locally after every C++ change.
-
-## Exact next action
-
-Everything left is in the Unreal editor. Do it in this order:
-
-1. `docs/tasks/phase-a4-editor-setup.md`: trace channel, seven input actions
-   plus `IMC_Default`, `DA_Weapon_SMG`, the four Blueprints, `L_GreyboxTest`.
-   Add an eighth input action `IA_Interact` bound to `E` in `IMC_Default` and
-   assign it to `BP_PlayerCharacter`'s `InteractAction` slot (this is the B2
-   editor step). Place one `ALTWallBuy` in the map with a cube on its Plate and
-   `DA_Weapon_SMG` in its Weapon slot.
-2. `docs/tasks/phase-a5-acceptance.md`: the ten point combat test.
-3. B1 crowd check: raise `BP_RoundManager` `OpeningRoundCounts[0]` to 30, open
-   `stat unit`, confirm the game thread holds near 60fps with 24 or more alive.
-4. B2 acceptance: checks 3 to 7 in `phase-b2-interaction.md` (look at the plate,
-   prompt appears; `E` with too few points does nothing; `E` with enough buys
-   once; `E` again offers ammunition).
-5. `docs/tasks/phase-b3-feedback-widgets.md`: `WBP_HUD`. No C++.
-6. If A5 passes, mark Phase A done in `docs/tasks/README.md`. If anything fails,
-   record it in a new `docs/tasks/phase-b-bugs.md` with check number, observed
-   behaviour, the likely file, and whether it blocks the next phase.
-
-There is a click by click walkthrough of steps 1 to 5 written for a first time
-UE5 user. If it is still around it was produced as an HTML artifact in the
-session that wrote B1 and B2.
-
-## Written ahead, code landed, editor and acceptance pending
-
-- `docs/tasks/phase-b1-throttled-repath.md` (2026-09-04). CODE DONE, compiles.
-  `LTZombieCharacter` throttles its `MoveToActor` repath to a jittered 0.35s
-  cadence. Acceptance is step 3 above and needs the map.
-- `docs/tasks/phase-b2-interaction.md` (2026-09-04). CODE DONE, compiles.
-  `ULTInteractionComponent` on the player, `Interact()` plus `InteractAction`,
-  and `ALTWallBuy`. Eight source files. Editor wiring and acceptance are steps
-  1 and 4 above.
-- `docs/tasks/phase-b3-feedback-widgets.md` (2026-09-04). Hit marker, crosshair,
-  prompt and the restrained HUD block. Editor only. Note that
-  `OnHitConfirmed`, `OnAmmoChanged`, `OnPointsChanged` and `OnHealthChanged` all
-  already exist and already fire, so this task needs no C++ at all. The spec
-  carries a table of every existing delegate; if a session proposes new C++ for
-  feedback, it has not read the headers.
+Our own assets under `Content/LastTrain/` are committed via Git LFS per
+`.gitattributes`. Imported third party packs are gitignored by their landing
+folders (`Content/ThirdPerson/`, `Content/Characters/`, `Content/Megascans/`,
+`Content/Lyra/`, etc.) because UE-Only Content and Fab Standard licences forbid
+re hosting raw assets in a public repo. Vetted free asset list and fetch
+instructions: `docs/reference/free-assets.md`. Canary Wharf reference research
+(architecture, materials, signage, rolling stock, licence notes): 
+`docs/reference/canary-wharf-research/`. If a pack imports to a new folder, add
+it to `.gitignore` before committing.
 
 ## Phase plan in brief
 
-A foundation and first playable grey box → B engine core hardening (repath,
-interaction, hit markers) → C rounds, five zombie types, the train, the
-departure board → D grey box Canary Wharf → E perks, bench, lost property,
-revive → F art pass, Fable led, against the reference frame → G audio, HUD,
-second station, balance. Full table in `docs/tasks/README.md`.
+A foundation and first playable grey box → **B engine core hardening (repath,
+interaction, hit markers), acceptance in progress** → C rounds, five zombie
+types, the train, the departure board, station heat → D grey box Canary Wharf
+(blockout mostly built early) → E perks, bench, lost property, revive → F art
+pass, Fable led, against the reference frame → G audio, HUD, second station,
+balance. Full table in `docs/tasks/README.md`.
 
 Design numbers (round loop, 100s train interval, 25s dwell, station heat, the
 five zombie types, economy) come from `docs/brief-v2.md`. Engine and structure

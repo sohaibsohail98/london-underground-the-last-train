@@ -13,9 +13,9 @@ Read `docs/reference/reference-frame-notes.md` before any art or layout task.
 | Phase | Goal | Gate | State |
 |---|---|---|---|
 | A | Foundation and first playable grey box | `unreal-setup.md` section 8 checklist passes | **done 2026-09-04**. `L_GreyboxTest` plays, A5 passed on every testable check (5, 8, 9, 10 not reached due to NeoStack input harness degradation, not code) |
-| B | Engine core hardening: throttled repath, interaction system, hit markers | 24 to 40 zombies on the grey box platform stays stable at 60fps | B1 and B2 C++ landed and compile. Editor wiring done in A4. Crowd, interaction and HUD acceptance pending |
-| C | Rounds, five zombie types, the train, the departure board | a train arrives on schedule, you can board during dwell, staying raises pressure, rounds 1 to 10 play untouched | not started |
-| D | Grey box Canary Wharf | it is fun to train zombies around in grey boxes | not started |
+| B | Engine core hardening: throttled repath, interaction system, hit markers | 24 to 40 zombies on the grey box platform stays stable at 60fps | B1, B2, B3 all landed. Acceptance in progress. Two PIE findings open: zombie attack lands nothing, spawn count plateaued at 6 (a per instance override, not a code bug). Diagnostics compiled, one more PIE pass needed. See `NEXT.md`. |
+| C | Rounds, five zombie types, the train, the departure board, station heat | a train arrives on schedule, you can board during dwell, staying raises pressure, rounds 1 to 10 play untouched | not started. All C++. Numbers from `brief-v2.md`. |
+| D | Grey box Canary Wharf | it is fun to train zombies around in grey boxes | blockout mostly built early (2026-09-05 NeoStack run, 17 of 18 items). `L_CanaryWharf_Greybox.umap`. Level Blueprint wiring and horde smoke test still needed. |
 | E | Perks, upgrade bench, lost property, downed and revive | a full survival session start to death is possible | not started |
 | F | Art pass, Fable led | a screenshot of the platform stands next to the reference frame without embarrassment | not started |
 | G | Audio, restrained HUD, second station, balance | play well using only what is on screen | not started |
@@ -34,9 +34,9 @@ Written ahead. Run them in order; each assumes the one before it landed.
 
 | File | Task | Who | State |
 |---|---|---|---|
-| `phase-b1-throttled-repath.md` | Throttle per zombie `MoveToActor` to a jittered cadence | Opus | C++ landed, compiles. Acceptance needs the map. |
-| `phase-b2-interaction.md` | Interaction component, `Interact` input, first wall buy | Opus or Sonnet | C++ landed, compiles. Editor wiring and acceptance pending. |
-| `phase-b3-feedback-widgets.md` | Hit marker, crosshair, prompt, restrained HUD. No C++ | you, in the editor | not started |
+| `phase-b1-throttled-repath.md` | Throttle per zombie `MoveToActor` to a jittered cadence | Opus | C++ landed. RVO radius 90 to 45 and acceptance `0.75f` to `0.5f` fixes on top (supersedes the "do not change the movement setup" line in the spec). Crowd frame check still blocked on a round manager instance override, see `NEXT.md`. |
+| `phase-b2-interaction.md` | Interaction component, `Interact` input, first wall buy | Opus or Sonnet | C++ landed, compiles. `L_GreyboxTest` has the `LTWallBuy`. Acceptance not signed off, PIE pass pending. |
+| `phase-b3-feedback-widgets.md` | Hit marker, crosshair, prompt, restrained HUD. No C++ | NeoStack | `WBP_HUD` built and in git. Bug 1 (prompt fade branch) fixed. Open: `HealthBar.Percent` has no binding at all, needs wiring to `GetHealthFraction()` or `OnHealthChanged`. |
 
 ## Building the editor assets
 

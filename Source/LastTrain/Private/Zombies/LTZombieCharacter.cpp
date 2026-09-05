@@ -31,8 +31,11 @@ ALTZombieCharacter::ALTZombieCharacter()
 	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
 	{
 		Movement->MaxWalkSpeed = BaseWalkSpeed;
+		// RVO keeps the crowd from stacking on one navmesh point. Kept tight so it
+		// separates neighbouring zombies without braking the final approach to the
+		// player, which was leaving them parked outside AttackRange.
 		Movement->bUseRVOAvoidance = true;
-		Movement->AvoidanceConsiderationRadius = 90.f;
+		Movement->AvoidanceConsiderationRadius = 45.f;
 	}
 }
 
@@ -93,7 +96,9 @@ void ALTZombieCharacter::Tick(const float DeltaSeconds)
 	{
 		if (AAIController* AI = Cast<AAIController>(GetController()))
 		{
-			AI->MoveToActor(CurrentTarget, AttackRange * 0.75f);
+			// MoveToActor's acceptance radius is measured between capsule edges, so
+			// this leaves the zombie inside its own AttackRange reach once stopped.
+			AI->MoveToActor(CurrentTarget, AttackRange * 0.5f);
 		}
 
 		const float Jitter = RepathIntervalSeconds * RepathJitterFraction;
@@ -107,16 +112,25 @@ void ALTZombieCharacter::TryAttack()
 {
 	if (AttackCooldown > 0.f || !CurrentTarget)
 	{
+		// DIAGNOSTIC, remove after the attack bug is confirmed.
+		LT_LOG(Verbose, TEXT("TryAttack early out: cooldown %.2f target %s"), AttackCooldown,
+			CurrentTarget ? TEXT("set") : TEXT("null"));
 		return;
 	}
 
 	const float Distance = FVector::Dist(GetActorLocation(), CurrentTarget->GetActorLocation());
 	if (Distance > AttackRange)
 	{
+		// DIAGNOSTIC, remove after the attack bug is confirmed.
+		LT_LOG(Verbose, TEXT("TryAttack out of range: distance %.1f range %.1f"), Distance, AttackRange);
 		return;
 	}
 
 	AttackCooldown = AttackCooldownSeconds;
+
+	// DIAGNOSTIC, remove after the attack bug is confirmed.
+	LT_LOG(Log, TEXT("TryAttack firing ApplyDamage %.1f on %s at distance %.1f"), AttackDamage,
+		*CurrentTarget->GetName(), Distance);
 
 	UGameplayStatics::ApplyDamage(CurrentTarget, AttackDamage, GetController(), this, nullptr);
 }

@@ -84,6 +84,13 @@ if (RepathTimer <= 0.f)
 Do not change `TryAttack`, `ReceiveShot`, `Die`, or the movement component
 setup. `bUseRVOAvoidance` already handles local separation between repaths.
 
+**Superseded 2026-09-05.** The "do not change the movement component setup"
+instruction above no longer holds. `AvoidanceConsiderationRadius` was left at
+`90` and RVO treated the player as a 90 unit obstacle, braking the final
+approach so zombies parked outside `AttackRange` and never hit. It is now `45`
+in the constructor, and the `Tick` acceptance radius is `AttackRange * 0.5f`,
+not `* 0.75f`. See the current `LTZombieCharacter.cpp`.
+
 ## Constraints
 
 - British spelling, no em or en dashes, `LT_LOG` not `UE_LOG`, tab indent,
