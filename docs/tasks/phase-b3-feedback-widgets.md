@@ -1,4 +1,4 @@
-# Phase B3 — hit marker and interaction prompt widgets
+# Phase B3 - hit marker and interaction prompt widgets
 
 **Engine:** Unreal Engine 5.8. Editor work. No C++ change, so nothing to
 compile.

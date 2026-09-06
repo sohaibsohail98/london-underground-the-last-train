@@ -1,4 +1,4 @@
-# Phase C — the five zombie types
+# Phase C - the five zombie types
 
 **Engine:** Unreal Engine 5.8, macOS, external Xcode on `/Volumes/DriveSohaib`
 mounted. Compile after each step with the batch build in `CLAUDE.md`.

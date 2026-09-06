@@ -1,4 +1,4 @@
-# Phase B2 — interaction system and the first wall buy
+# Phase B2 - interaction system and the first wall buy
 
 **Engine:** Unreal Engine 5.8, macOS, external Xcode on `/Volumes/DriveSohaib`
 mounted. Compile after the change with the batch build in `CLAUDE.md`.

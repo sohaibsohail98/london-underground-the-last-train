@@ -1,4 +1,4 @@
-# Phase A4 — editor setup for the first playable grey box
+# Phase A4 - editor setup for the first playable grey box
 
 **Engine:** Unreal Engine 5.8, macOS, external Xcode on `/Volumes/DriveSohaib`
 mounted.

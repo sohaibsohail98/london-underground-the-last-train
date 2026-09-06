@@ -1,4 +1,4 @@
-# Branding precedent — how other games handled TfL IP
+# Branding precedent - how other games handled TfL IP
 
 Supporting research for `docs/art-direction.md`. That document says what to
 substitute. This one says why the substitution is the normal path rather than an
@@ -14,7 +14,7 @@ diagram are all licensable, and all licensed.
 
 Two shipped games show both routes.
 
-### Watch Dogs: Legion — licensed
+### Watch Dogs: Legion - licensed
 
 Legion uses the real roundel in-game, which commentators noted at the time as
 surprising given TfL's historic protectiveness over the mark. Ubisoft licensed
@@ -24,7 +24,7 @@ alongside real and under-construction ones like Nine Elms.
 
 Not a route available to this project at any sensible cost.
 
-### Call of Duty: Modern Warfare 3 — unlicensed
+### Call of Duty: Modern Warfare 3 - unlicensed
 
 MW3 included a sequence set on the Tube and was unable to use any TfL branding
 at all. A major publisher shipped a recognisable Underground level with zero

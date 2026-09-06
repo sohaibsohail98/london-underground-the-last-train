@@ -1,4 +1,4 @@
-# LAST TRAIN — repo setup and git workflow
+# LAST TRAIN  -  repo setup and git workflow
 
 This file was written for the browser build. The token safety rules, the
 credential helper setup and the branch strategy still apply to the Unreal
@@ -68,3 +68,35 @@ Simplest thing that still protects you:
 
 If a gate looks wrong and you fall back to the tagged `phase-03` browser build,
 you want a clean tagged point to branch from rather than an unpickable history.
+
+## 4. CI
+
+`.github/workflows/ci.yml` runs on every push to `main` and the working
+branch prefixes, and on every pull request into `main`. Four jobs, all fast,
+none needs the engine:
+
+- **cpp**: clang-format 20 in `--Werror` mode over `Source/`, then
+  `tools/ci/check_cpp_conventions.py` (Unreal prefixes, generated-header
+  order, `TObjectPtr` in containers, no `LogTemp`, no unfinished markers, no
+  dashes, British spelling in strings).
+- **docs**: `tools/ci/check_docs.py` over `docs/`, `CLAUDE.md`, `README.md`:
+  British spelling, no em or en dashes, no trailing whitespace, every
+  `.json` parses, `open-questions.json` item count and ids are consistent,
+  and every relative markdown link points at a file that exists.
+- **hygiene**: `tools/ci/check_hygiene.py`: secret patterns, absolute local
+  paths, trademark leakage (roundel, Johnston, operator name, third party
+  titles).
+- **content**: `tools/ci/check_content.py`: every tracked `.uasset` and
+  `.umap` is committed as a Git LFS pointer, not raw binary, and
+  `.gitattributes` still routes those suffixes through LFS. It inspects the
+  committed blob, so it passes the same locally and in CI.
+
+The engine is not available in CI, so C++ is never compiled there. Compile
+locally after every source change with the batch build in `CLAUDE.md`.
+
+Run all four before a push:
+
+    python3 tools/ci/check_cpp_conventions.py
+    python3 tools/ci/check_docs.py
+    python3 tools/ci/check_hygiene.py
+    python3 tools/ci/check_content.py

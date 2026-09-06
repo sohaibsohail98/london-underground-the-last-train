@@ -1,4 +1,4 @@
-# Phase A5 — combat slice acceptance test
+# Phase A5 - combat slice acceptance test
 
 **Prerequisite:** `docs/tasks/phase-a4-editor-setup.md` complete, `L_GreyboxTest`
 plays.

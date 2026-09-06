@@ -1,4 +1,4 @@
-# Fresh-eyes review of open-questions.md — 2026-09-06
+# Fresh-eyes review of open-questions.md - 2026-09-06
 
 Adversarial review. Findings are things the audit missed, got wrong, or under-specified.
 
@@ -195,7 +195,7 @@ numbers, then lock.
   is proposing a wind-up redesign on top of an attack path that is currently
   under active debugging and may change. The audit should note the interaction
   with the open bug.
-- **2.1** "the flow field was a web-build concept, discarded" — correct, but the
+- **2.1** "the flow field was a web-build concept, discarded" - correct, but the
   audit does not catch that `docs/reference/reference-frame-notes.md` section 4
   still lists "Flow field plus spawn routes down the tunnel mouths" as the Phase
   B/D mechanism for the horde. That is a live doc contradiction that belongs in
@@ -506,7 +506,7 @@ numbers, then lock.
   doc". Correct call, but the audit lists it as item 6.6 and counts it in the 98,
   inflating the count with a non-question. It is a cleanup ticket, not an open
   design question.
-- **6.3** "debug-yard.ts uses `['flood', 'interchange']`" — true, but debug-yard
+- **6.3** "debug-yard.ts uses `['flood', 'interchange']`" - true, but debug-yard
   also has `adjacent: ['debug-yard']` (a self-loop, the audit's own 16.6), so
   citing it as evidence of a mechanic pairing decision is citing a test hack.
 
@@ -640,7 +640,7 @@ numbers, then lock.
   warning. That is a serious economy bug." Verified: `SetWeapon` replaces
   `WeaponData` wholesale, no second slot. But this is framed as a bug in section
   8 and *also* implicitly in the priority list (#6). It is not a bug, it is an
-  unimplemented feature (2-weapon carry) — the current code is a Phase 1 combat
+  unimplemented feature (2-weapon carry) - the current code is a Phase 1 combat
   slice that only ever had one weapon. Calling it a bug overstates the regression
   risk; it is scoped Phase C/E work.
 - **8.1** "Crossbow and joke weapon likely need small code additions
@@ -722,7 +722,7 @@ numbers, then lock.
    cover, and the crawler's "only body hitbox reachable standing" (3.1) implies
    crouching should let you hit its head. Missing verb.
 3. No item on **mantle / vault / traversal**. The interchange mezzanine, the
-   trackbed ramps (4.3), debris — a FP survival game usually has at least a
+   trackbed ramps (4.3), debris - a FP survival game usually has at least a
    mantle. `JumpZVelocity = 420` is a plain jump. free-assets points at GASP's
    traversal system. Unaddressed.
 4. No item on **the view model and hands**. `ViewModel` component exists,
@@ -927,13 +927,13 @@ numbers, then lock.
 
 **Wrong/miscategorised:**
 - **12.4** "`FireSound` `USoundBase` field (one sound per weapon, currently
-  unset)" — correct. But the audit does not note `MuzzleFlash` is typed
+  unset)" - correct. But the audit does not note `MuzzleFlash` is typed
   `UParticleSystem` (Cascade), which is deprecated and mismatched with the
   Niagara-based free-assets FX plan; that is an audio-adjacent code-reality gap
   the audit is positioned to catch and does not.
 - Section 12 is 5 items for what brief-v3 makes an entire phase (Phase 8) with a
   demanding accept criterion. The review brief asks "did the audit treat audio as
-  seriously as systems?" — on the evidence of 5 items vs 10 for the train and 9
+  seriously as systems?" - on the evidence of 5 items vs 10 for the train and 9
   for zombie AI, no.
 
 ### Section 13: Menus, persistence, progression
@@ -949,9 +949,9 @@ numbers, then lock.
 2. No item on **`USaveGame` schema and versioning**. 13.3 says "one `USaveGame`
    written on every station arrival, every round end, and on quit". No schema, no
    version field, no corruption handling, no "what if the save is from an older
-   build" — which matters because there is no CI and builds are hand-compiled.
+   build" - which matters because there is no CI and builds are hand-compiled.
 3. No item on **first-run detection** (no save present) driving the onboarding
-   (11.6) and the title screen ("New Run" vs "Continue" — 13.1 says no Continue).
+   (11.6) and the title screen ("New Run" vs "Continue" - 13.1 says no Continue).
 4. No item on **the loadout picker existing or not in v1**. brief-v3 Phase 9
    lists it; 8.2 says "no loadout picker in v1, fixed pistol start"; 13.x never
    reconciles, so "is there a pre-run screen" is answered only implicitly and
@@ -976,7 +976,7 @@ numbers, then lock.
   it is one of the biggest identity decisions for the game (arcade vs
   progression spine) and the user should own it. Also inconsistent with 7.6 and
   4.8, which between them build a fairly elaborate Credit economy with two earn
-  paths, per-attachment costs, and a 15-to-20-run completion curve — that is not
+  paths, per-attachment costs, and a 15-to-20-run completion curve - that is not
   "thin".
 - **13.5** "v1 has no win condition; the run ends only in death; document that
   v1 is endless". Probably correct for an arcade survival game, but it means the
@@ -1022,10 +1022,10 @@ numbers, then lock.
 4. No item on **the post-process stack for the UE build**. brief-v2 had a full
    named chain; brief-v3 says "Lumen plus a tuned post process volume" and 14.6
    says "exposure locked, slight filmic tonemap". What else: bloom threshold,
-   vignette, film grain, chromatic aberration (yes/no — it was in brief-v2), motion
+   vignette, film grain, chromatic aberration (yes/no - it was in brief-v2), motion
    blur (yes/no), sharpen? A one-line "PPV contents" spec is missing.
 5. No item on **whether the single-mesh-varied-by-scale-and-colour zombie reads
-   as five types visually** — the review brief asks this directly and it is a
+   as five types visually** - the review brief asks this directly and it is a
    real risk (brief-v3's honest-ceiling section admits per-zombie variation is
    not solo-achievable at fidelity). 3.x owns the stats; 14.x should own the
    *legibility* and does not.
@@ -1033,10 +1033,10 @@ numbers, then lock.
    ("flood reflections", the review brief's phrase) and interchange (a lit
    mezzanine vs a dark platform) have no lighting note. A blackout *and* a flood
    station lit the same way is a missed contrast.
-7. No item on **the reference frame's mood without the branding** — the review
+7. No item on **the reference frame's mood without the branding** - the review
    brief's phrasing. 14.7 handles the HUD carve-out; nothing handles "the frame's
    atmosphere comes partly from the roundel's violet, the Johnston signage
-   rhythm, the line livery — strip those and re-create the *feeling* with what?"
+   rhythm, the line livery - strip those and re-create the *feeling* with what?"
 
 **Weak defaults:**
 - **14.2 / 14.3** the station mark and typeface: the audit's defaults (a 5:1
@@ -1050,7 +1050,7 @@ numbers, then lock.
   violet-keyed)" and writing "~12 poster concepts". This is the audit doing
   worldbuilding. A fintech brand name and a lore thread about an outbreak are
   creative decisions for the user; the audit should say "the advertising needs 3
-  recurring brands and a lore thread — user to define" and stop.
+  recurring brands and a lore thread - user to define" and stop.
 - **14.5** rating target "PEGI 16 / ESRB M". Fine, but asserted with no analysis
   of what in the game drives it (zombie violence, blood decals, no gore extremes
   per the restraint brief) and no note that "no dismemberment" is itself the
@@ -1063,7 +1063,7 @@ numbers, then lock.
   number it.
 
 **Wrong/miscategorised:**
-- **14.1** "grey box only" as the current visual state — correct, but the audit
+- **14.1** "grey box only" as the current visual state - correct, but the audit
   does not note that `L_CanaryWharf_Greybox` is *already built* (17 of 18
   NeoStack items, `NEXT.md`) with specific primitive choices (train shell as
   carriage boxes with door gaps, escalators as 30-degree slabs, flood as a
@@ -1090,14 +1090,14 @@ numbers, then lock.
    `canary-wharf-research/rolling-stock.md` gives exact dimensions of the 1996
    Stock and Class 345 "shape, structure and wear are fair game". But it also
    describes the platform-screen-door arrangement and the "blank screen wall when
-   the train has gone" — copying that arrangement closely is fine legally, but
+   the train has gone" - copying that arrangement closely is fine legally, but
    the audit never confirms the *train profile* choice (1996 vs 345) which is
    both a legal-adjacent and a gameplay decision (see section 4).
 3. No item on **map / schematic legal specifics**. 6.5 and 15.5 touch the
    network schematic; neither states the concrete rules: no roundel-derived
    station markers, no Johnston, no the-real-diagram's-angles-and-colours, an
    original line colour that is not the Elizabeth purple or Jubilee grey (the
-   project violet `#6C4C9C` is close to Elizabeth-line purple — worth a note).
+   project violet `#6C4C9C` is close to Elizabeth-line purple - worth a note).
 4. No item on **ISO 7010 pictograms** as the safe signage route
    (`free-assets.md` section E recommends them, Wikimedia PD). The audit's
    signage discussion (14.2) never mentions the one concrete legally-clean
@@ -1124,7 +1124,7 @@ numbers, then lock.
   standard safety information the game will convey ("Same information, original
   panel geometry"). So the rule needs to be "the exact set phrase 'Mind the gap'
   as a standalone catchphrase is avoided; conveying the gap hazard in other
-  words is fine" — which the audit says, but the checker rule as proposed (reject
+  words is fine" - which the audit says, but the checker rule as proposed (reject
   the substring) would also reject a legitimate rephrase that quotes it. Checker
   scope needs care.
 - **15.6** "treat LAST TRAIN as a working title, check before release". Fine, but
@@ -1226,7 +1226,7 @@ numbers, then lock.
    is a deutan/protan trap (crimson heat, crimson damage, crimson emergency,
    crimson special-round vs violet accent). No subtitle spec despite the game
    putting the timer in audio. No "reduce camera shake" detail beyond a settings
-   line. No difficulty option (13.4 rules it out — itself an accessibility
+   line. No difficulty option (13.4 rules it out - itself an accessibility
    decision made in passing). No remapping spec. No FOV/motion-sickness note
    beyond the slider. For a dark, audio-dependent, red-heavy FP horde game this
    is a serious hole.
@@ -1253,11 +1253,11 @@ numbers, then lock.
 6. **Anti-training / kiting-exploit AI design.** The defining problem of
    round-based survival: the player runs a loop and the horde trails in a
    conga line, making high rounds trivial. brief-v3's reference frame *is* "a
-   horde funnelled down a corridor" — the exact geometry that enables a train
+   horde funnelled down a corridor" - the exact geometry that enables a train
    loop. Nothing in the audit addresses: horde spread/flanking to punish
    predictable loops, spawn-point selection that puts zombies *ahead* of a
    running player, the sprinter's role as the anti-kite answer (and its speed
-   must therefore beat the loop — section 3's 340 does not), or the escalator
+   must therefore beat the loop - section 3's 340 does not), or the escalator
    conveyor (6.2) which the audit designs as an exploitable one-way perch.
    Needs its own section.
 
@@ -1271,7 +1271,7 @@ numbers, then lock.
 
 8. **Run integrity / save-scumming.** 13.3 says no mid-run save (quit = over),
    which mostly closes this, but there is no leaderboard/best-round-persistence
-   integrity note (13.2 persists "best round" — can the player edit the save?),
+   integrity note (13.2 persists "best round" - can the player edit the save?),
    no anti-cheese statement beyond 11.3's pause-disable (which the review argues
    against), and no decision on whether alt-F4 mid-down counts as a death.
 
@@ -1306,7 +1306,7 @@ The audit's top 10, assessed:
 1. **3.1 (+ 2.2, 3.4) per-type zombie stat block, grounded in the player speeds
    and the HP compounding curve.** Phase C blocker. Fix sprinter speed against
    `WalkSpeed 420` / `SprintSpeed 640`, not a bare 340.
-2. **NEW: Train profile and platform arena — Elizabeth line (Class 345, no PSDs,
+2. **NEW: Train profile and platform arena - Elizabeth line (Class 345, no PSDs,
    walk-through, main-line gauge) vs Jubilee line (1996 Stock, full-height
    platform screen doors, deep tube).** Decides the arena, the "train as a wall"
    read, the boarding geometry, trackbed access (4.3), and whether there is a
@@ -1315,8 +1315,7 @@ The audit's top 10, assessed:
 3. **6.2 mechanic definitions for the 4 v1 mechanics only (flood, interchange,
    blackout, platform_split), with flood's rise rate and fire-block reconsidered
    and the interchange escalator de-exploited.**
-4. **6.1/16.3 commit to 2 stations and name station 2 (and its mechanic pair —
-   reconsider blackout as #2).**
+4. **6.1/16.3 commit to 2 stations and name station 2 (and its mechanic pair -    reconsider blackout as #2).**
 5. **16.1 extract a single `docs/design/gameplay-canon.md` from brief-v2's live
    numbers; demote brief-v2 to a historical note.** 1 hour, removes the landmine
    under every future session.
@@ -1339,7 +1338,7 @@ The audit's top 10, assessed:
 
 Buried-but-should-be-higher: the **GameMode/GameInstance backbone** (no section,
 needed for #2/#6/#7 and all of section 13), and **importing the typeface**
-(14.3 — blocks every future HUD/signage task, trivial to do now).
+(14.3 - blocks every future HUD/signage task, trivial to do now).
 
 Over-rated: **10.2 stamina** (new system, not an ambiguity), **7.4 points cap**
 (non-issue), **6.6 grid normalisation** and **10.3 interact range** (cleanup
@@ -1387,7 +1386,7 @@ tickets padding the count, not open questions).
   13.4, 13.6, 14.4, 14.6, 15.1, 16.1** (~39 items).
 - Estimated missing items: **~55 to 65** (roughly: 6 new sections at ~7 items
   each = ~46, plus ~12 to 18 gaps inside the existing 16 sections listed above).
-  Call it **~98 covered, ~60 missing — the audit is roughly 60% complete by
+  Call it **~98 covered, ~60 missing - the audit is roughly 60% complete by
   question count and less than that by risk coverage**, because the missing
   material is concentrated in the highest-uncertainty areas (audio architecture,
   performance, the anti-training problem, the framework backbone).
@@ -1398,7 +1397,7 @@ tickets padding the count, not open questions).
   stock) and the phase-letter-vs-number vocabulary; (d) re-label every "suggested
   default" that introduces new design (stamina, melee, self-revive budgets,
   signal flare, advertising brands, the Inspector boss, the full weapon numbers)
-  as "PROPOSAL — needs sign-off" so a spec-writer does not enshrine them; (e)
+  as "PROPOSAL - needs sign-off" so a spec-writer does not enshrine them; (e)
   pull the corrected top 10 and the "make gameplay-canon.md" + "import the
   typeface" quick wins forward. The audit does not need to be redone; it needs
   its blind spots filled and its proposals flagged as proposals.

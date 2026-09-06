@@ -173,7 +173,7 @@ folders (`Content/ThirdPerson/`, `Content/Characters/`, `Content/Megascans/`,
 `Content/Lyra/`, etc.) because UE-Only Content and Fab Standard licences forbid
 re hosting raw assets in a public repo. Vetted free asset list and fetch
 instructions: `docs/reference/free-assets.md`. Canary Wharf reference research
-(architecture, materials, signage, rolling stock, licence notes): 
+(architecture, materials, signage, rolling stock, licence notes):
 `docs/reference/canary-wharf-research/`. If a pack imports to a new folder, add
 it to `.gitignore` before committing.
 

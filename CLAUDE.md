@@ -45,16 +45,22 @@ work.
 
 ## Conventions, enforced by `tools/ci/`
 
-- **British spelling** everywhere, including comments and user facing strings.
-  The checker rejects organiz*, color, behavior, customiz*.
-- **Never use em or en dashes** in source. Plain punctuation only.
+- **British spelling** everywhere, including comments, user facing strings and
+  the docs. The checker rejects organiz*, color, behavior, customiz*.
+- **Never use em or en dashes** in source or in `docs/`, `CLAUDE.md`,
+  `README.md`. Plain punctuation only. Use a spaced hyphen, a comma or a colon.
 - Headers begin with `#pragma once`. `X.generated.h` is the last include.
 - `TObjectPtr` in containers, never raw `UObject*`.
 - `LT_LOG(Verbosity, TEXT("..."))`, never `UE_LOG(LogTemp, ...)`.
 - No `TODO`, `FIXME`, `HACK`, `XXX` markers. Finish it or open an issue.
 - clang-format 20 (`.clang-format`), tab indent for `.h/.cpp/.cs`.
-- `tools/ci/check_hygiene.py` rejects secrets, absolute local paths and TfL
-  trademark leakage.
+- `.uasset` and `.umap` are Git LFS. Never commit one as raw binary.
+- CI (`.github/workflows/ci.yml`) runs four gates on every push and PR:
+  `check_hygiene.py` (secrets, absolute paths, trademark leakage),
+  `check_cpp_conventions.py` plus clang-format (source style),
+  `check_docs.py` (British spelling, no dashes, JSON validity, dead links),
+  `check_content.py` (LFS pointer integrity). The engine is not in CI, so
+  C++ is compiled locally after every change.
 
 ## Legal, non negotiable
 
@@ -67,14 +73,14 @@ original work. Palette: `#16161C` charcoal, `#6C4C9C` violet, `#E0A030` sodium,
 
 ## Design documents
 
-- `docs/brief-v3-unreal.md` — current brief: engine, camera, phases, model split.
-- `docs/brief-v2.md` — superseded for engine, still authoritative for the round
+- `docs/brief-v3-unreal.md` - current brief: engine, camera, phases, model split.
+- `docs/brief-v2.md` - superseded for engine, still authoritative for the round
   loop, train timing (100s interval, 25s dwell), station heat, the five zombie
   types, the mechanic library and the economy numbers.
-- `docs/art-direction.md` — palette, composition, trademark substitutions.
-- `docs/unreal-setup.md` — the editor steps the C++ cannot do for itself.
-- `docs/strategy.md` — phase history and the honest risk position.
-- `docs/tasks/` — one bounded task spec per file. Point a fresh session at the
+- `docs/art-direction.md` - palette, composition, trademark substitutions.
+- `docs/unreal-setup.md` - the editor steps the C++ cannot do for itself.
+- `docs/strategy.md` - phase history and the honest risk position.
+- `docs/tasks/` - one bounded task spec per file. Point a fresh session at the
   relevant one rather than re typing the spec.
 
 ## Working rules for models

@@ -125,15 +125,15 @@ wander rather than hunting. What exists:
 
 ## Documents
 
-- `CLAUDE.md` — build specifics, module layout, conventions, model split
-- `docs/tasks/` — the current plan and one bounded task per file
-- `docs/brief-v3-unreal.md` — current brief: engine, camera, phases, model split
-- `docs/brief-v2.md` — superseded for engine, still authoritative on game design
-- `docs/art-direction.md` — palette, composition, and the trademark substitutions
-- `docs/unreal-setup.md` — editor steps the source cannot do for you
-- `docs/strategy.md` — phase history and the honest risk position
-- `docs/reference/` — the reference frame and notes on what to lift from it
-- `Content/ATTRIBUTION.md` — provenance and licence for every imported asset
+- `CLAUDE.md` - build specifics, module layout, conventions, model split
+- `docs/tasks/` - the current plan and one bounded task per file
+- `docs/brief-v3-unreal.md` - current brief: engine, camera, phases, model split
+- `docs/brief-v2.md` - superseded for engine, still authoritative on game design
+- `docs/art-direction.md` - palette, composition, and the trademark substitutions
+- `docs/unreal-setup.md` - editor steps the source cannot do for you
+- `docs/strategy.md` - phase history and the honest risk position
+- `docs/reference/` - the reference frame and notes on what to lift from it
+- `Content/ATTRIBUTION.md` - provenance and licence for every imported asset
 
 ## Licence
 
