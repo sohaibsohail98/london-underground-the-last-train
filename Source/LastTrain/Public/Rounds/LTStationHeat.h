@@ -7,8 +7,8 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHeatChanged, int32, NewHeat);
 
 /** Station heat. Rises by one each time the player lets a train leave without
-    boarding, and resets to zero on travel. Heat widens the live zombie cap and
-    quickens the spawn rate. The round manager reads the two getters here. */
+	boarding, and resets to zero on travel. Heat widens the live zombie cap and
+	quickens the spawn rate. The round manager reads the two getters here. */
 UCLASS(ClassGroup = (LastTrain), meta = (BlueprintSpawnableComponent))
 class LASTTRAIN_API ULTStationHeat : public UActorComponent
 {
@@ -33,7 +33,7 @@ public:
 	int32 MaximumHeat = 10;
 
 	/** Raises heat by one, clamped to MaximumHeat. Call when a train departs
-	    with the player still in the station. */
+		with the player still in the station. */
 	UFUNCTION(BlueprintCallable, Category = "Rounds")
 	void IncrementHeat();
 

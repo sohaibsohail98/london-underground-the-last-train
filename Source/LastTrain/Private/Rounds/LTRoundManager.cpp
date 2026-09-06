@@ -227,8 +227,9 @@ void ALTRoundManager::TrySpawnOne()
 	Chosen->MarkUsed(WorldTime);
 	PendingSpawns -= 1;
 
-	LT_LOG(Verbose, TEXT("Spawned zombie. Alive %d, pending %d, cap %d, round %d."), LiveZombies.Num(),
-		PendingSpawns, MaximumAlive, CurrentRound);
+	LT_LOG(
+		Verbose, TEXT("Spawned zombie. Alive %d, pending %d, cap %d, round %d."), LiveZombies.Num(), PendingSpawns,
+		MaximumAlive, CurrentRound);
 }
 
 void ALTRoundManager::HandleZombieDied(ALTZombieCharacter* Zombie, const bool bHeadshot)

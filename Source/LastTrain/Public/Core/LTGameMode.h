@@ -8,8 +8,8 @@
 class ALTRoundManager;
 
 /** Owns the run lifecycle for one station arena. Thin: it flips ALTGameState
-    between run states and starts the round manager. Travel between stations,
-    boarding, and the menu flow are not here yet, they are Phase C decisions. */
+	between run states and starts the round manager. Travel between stations,
+	boarding, and the menu flow are not here yet, they are Phase C decisions. */
 UCLASS()
 class LASTTRAIN_API ALTGameMode : public AGameModeBase
 {
@@ -35,7 +35,7 @@ public:
 	void NotifyPlayerRevived();
 
 	/** If true, StartRun is called automatically on BeginPlay. Off for a build
-	    that opens on a menu or a countdown. */
+		that opens on a menu or a countdown. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Run")
 	bool bAutoStart = true;
 

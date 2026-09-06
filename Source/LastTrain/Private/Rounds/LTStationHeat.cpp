@@ -26,7 +26,8 @@ void ULTStationHeat::SetHeat(const int32 NewHeat)
 	}
 
 	Heat = Clamped;
-	LT_LOG(Log, TEXT("Station heat now %d. Live cap bonus %d, spawn rate x%.2f."), Heat, GetLiveCapBonus(),
+	LT_LOG(
+		Log, TEXT("Station heat now %d. Live cap bonus %d, spawn rate x%.2f."), Heat, GetLiveCapBonus(),
 		GetSpawnRateMultiplier());
 
 	OnHeatChanged.Broadcast(Heat);

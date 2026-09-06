@@ -32,15 +32,15 @@ FText ALTWallBuy::GetInteractionPrompt_Implementation(AActor* Interactor) const
 {
 	const FText WeaponName = Weapon ? Weapon->DisplayName : FText::GetEmpty();
 
-	const ULTWeaponComponent* HeldWeapon = Interactor ? Interactor->FindComponentByClass<ULTWeaponComponent>() : nullptr;
+	const ULTWeaponComponent* HeldWeapon =
+		Interactor ? Interactor->FindComponentByClass<ULTWeaponComponent>() : nullptr;
 	const bool bAlreadyHeld = HeldWeapon && HeldWeapon->WeaponData == Weapon;
 
 	if (bAlreadyHeld)
 	{
 		return FText::Format(
 			NSLOCTEXT("LastTrain", "WallBuyAmmunitionPrompt", "Ammunition: {0}  ({1})"),
-			FText::AsNumber(AmmunitionCost),
-			WeaponName);
+			FText::AsNumber(AmmunitionCost), WeaponName);
 	}
 
 	return FText::Format(

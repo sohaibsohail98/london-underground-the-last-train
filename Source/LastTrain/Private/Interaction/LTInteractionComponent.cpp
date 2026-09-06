@@ -48,8 +48,8 @@ void ULTInteractionComponent::TickComponent(
 			Hit, Origin, End, FQuat::Identity, ECC_Visibility, FCollisionShape::MakeSphere(TraceRadius), Params))
 	{
 		AActor* HitActor = Hit.GetActor();
-		if (HitActor && HitActor->Implements<ULTInteractableInterface>()
-			&& ILTInteractableInterface::Execute_CanInteract(HitActor, GetOwner()))
+		if (HitActor && HitActor->Implements<ULTInteractableInterface>() &&
+			ILTInteractableInterface::Execute_CanInteract(HitActor, GetOwner()))
 		{
 			NewTarget = HitActor;
 		}

@@ -17,15 +17,15 @@ enum class ELTRunState : uint8
 	/** The player is dead. The run is over. */
 	Dead,
 	/** The player boarded the train. The run continues at the next station,
-	    handled by a travel transition, not by this arena. */
+		handled by a travel transition, not by this arena. */
 	Boarded
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnRunStateChanged, ELTRunState, NewState, ELTRunState, OldState);
 
 /** Authoritative run state for one station arena. The game mode drives it, the
-    HUD and systems read it. Travel between stations is a separate transition
-    that spawns a fresh arena, so this only ever describes the current one. */
+	HUD and systems read it. Travel between stations is a separate transition
+	that spawns a fresh arena, so this only ever describes the current one. */
 UCLASS()
 class LASTTRAIN_API ALTGameState : public AGameStateBase
 {
