@@ -1,5 +1,10 @@
 # Phase A5 - combat slice acceptance test
 
+**DONE.** Checks 1 to 4, 6, 7 passed with numbers. Checks 5, 8, 9, 10 were not
+reached because of NeoStack simulated-input degradation, not code failures; the
+zombie attack (check 9) was separately fixed and verified in Phase B. Kept as
+the record. The body below is the original test.
+
 **Prerequisite:** `docs/tasks/phase-a4-editor-setup.md` complete, `L_GreyboxTest`
 plays.
 

@@ -70,23 +70,11 @@ Added to `docs/tasks/neostack-build.md` ground rules 10 and 11:
 
 ### Defensive C++, good hygiene regardless
 
-`ALTRoundManager` gained an `EndPlay` override (binary 0005):
-
-```cpp
-void ALTRoundManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
-{
-    StopRounds();
-    for (const TObjectPtr<ALTZombieCharacter>& Zombie : LiveZombies)
-    {
-        if (Zombie) { Zombie->OnZombieDied.RemoveAll(this); }
-    }
-    LiveZombies.Reset();
-    SpawnPoints.Reset();
-    Super::EndPlay(EndPlayReason);
-}
-```
-
-and `HandleZombieDied` now unbinds the delegate as well as removing the entry.
+`ALTRoundManager` gained an `EndPlay` override that drops every world reference
+the actor holds before teardown: it calls `StopRounds()`, unbinds
+`OnZombieDied` from every live zombie, then resets `LiveZombies`, `SpawnPoints`
+and the `Heat` pointer. See the current `LTRoundManager.cpp` for the exact body.
+`HandleZombieDied` now unbinds the delegate as well as removing the entry.
 
 This drops every world reference the round manager holds before teardown. It
 does not touch the transaction buffer, so it is not a direct fix for the crash,

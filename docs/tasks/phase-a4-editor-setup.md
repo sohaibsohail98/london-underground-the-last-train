@@ -1,5 +1,9 @@
 # Phase A4 - editor setup for the first playable grey box
 
+**DONE 2026-09-04** (assets built under `Content/LastTrain/`, `L_GreyboxTest`
+plays, weapon `DisplayName` is "Stag Compact"). Kept as the record of how the
+grey box editor assets were made. The body below is the original spec.
+
 **Engine:** Unreal Engine 5.8, macOS, external Xcode on `/Volumes/DriveSohaib`
 mounted.
 

@@ -1,5 +1,13 @@
 # Phase B1 - throttled zombie repath
 
+**CODE LANDED.** The throttled repath, plus follow-on fixes (RVO radius 90 to 45,
+`DriveTowardsTarget` with `ContactRange`, and a stall-recovery nudge for queued
+attackers) are all in `LTZombieCharacter`. **Still open:** the 24 to 40 zombie
+crowd frame gate has never been measured (the `GreyboxTest_RoundManager` instance
+caps every PIE run at 6, see `NEXT.md`), and one corridor stall edge case remains
+where the nudge does not fire for a zombie just outside `AttackRange`. Body below
+is the original spec.
+
 **Engine:** Unreal Engine 5.8, macOS, external Xcode on `/Volumes/DriveSohaib`
 mounted. Compile after the change with the batch build in `CLAUDE.md`.
 

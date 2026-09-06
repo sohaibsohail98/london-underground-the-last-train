@@ -1,5 +1,12 @@
 # Phase B3 - hit marker and interaction prompt widgets
 
+**BUILT.** `WBP_HUD` is in git with all elements. The prompt fade branch and the
+health bar are fixed and verified in PIE (the health bar bug was a zero-height
+`SizeBox`, not a binding: `HealthTrackBox` now `WidthOverride 260`,
+`HeightOverride 16`). **Still open:** the hit marker, crosshair spread and prompt
+anchor polish (2026-09-06 run Section 6) have not been reviewed. Body below is
+the original spec.
+
 **Engine:** Unreal Engine 5.8. Editor work. No C++ change, so nothing to
 compile.
 

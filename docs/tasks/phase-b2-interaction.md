@@ -1,5 +1,13 @@
 # Phase B2 - interaction system and the first wall buy
 
+**CODE LANDED.** `ULTInteractionComponent`, the `Interact` input, `ILTInteractable`
+interface calls and `ALTWallBuy` are all in the module and compile.
+`GreyboxTest_WallBuy_SMG` is placed in `L_GreyboxTest` with the right costs
+(500 / 250). **Still open:** the PIE acceptance (steps 3 to 7 below) has not been
+run: the wall-buy prompt and purchase flow need an interactive pass because the
+NeoStack bridge cannot aim the first-person camera at the plate. Body below is
+the original spec.
+
 **Engine:** Unreal Engine 5.8, macOS, external Xcode on `/Volumes/DriveSohaib`
 mounted. Compile after the change with the batch build in `CLAUDE.md`.
 

@@ -38,16 +38,17 @@ Create under `Content/LastTrain/Input/`:
 | `IA_Fire` | Input Action | Digital |
 | `IA_Aim` | Input Action | Digital |
 | `IA_Reload` | Input Action | Digital |
+| `IA_Interact` | Input Action | Digital |
 | `IMC_Default` | Input Mapping Context | |
 
 In `IMC_Default`, map: WASD to `IA_Move` with the standard 2D axis modifiers,
 mouse XY to `IA_Look` with Negate on Y, Space to `IA_Jump`, Left Shift to
 `IA_Sprint`, Left Mouse to `IA_Fire`, Right Mouse to `IA_Aim`, R to
-`IA_Reload`.
+`IA_Reload`, E to `IA_Interact`.
 
 ## 4. Blueprints
 
-**`BP_PlayerCharacter`**, parent `LTPlayerCharacter`. Assign all seven input
+**`BP_PlayerCharacter`**, parent `LTPlayerCharacter`. Assign all eight input
 actions and `IMC_Default` in the Input category. Assign a view model skeletal
 mesh, or leave empty for now.
 

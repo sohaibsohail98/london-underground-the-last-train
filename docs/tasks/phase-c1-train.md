@@ -3,9 +3,11 @@
 **Engine:** Unreal Engine 5.8, macOS, external Xcode on `/Volumes/DriveSohaib`
 mounted. Compile after the change with the batch build in `CLAUDE.md`.
 
-**Model:** Opus. C++ against the existing convention, with several open design
-questions carried in as decision markers. Read those before starting and get the
-owner to settle them rather than guessing.
+**Model:** Opus. C++ against the existing convention. The design questions this
+spec once carried as `[DECISION NEEDED]` markers are all resolved to their
+proposed default (the project accepted every open-questions default). The
+resolved answers are inline below as `**RESOLVED**` notes and summarised in
+`docs/design/gameplay-canon.md` section 5.
 
 **Prerequisite:** Phase B landed. `L_GreyboxTest` plays, the round manager runs,
 the interaction system (`ULTInteractionComponent`, `ILTInteractableInterface`,
@@ -63,13 +65,13 @@ to another station.
   A later "Phase C departure board" task builds `ALTDepartureBoard`.
 - The station-select UI. See the decision marker in "The boarding trigger".
 - The trackbed as a kill volume, "stand clear" klaxon, player-on-the-tracks
-  handling. See `docs/design/open-questions.md` 4.3 and 4.12. Not this task.
-- Platform screen doors as level geometry (open-questions 4.12). This task fires
+  handling. Not this task.
+- Platform screen doors as level geometry. This task fires
   one combined `OnDoorsOpen` / `OnDoorsClose` pair so a Blueprint can drive
   either a single car-door set or a screen-door plus car-door pair; it does not
   build the screen wall.
-- Degrading the arrival spectacle after the first few cycles (open-questions
-  4.13, "Multiple trains over a long run"). Note it, do not build it.
+- Degrading the arrival spectacle after the first few cycles ("multiple trains
+  over a long run"). Note it, do not build it.
 - Multiple zombie types, the special-round roster. Separate Phase C task.
 
 ## The change
@@ -122,7 +124,7 @@ float DwellDuration = 25.f;
 
 /** Seconds the inbound slide takes. Presentation only: the state is Approaching
     for this long before the train counts as stopped. 4s is a grey box stub, a
-    full train needs 10 to 12s of visible deceleration (open-questions 4.1). */
+    full train needs 10 to 12s of visible deceleration. */
 UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Train")
 float ArrivalSlideSeconds = 4.f;
 
@@ -166,13 +168,12 @@ bool bDoorsOpen = false;
 bool bDepartureHeatApplied = false;
 ```
 
-`[DECISION NEEDED: open-questions 1.1 / 4.2 first-train zero - the first arrival
-cannot count "departure to arrival" because there was no prior departure.
-Proposed default: expose FirstTrainStopSeconds = 30, and on BeginPlay start the
-first cycle so the train STOPS at level load + FirstTrainStopSeconds (inbound
-slide starting FirstTrainStopSeconds - ArrivalSlideSeconds in), then TrainInterval
-governs every cycle after. If the pre-round establishing beat lands first, the
-beat is absorbed into that 30s, not added.]`
+**RESOLVED (first-train zero):** the first arrival cannot count "departure to
+arrival". Expose `FirstTrainStopSeconds = 30`, and on `BeginPlay` start the first
+cycle so the train STOPS at level load + `FirstTrainStopSeconds` (the inbound
+slide starting `FirstTrainStopSeconds - ArrivalSlideSeconds` in), then
+`TrainInterval` governs every cycle after. A pre-round establishing beat is
+absorbed into that 30s, not added.
 
 Public surface:
 
@@ -297,17 +298,16 @@ UFUNCTION(BlueprintImplementableEvent, Category = "Train")
 void OnPlayerBoarded();
 ```
 
-`[DECISION NEEDED: open-questions 4.4 announcement content and voice - the exact
-lines and the voice source are not settled. Proposed default: this task fires
-the four hooks (inbound, on-arrival, departure, and the breather idle line which
-is out of scope here) and leaves the strings and voice to the Blueprint and a
-later audio task. Do not put announcement text in C++.]`
+**RESOLVED (announcement content and voice):** this task fires the hooks
+(inbound, on-arrival, departure) and leaves the strings and voice source to the
+Blueprint and a later audio task. Do not put announcement text in C++. The
+wording, when written, must be original and must not transcribe or imitate a
+real TfL recording.
 
-`[DECISION NEEDED: open-questions 4.13 multiple trains over a long run - the full
-arrival spectacle repeating every 100s for a 20 round run is too much. Proposed
-default: expose bFullArrivalPresentation, default true, and set it false after
-the third OnArrivalStarted so a Blueprint can pick a shorter cycle. This task
-only exposes the flag and flips it; it does not change any timing.]`
+**RESOLVED (multiple trains over a long run):** expose
+`bFullArrivalPresentation`, default true, and set it false after the third
+`OnArrivalStarted` so a Blueprint can pick a shorter cycle. This task only
+exposes the flag and flips it; it does not change any timing.
 
 #### The boarding trigger
 
@@ -316,29 +316,19 @@ transform so it can be placed over the door aperture in the level. Overlap only,
 no block. It is the trigger, and the boarding check gates on `Phase` and
 `bDoorsOpen`, so no new trace or object channel is needed.
 
-`[DECISION NEEDED: open-questions 4.5 boarding trigger and confirm - walk-in vs
-interact prompt vs hold-to-confirm. Proposed default: boarding is an interact.
-ALTTrain also implements ILTInteractableInterface so the existing
-ULTInteractionComponent drives the prompt. CanInteract returns true only while
-Phase == Dwelling and bDoorsOpen and the run is not over. GetInteractionPrompt
-returns "Board train". Interact calls TryBoard(Interactor). BoardingVolume then
-exists only to scope the interactable (the plate/aperture the player looks at);
-if the owner prefers a pure walk-in trigger, BoardingVolume's OnComponentBeginOverlap
-calls TryBoard directly and the interface is dropped. Pick one before coding.]`
+**RESOLVED (boarding trigger):** boarding is an interact. `ALTTrain` also
+implements `ILTInteractableInterface` so the existing `ULTInteractionComponent`
+drives the prompt. `CanInteract` returns true only while `Phase == Dwelling` and
+`bDoorsOpen` and the run is not over. `GetInteractionPrompt` returns "Board
+train". `Interact` calls `TryBoard(Interactor)`. `BoardingVolume` exists only to
+scope the interactable (the aperture the player looks at).
 
-`[DECISION NEEDED: open-questions 4.5 fat-finger guard - a 21s window with an
-accidental board ends the run against the player's will. Proposed default: a
-1.0s hold-to-board. Since ULTInteractionComponent binds Interact to
-ETriggerEvent::Started only, a hold needs either a Held trigger on the action or
-a confirm re-press within 3s. Simplest for this task: no hold, TryBoard commits
-on the single interact, and the confirm is deferred to the travel task. Confirm
-whether that is acceptable for the grey box.]`
+**RESOLVED (fat-finger guard):** no hold for C1. `TryBoard` commits on the single
+interact. A hold-to-confirm is deferred to the travel task.
 
-`[DECISION NEEDED: open-questions 4.6 station-select UI - "travels to a chosen
-adjacent station" needs a picker when there is more than one adjacency. Proposed
-default: OUT of scope for C1. TryBoard commits immediately with no destination.
-NotifyPlayerBoarded takes no target station argument yet. The travel task adds
-the picker and the argument. Note this so the later task knows the seam moved.]`
+**RESOLVED (station-select UI):** out of scope for C1. `TryBoard` commits
+immediately with no destination and `NotifyPlayerBoarded` takes no target-station
+argument yet. The travel task adds the picker and the argument; the seam moved.
 
 `TryBoard(AActor* Boarder)`:
 
@@ -391,28 +381,23 @@ Implementation, matching the style of the existing notify handlers:
 3. Resolve the boarder's components and apply the board rewards:
    - `ULTWeaponComponent* Weapon = Boarder ? Boarder->FindComponentByClass<ULTWeaponComponent>() : nullptr;`
      if valid, `Weapon->RefillAmmunition();` (reserve to full, magazine
-     untouched, per `RefillAmmunition`'s existing behaviour and open-questions
-     4.9).
+     untouched, per `RefillAmmunition`'s existing behaviour).
    - Heat: find the `ULTStationHeat` the round manager holds, or iterate for it,
      and call `ResetHeat()`.
-4. `[DECISION NEEDED: open-questions 4.8 "banks points" - brief-v2 says boarding
-   "banks points" but there is no points-at-risk mechanic in code and 4.8's
-   suggested default is that the phrase is legacy and points are never lost.
-   Proposed default: NotifyPlayerBoarded does nothing to ULTPointsComponent, and
-   a code comment records that "banks points" resolved to a no-op. If the owner
-   instead wants a points-to-Oyster-Credit conversion on board (4.8's PROPOSAL),
-   that is a separate meta-economy task and needs sign-off, not a default.]`
+4. **RESOLVED ("banks points"):** there is no points-at-risk mechanic, points are
+   never lost. `NotifyPlayerBoarded` does nothing to `ULTPointsComponent`; a code
+   comment records that "banks points" from brief-v2 resolved to a no-op. A
+   points-to-Oyster-Credit conversion on board would be a separate meta-economy
+   task, not part of this one.
 5. `GetLTGameState()->SetRunState(ELTRunState::Boarded);`
 6. `LT_LOG(Log, TEXT("Player boarded. Run state Boarded, rounds stopped, reserve refilled, heat reset. Travel to next station is not wired yet."));`
 
 Do not add travel, level loading or a `ULTGameInstance` payload here. That is the
 seam; the later task fills it.
 
-`[DECISION NEEDED: open-questions 4.7 travel transition and 17.1 ULTGameInstance
-- what actually happens after Boarded (fade, load, rehydrate) is a real
-architecture call. Proposed default: OUT of scope for C1. The run simply sits in
-Boarded with rounds stopped. A later "Phase C travel" task owns the transition
-and the persistence.]`
+**RESOLVED (travel transition and `ULTGameInstance`):** out of scope for C1. The
+run sits in `Boarded` with rounds stopped. A later "Phase C travel" task owns the
+transition and the persistence.
 
 ### 3. Not boarding raises heat
 
@@ -453,43 +438,37 @@ void OnTrainDeparted_NotBoarded();
 back to iterating all actors for any `ULTStationHeat`. `LT_LOG(Warning, ...)` and
 carry on if none is found, so a heat-less test level does not crash.
 
-`[DECISION NEEDED: open-questions 5.1 heat model - ULTStationHeat as written uses
-LiveCapPerHeat = 6, SpawnRateFractionPerHeat = 0.12, MaximumHeat = 10, matching
-brief-v2's "+6 to the live cap and 12% to spawn rate". open-questions 5.1
-supersedes those with a profile-derived model (HEAT_CAP_ADD = 4, HEAT_MAX = 5,
-HEAT_RATE_MULT = 0.90). Proposed default for C1: leave ULTStationHeat's numbers
-as they are, this task does not retune it, and note that 5.1's retune is its own
-task once the section 18 frame profile exists.]`
+**RESOLVED (heat model):** this task does not retune `ULTStationHeat`. Its coded
+numbers (`LiveCapPerHeat = 6`, `SpawnRateFractionPerHeat = 0.12`,
+`MaximumHeat = 10`, matching brief-v2's "+6 cap, +12% rate") stand. The
+profile-derived retune (`HEAT_CAP_ADD = 4`, `HEAT_MAX = 5`,
+`HEAT_RATE_MULT = 0.90`) noted in `docs/design/gameplay-canon.md` section 4 is
+its own task once a frame profile exists.
 
 ### Interaction with the round loop
 
 brief-v2: boarding "ends the round". `ALTRoundManager::StopRounds` is the tool.
 
-`[DECISION NEEDED: open-questions 4.13 / no clean source - what happens to the
-round in progress, the pending spawns and the live zombies when the player
-boards. Proposed default: NotifyPlayerBoarded calls RoundManager->StopRounds()
-and nothing else. Live zombies are left in the world (harmless, the player is
-about to leave the arena on travel); PendingSpawns stop because StopRounds
-clears bRunning. The travel task, when it destroys and rebuilds the arena, takes
-the live zombies with it. If the owner wants live zombies despawned on board for
-a cleaner grey box, that is a one-line addition to NotifyPlayerBoarded, confirm
-it.]`
+**RESOLVED (round in progress on board):** `NotifyPlayerBoarded` calls
+`RoundManager->StopRounds()` and nothing else. Live zombies are left in the world
+(harmless; the player is about to leave the arena on travel); `PendingSpawns`
+stop because `StopRounds` clears `bRunning`. The travel task takes the live
+zombies with the arena teardown.
 
-`[DECISION NEEDED: open-questions 4.13 train as a nav obstacle and track-side
-spawn gating - a stopped train blocks track-side spawn points and should carve
-the navmesh. Proposed default: OUT of scope for C1. The grey box trackbed is
-flat and has no track-side spawns. When Canary Wharf gets track-side spawns, a
-follow-up adds a bTrainPresent gate to ALTSpawnPoint::IsAvailable and marks the
-train a dynamic nav obstacle while Dwelling. Not this task.]`
+**RESOLVED (train as a nav obstacle, track-side spawn gating):** out of scope for
+C1. The grey box trackbed is flat with no track-side spawns. When Canary Wharf
+gets track-side spawns, a follow-up adds a `bTrainPresent` gate to
+`ALTSpawnPoint::IsAvailable` and marks the train a dynamic nav obstacle while
+`Dwelling`.
 
 ## Constraints
 
 - One new folder, `Source/LastTrain/Public/Train/` and
   `Source/LastTrain/Private/Train/`, holding `LTTrain.h` and `LTTrain.cpp`.
 - The only edits outside that folder are `ALTGameMode` (the `NotifyPlayerBoarded`
-  hook, header and cpp) and, if the interaction route is chosen for boarding,
-  `ALTTrain` implementing `ILTInteractableInterface` (which lives entirely in
-  the new files). Do not modify `ALTGameState`, `ALTRoundManager`,
+  hook, header and cpp). `ALTTrain` implements `ILTInteractableInterface` for
+  boarding, which lives entirely in the new files. Do not modify `ALTGameState`,
+  `ALTRoundManager`,
   `ULTStationHeat`, `ULTWeaponComponent`, `ULTPointsComponent`,
   `ULTInteractionComponent` or `ALTSpawnPoint`. If this task appears to need a
   change in one of those, stop and say so.
@@ -508,10 +487,8 @@ train a dynamic nav obstacle while Dwelling. Not this task.]`
 - `TObjectPtr` for every `UObject` member and every `UObject` in a container,
   never a raw `UObject*`.
 - No `TODO`, `FIXME`, `HACK`, `XXX` markers. `tools/ci/check_hygiene.py` rejects
-  them. The `[DECISION NEEDED: ...]` markers in this spec are for the owner to
-  resolve before coding; they must not appear in the source.
-- Interface calls from C++, if the interaction route is chosen, go through the
-  generated `Execute_` statics.
+  them. None of the `**RESOLVED**` notes in this spec belong in the source.
+- Interface calls from C++ go through the generated `Execute_` statics.
 - `LT` prefix on every type. Tab indent for `.h` and `.cpp`. clang-format 20.
 - Legal: no roundel, no Johnston or New Johnston typeface, no reproduction of
   the official line diagram, no operator livery or logo, no transcribed
@@ -529,11 +506,10 @@ each step observable.
 
 1. Compiles clean with the batch build. No warnings.
 2. On `BeginPlay` the train is in `Away`. `GetSecondsUntilArrival` returns a
-   value counting down. With `TrainInterval` temporarily set to 20 for the test,
-   the train reaches `Approaching` at roughly load + `FirstTrainStopSeconds -
-   ArrivalSlideSeconds` (or load + `TrainInterval - ArrivalSlideSeconds` if the
-   first-train-zero marker was resolved against a special first cycle), and
-   `OnTrainPhaseChanged` fires `Away -> Approaching`.
+   value counting down. The first cycle stops at load + `FirstTrainStopSeconds`,
+   so the train reaches `Approaching` at roughly load + `FirstTrainStopSeconds -
+   ArrivalSlideSeconds`, and `OnTrainPhaseChanged` fires `Away -> Approaching`.
+   Every cycle after is governed by `TrainInterval`.
 3. `OnInboundAnnouncement` fires once, `InboundAnnouncementLeadSeconds` before
    the train stops (during the inbound slide with the default 15s lead and 4s
    slide, that is 11s into `Away`'s tail, i.e. slide start minus 11s). It does
@@ -546,7 +522,7 @@ each step observable.
    them is `DwellDuration - DoorOpenDelaySeconds - DoorCloseLeadSeconds` (21s on
    the defaults), and both events land strictly inside the `Dwelling` phase, not
    during `Approaching` or `Departing`. `AreDoorsOpen` is true only in that gap.
-6. `TryBoard` (or the interact prompt, per the resolved marker) does nothing and
+6. `TryBoard` (via the "Board train" interact prompt) does nothing and
    returns false during `Approaching`, during `Dwelling` before `OnDoorsOpen`,
    after `OnDoorsClose`, and during `Departing`. It succeeds only in the
    open-door window.
