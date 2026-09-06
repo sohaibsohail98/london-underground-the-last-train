@@ -1,4 +1,4 @@
-# NEXT — resume point for a fresh context window
+# NEXT - resume point for a fresh context window
 
 Last updated 2026-09-05. Update this whenever you finish a task so a cold
 session can pick up without re reading the whole history.
@@ -106,6 +106,15 @@ zombie types, the departure board) begins as C++ work.
 ## Phase C, the next real code work
 
 All C++, no NeoStack dependency. Numbers from `docs/brief-v2.md`.
+
+**Rolling stock / line identity: RESOLVED.** The fictional line is a
+fictionalised Crossrail-scale line (main-line loading gauge, modelled on the
+Elizabeth line, NOT a deep-level tube). The train is a Class 345 "Aventra"
+silhouette: walk-through, 9-car ~205 m, near-vertical box sides, curved
+wraparound cab front, 3 plug doors per side per car. This supersedes the
+earlier "1996 Stock deep-tube vs Class 345" open question (open-questions 4.11 /
+16.10). Details: `docs/brief-v3-unreal.md` Part 1,
+`docs/reference/canary-wharf-research/rolling-stock.md`.
 
 - `ALTTrain` actor: 100s arrival interval, 25s dwell, doors open and close on
   the dwell, boarding the train is the optional escape that ends the run.

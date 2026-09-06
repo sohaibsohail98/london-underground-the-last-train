@@ -1,5 +1,11 @@
 # Last Train, build strategy
 
+> **Superseded on the model split and the engine.** The sections below about
+> the Opus/Fable credit split and the browser render pipeline predate the move
+> to Unreal Engine 5. `CLAUDE.md` and `brief-v3-unreal.md` Part 4 are the live
+> model-split guidance; `brief-v3-unreal.md` is the current plan. This file is
+> kept as phase history only.
+
 Live working document. Supersedes the credit split in `brief-v2.md` Part 3
 where the two disagree, because the phase allocation there assumed Fable would
 carry phases 1 to 5.

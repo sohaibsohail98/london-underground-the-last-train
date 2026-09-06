@@ -20,9 +20,23 @@ default framing for every platform in the game.
 
 **Palette.** Sodium amber and warm white for functional lighting. Violet as the
 line accent, used sparingly and mostly on the rolling stock and signage
-furniture. Crimson for emergency lighting only, receding into the tunnel so it
-reads as depth. Everything else desaturated: concrete, steel, dirty tile.
-Saturation is a resource, spend it on the three accents.
+furniture: on the train it lives in the door surrounds and a cab band, NOT as
+an all-over purple bodyshell (a purple-and-white train reads as the Elizabeth
+line, see section 3). Crimson for emergency lighting only, receding into the
+tunnel so it reads as depth. Everything else desaturated: concrete, steel,
+dirty tile. Saturation is a resource, spend it on the three accents.
+
+**Rolling stock silhouette.** The train is a fictionalised Crossrail-scale
+main-line unit modelled on the Class 345 "Aventra", NOT a deep-level tube
+train. Long and low, near-vertical box sides with only slight tumblehome, a
+flat roof, a deep skirt, a full-width curved wraparound cab windscreen, and a
+walk-through articulated interior with full open gangways (the whole train
+reads end to end down the centre, not distinct cars with black gaps). Three
+double-leaf sliding plug doors per side per car. A 9-car unit is about 205 m
+long and fills one whole side of the platform as a wall. Safe livery: charcoal
+`#16161C` bodyshell, sodium `#E0A030` cab band, violet `#6C4C9C` door
+surrounds, an original wayfinding typeface, a made-up operator mark. Full
+physical detail: `docs/reference/canary-wharf-research/rolling-stock.md`.
 
 Working palette, unchanged from v2:
 
@@ -80,7 +94,7 @@ London games are not reusable, see `docs/reference/branding-precedent.md`.
 | Johnston wayfinding type | Licensed typeface | An original or freely licensed geometric sans. Not a Johnston clone. Something with a taller x-height reads as deliberately different |
 | "Way out" panel in house style | Trademark dress | Same information, original panel geometry and colour split |
 | Official line diagram | Copyright | Original network schematic, which doubles as the HUD map substitute |
-| Elizabeth line livery on rolling stock | Operator identity | Original livery in the project palette. Violet is fine; the specific stripe arrangement is not |
+| Elizabeth line identity on rolling stock | Operator identity | Do not lift: the purple ELIZABETH LINE roundel on car sides or station totems; the TfL grey/white bodyshell with a single purple sole-bar stripe as a copied complete livery; New Johnston on destination blinds, car numbering or signage; the operator name or "MTR Elizabeth line" branding; the specific TfL purple used as the sole livery colour with nothing else. Substitute: charcoal `#16161C` bodyshell, sodium `#E0A030` cab band, violet `#6C4C9C` door surrounds, original typeface, made-up operator mark. Violet `#6C4C9C` as one of the four palette colours is fine; a train that is simply purple-and-white and unmarked still reads as Elizabeth line and must be avoided |
 | Line name on signage | Trademark | Rename the line in-world. Station names stay factual |
 | `SAUG 9MM` | Treyarch weapon name | Original weapon names throughout |
 | Modern CoD HUD furniture | Style, and banned by your own guide | Restrained classic HUD per Phase 9 |

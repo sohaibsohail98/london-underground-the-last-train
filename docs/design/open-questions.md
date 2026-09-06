@@ -690,15 +690,15 @@ from stop. Doors begin opening 1.0s after full stop. Departure: doors close,
 1.5s hold, slide out ease-in accelerating, rumble fades.
 **Slide time as a function of visible train length (changed from a flat 4s):**
 `ArrivalSlideSeconds` is derived, not fixed. For the grey box 2-to-3-car stub,
-~4.0s ease-out is fine. For a full train (section 4.11 decides which, but both
-the 1996 Stock 7-car at ~126m and the Class 345 9-car at ~205m are long) the
-slide must show visible deceleration over ~10 to 12s or it reads as a teleport,
-not a train stopping. Expose `ArrivalSlideSeconds` and `DepartureSlideSeconds`
-as `EditDefaultsOnly` and set them per the train length actually built, with a
-comment that 4s is a stub value. `DoorHoldAfterArrivalSeconds = 1.0`.
-**Train profile:** the geometry depends on the section 4.11 line decision (1996
-Stock deep-tube vs Class 345 main-line gauge). The reference frame and grid read
-as the low tight Jubilee corridor; 4.11 confirms.
+~4.0s ease-out is fine. The full train is a Class 345 "Aventra" 9-car at ~205 m
+(4.11, RESOLVED), which is long, so the slide must show visible deceleration
+over ~10 to 12s or it reads as a teleport, not a train stopping. Expose
+`ArrivalSlideSeconds` and `DepartureSlideSeconds` as `EditDefaultsOnly` and set
+them per the train length actually built, with a comment that 4s is a stub
+value. `DoorHoldAfterArrivalSeconds = 1.0`.
+**Train profile:** RESOLVED in 4.11: the Class 345 "Aventra" silhouette,
+main-line loading gauge, walk-through, 9-car ~205 m. The platform is a
+main-line-gauge box (a tall tiled hall), not a deep-tube bore.
 
 ### 4.2 Dwell vs door-open timing
 
@@ -871,6 +871,19 @@ station slides away) and as the visible interior through the open doors on the
 platform. Not walkable in v1.
 
 ### 4.11 Rolling stock: which line - Elizabeth (Class 345) or Jubilee (1996 Stock)
+
+**RESOLVED 2026-09-06 (owner decision).** The fictional line is a fictionalised
+Crossrail-scale line: main-line loading gauge, modelled on the Elizabeth line,
+NOT a deep-level tube. The train is the **Class 345 "Aventra" silhouette**:
+walk-through with full open gangways, 9-car about 205 m, near-vertical box
+sides, curved wraparound cab front, 3 double-leaf sliding plug doors per side
+per car, floor 1.145 m above rail. The platform is a main-line loading-gauge
+box (a tall tiled hall, near-vertical walls), NOT a cramped ~3.8 m bore. The
+line name stays renamed in-world. This reverses the earlier "suggested default"
+below (which leaned 1996 Stock deep-tube); that default is superseded. Off
+limits and safe livery: see `docs/brief-v3-unreal.md` Part 1. Full physical
+detail: `docs/reference/canary-wharf-research/rolling-stock.md`. The text below
+is kept as the audit trail of the question.
 
 **Ambiguity:** brief-v2 and art-direction call the line "a fictionalised
 Elizabeth line". But `research/rolling-stock.md` describes BOTH the Jubilee line
@@ -2491,9 +2504,13 @@ only before any commercial release, per branding-precedent. Document the check i
 **Ambiguity:** art: "Original livery in the project palette. Violet is fine; the
 specific stripe arrangement is not." rolling-stock.md: "No operator livery,
 colour stripe arrangement or logo is described or reproduced; the shape,
-structure and wear are fair game." So the SHAPE (1996 Stock deep-tube profile) is
-fine to copy closely, the livery must be original. No original livery is
-designed.
+structure and wear are fair game." So the SHAPE (the Class 345 "Aventra"
+main-line-gauge silhouette, per 4.11 RESOLVED) is fine to copy closely, the
+livery must be original. No original livery is designed. The safe livery is
+now specified (charcoal `#16161C` bodyshell, sodium `#E0A030` cab band, violet
+`#6C4C9C` door surrounds, original typeface, made-up operator mark) in
+`brief-v3-unreal.md` Part 1; a train that is simply purple-and-white and
+unmarked still reads as Elizabeth line and is off limits.
 **Currently in code:** grey box train shell only.
 **Why it matters:** the train "fills one whole side as a wall" and is the most-
 looked-at surface; its livery is a defining, legally-sensitive art element.
@@ -2550,6 +2567,14 @@ section.
 
 ### 16.1 Engine: v2 is Three.js, v3 is UE5
 
+**RESOLVED 2026-09-06 (partial: the prominent header).** `docs/brief-v2.md` now
+carries a prominent header near the top marking it PARTLY SUPERSEDED: DEAD are
+engine, renderer, camera, phase plan, gates, asset strategy and the Fable/Opus
+prompts (Parts 0 to 4 and 6); LIVE are the round loop, train timing (100s / 25s),
+station heat, the five zombie types, the mechanic library, the economy numbers
+and the legal constraints. The separate `gameplay-canon.md` extraction is still
+a future owner task. Text below is the audit trail.
+
 **Ambiguity:** brief-v2 is entirely written for "Three.js, WebGPU with WebGL2
 fallback" with a full custom render graph, VAT crowd, procedural geometry
 generator. brief-v3 discards all of it ("The entire src/ tree ... Around 12,000
@@ -2572,6 +2597,11 @@ current cross-references ("still authoritative for X") are too easy to miss.
 
 ### 16.2 Camera: third-person 55-degree vs first-person
 
+**RESOLVED 2026-09-06.** brief-v3's first person (FOV 95, per the C++
+`ALTPlayerCharacter`) is canonical. `docs/brief-v2.md` now carries DEAD notes on
+Part 2 and Part 2.7 flagging that the 55-degree third person, spring arm, cursor
+lookahead and occlusion fade are superseded. Text below is the audit trail.
+
 **Ambiguity:** brief-v2: "Steep angled third person at roughly 55 degrees, spring
 arm". brief-v3: "First person. Wide default FOV, around 95 to 100 horizontal".
 The C++ `ALTPlayerCharacter` is first-person (`Camera` on the capsule at Z 68,
@@ -2589,6 +2619,11 @@ crosshair-driven interaction (10.3) replaces cursor-hover.
 
 ### 16.3 Station count: 3 (v2 Phase 5) vs 41 (v2 Phase 6) vs 2 (v3)
 
+**RESOLVED 2026-09-06.** v1 commits to **2 stations**. `docs/brief-v3-unreal.md`
+Part 5 (Risks) and `docs/tasks/README.md` now state this explicitly and mark any
+"41 stations" reference an aspirational expansion list, not a plan. Text below is
+the audit trail.
+
 **Ambiguity:** covered in 6.1. Recorded here as a doc contradiction: brief-v2
 says 3 then 41; brief-v3 says "one then expand ... two good stations beats forty";
 tasks/README Phase G says "second station". Three docs, three numbers.
@@ -2599,6 +2634,12 @@ tasks/README making 2 the explicit committed number and 41 an "aspirational
 expansion list, not a plan".
 
 ### 16.4 Model split: v2 vs v3 vs strategy.md
+
+**RESOLVED 2026-09-06.** `CLAUDE.md` plus `brief-v3-unreal.md` Part 4 are the
+live model-split guidance. `docs/brief-v2.md` Part 3 now carries a DEAD note, and
+`docs/strategy.md` carries a header at the top noting its model-split and engine
+sections predate the Unreal move and are superseded. Text below is the audit
+trail.
 
 **Ambiguity:** brief-v2 Part 3: Fable does Phases 1 to 5, Opus does 6 to 8.
 brief-v3 Part 4: Opus for C++/data/Blueprints/HUD/docs, Fable for materials/
@@ -2693,6 +2734,13 @@ switch engines. Note this in brief-v3 Part 5.
 
 ### 16.9 reference-frame-notes.md still cites flow-field pathfinding
 
+**RESOLVED 2026-09-06.** `docs/reference/reference-frame-notes.md` section 4 has
+been corrected: the horde mechanism now reads as per-zombie UE5 navmesh pathing
+(`AIController::MoveToActor` per `LTZombieCharacter`, plus a per-zombie
+stall-recovery nudge) along spawn routes down the tunnel-mouth openings. There
+is no flow field; that was the discarded web build. The text below is the audit
+trail.
+
 **Ambiguity:** `docs/reference/reference-frame-notes.md` section 4 ("How the
 frame maps to the phases") lists the horde mechanism as "Flow field plus spawn
 routes down the tunnel mouths", built in "Phase B, D". The flow field was the
@@ -2713,6 +2761,14 @@ down the tunnel mouths". One-line fix, no design change. (Out of scope for this
 doc to edit; flagged as a task.)
 
 ### 16.10 Elizabeth line vs Jubilee line rolling stock (silent contradiction)
+
+**RESOLVED 2026-09-06 (owner decision), see 4.11.** The line is a fictionalised
+Crossrail-scale line (main-line loading gauge, modelled on the Elizabeth line,
+NOT a deep-level tube); the train is the Class 345 "Aventra" silhouette; the
+platform is a main-line loading-gauge box. brief-v2, brief-v3, art-direction,
+reference-frame-notes and the canary-wharf-research folder have been updated to
+this framing. This reverses the "suggested default" below (which leaned 1996
+Stock deep-tube). Text below is the audit trail.
 
 **Ambiguity:** brief-v2 and art-direction call the line "a fictionalised
 Elizabeth line". `research/rolling-stock.md` describes the reference-frame

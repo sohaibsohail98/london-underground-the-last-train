@@ -8,12 +8,12 @@ with source, licence and download status.
 | File | What it is | Downloaded assets inside it |
 |---|---|---|
 | `README.md` | Folder index and the legal line in brief. | None |
-| `station-architecture.md` | The two real Canary Wharf stations: Jubilee line box (Foster, 1999) and Elizabeth line box under Crossrail Place (Foster/Arup, 2022). Dimensions, escalators, materials, columns, ceiling, vertical stack, arena translation. | None |
+| `station-architecture.md` | The two real Canary Wharf stations: Jubilee line box (Foster, 1999) and Elizabeth line box under Crossrail Place (Foster/Arup, 2022). The game's platform is modelled on the Elizabeth line box (main-line gauge). Dimensions, escalators, materials, columns, ceiling, vertical stack, arena translation. | None |
 | `materials-and-surfaces.md` | Surface list for the UE5 art pass: concrete, metal, tile, floors, tactile paving, handrails, lighting hardware, wear patterns, CC0 texture sources. | None |
 | `signage-and-wayfinding.md` | Descriptive only. Wayfinding hierarchy, panel shapes, mounting heights, next-train indicator, free OFL non-Johnston typefaces, ISO 7010 pictograms. | None |
 | `advertising-and-dressing.md` | Poster formats and real dimensions, frame types, placement rhythm, fictional-advert direction, station clutter (litter, abandoned items, bins, benches, fixed clutter). | None |
 | `free-3d-and-kits.md` | Free/open Unreal-compatible station kits, prop packs, train models. Cross-referenced with `docs/reference/free-assets.md`. | None |
-| `rolling-stock.md` | The tube train: 1996 Stock and Class 345 dimensions, deep-tube body profile, doors, interior, cab end, exterior detail, wear, open 3D references. | None |
+| `rolling-stock.md` | The train: the Class 345 "Aventra" (main-line gauge) as the build target, dimensions, silhouette, off-limits identity list, safe livery, doors, interior, cab end, exterior detail, wear. Jubilee 1996 Stock kept only as a contrast. Open 3D references. | None |
 | `manifest.md` | This file. | None |
 
 **Nothing was downloaded.** Every external image, model and photo is

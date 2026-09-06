@@ -8,6 +8,12 @@ sequencing has moved on.
 The visual target for the whole project is `docs/reference/reference-frame.png`.
 Read `docs/reference/reference-frame-notes.md` before any art or layout task.
 
+**Committed scope numbers.** v1 ships **2 stations**. Any "41 stations"
+reference in the docs is an aspirational expansion list, not a plan. The
+fictional line is a fictionalised Crossrail-scale line (main-line loading
+gauge, modelled on the Elizabeth line, NOT a deep-level tube); the train is a
+Class 345 "Aventra" silhouette. See `docs/brief-v3-unreal.md` Part 1.
+
 ## Status
 
 | Phase | Goal | Gate | State |

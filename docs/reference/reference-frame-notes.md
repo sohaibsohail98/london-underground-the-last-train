@@ -2,18 +2,20 @@
 
 The single visual target for LAST TRAIN. `reference-frame.png` in this folder is
 the frame every art and lighting decision is measured against. Keep it open while
-building. It is a Phase 7 target, not a Phase 4 one: do not measure the grey box
-against it.
+building. It is a Phase F art target, not something to measure the Phase A grey
+box against: do not measure the grey box against it.
 
-`reference-frame.png` shows a first person shooter on a fictionalised London
-Underground platform. A train fills the entire right side of frame as a wall. The
-platform recedes left to a vanishing point down a tiled corridor. A horde of
-zombies arrives down that corridor toward the camera. The player is boxed in on
-the train side and open on the platform side. Warm sodium and white functional
-lighting, violet line accent on the rolling stock and furniture, crimson
-emergency lighting receding into the tunnel as a depth cue. Wet reflective floor.
-A departure board hangs from the ceiling mid platform. Restrained modern shooter
-HUD furniture in the corners.
+`reference-frame.png` shows a first person shooter on a fictionalised
+Crossrail-scale London rail platform: a main-line loading-gauge station hall (a
+tall tiled corridor), NOT a cramped deep-level tube bore. A train fills the
+entire right side of frame as a wall. The platform recedes left to a vanishing
+point down a tiled corridor. A horde of zombies arrives down that corridor
+toward the camera. The player is boxed in on the train side and open on the
+platform side. Warm sodium and white functional lighting, violet line accent on
+the rolling stock and furniture (door surrounds and a cab band, not an all-over
+purple bodyshell). Crimson emergency lighting receding into the tunnel as a
+depth cue. Wet reflective floor. A departure board hangs from the ceiling mid
+platform. Restrained modern shooter HUD furniture in the corners.
 
 ---
 
@@ -68,7 +70,7 @@ they creep back in.
 | Johnston wayfinding type | Licensed typeface | An original or freely licensed geometric sans with a taller x-height. Not a Johnston clone |
 | "Way out" panel in house style | Trademark dress | Same information, original panel geometry and colour split |
 | Official line diagram | Copyright | Original network schematic, which doubles as the HUD map substitute |
-| Elizabeth line livery on the train | Operator identity | Original livery in the project palette. Violet is fine, the specific stripe arrangement is not |
+| Elizabeth line identity on the train | Operator identity | Do not lift: the purple ELIZABETH LINE roundel, the TfL grey/white bodyshell with a single purple sole-bar stripe as a copied livery, New Johnston on blinds or numbering, the operator name or "MTR Elizabeth line" branding, TfL purple as the sole livery colour. Substitute: charcoal bodyshell, sodium cab band, violet `#6C4C9C` door surrounds, original typeface, made-up operator mark. A purple-and-white unmarked train still reads as Elizabeth line and must be avoided |
 | Line name on signage | Trademark | Rename the line in world. Station names stay factual |
 | `SAUG 9MM` and the CoD HUD furniture | Another game's names and style | Original weapon names throughout, restrained classic HUD per Phase G |
 | Round counter, challenge tracker, minimap, kill feed, exfil banner | Modern shooter HUD, banned by the style guide | Round, points, health, ammo, perks only. No permanent minimap, no challenge tracker, no kill feed, no exfil banner |
@@ -86,7 +88,7 @@ Copying this closely is what makes the place feel real.
 | Platform composition, train as a wall, corridor to a vanishing point | Phase D grey box | Must read right in primitives before any art |
 | Train arriving, dwelling, doors, boarding | Phase C | `ALTTrainActor` |
 | Departure board | Phase C | Diegetic timer, text render component |
-| Horde funnelled down the platform | Phase B, D | Flow field plus spawn routes down the tunnel mouths |
+| Horde funnelled down the platform | Phase B, D | Per-zombie navmesh pathing (UE5 navmesh, `AIController::MoveToActor` per `LTZombieCharacter`, plus a per-zombie stall-recovery nudge) along spawn routes down the tunnel-mouth openings. There is no flow field; that was the discarded web build |
 | Wet floor, Lumen reflections, sodium lighting, volumetric tunnel haze | Phase F | Fable led, post process volume plus Lumen tuning |
 | Violet station identity, original signage, original livery, original ads | Phase F | Original identity only, see the table above |
 | HUD | Phase G | Restrained, explicitly not the frame's furniture |

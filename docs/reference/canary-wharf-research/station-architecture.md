@@ -1,13 +1,23 @@
 # Station architecture
 
-Two real stations sit under Canary Wharf. They are different building types and
-the game can borrow from both. All copyrighted images below are linked and
+Two real stations sit under Canary Wharf. They are different building types.
+Both are recorded here as real-world reference, but the game's arena is
+modelled on the **main-line / Elizabeth-line-scale station**, NOT the deep-tube
+Jubilee one, because the game's train is a Class 345 "Aventra" (main-line
+loading gauge) per `rolling-stock.md` and `docs/brief-v3-unreal.md` Part 1. Use
+section 2 (the Elizabeth line box, Grimshaw line-wide platform design) as the
+lead for platform width, height and cladding. Section 1 (the Jubilee box) is
+kept for its spatial ideas that carry regardless of gauge (the deep descent,
+the undivided volume, the wide escalator banks, the under-lit concrete), not as
+the platform-tunnel cross-section. All copyrighted images below are linked and
 described, not embedded.
 
 ## 1. Canary Wharf Jubilee line station (Foster and Partners, opened 1999)
 
-The primary reference. A single vast concrete box, frequently called cathedral
-like in scale.
+A deep-tube station, kept here for its transferable spatial concepts (the
+descent, the single undivided volume, the escalator banks, the moody under-lit
+concrete), NOT for its platform-tunnel cross-section. A single vast concrete
+box, frequently called cathedral like in scale.
 
 ### Overall spatial concept and dimensions
 
@@ -100,9 +110,15 @@ maintenance:
 
 ### What translates to the arena
 
-- **Train as a wall:** platform screen doors and the exposed concrete tunnel
-  wall opposite give a clean hard edge down one long side. The train sits in
-  that slot and fills the side. The grid already reserves rows 8 to 24 for this.
+These ideas carry regardless of gauge. For the actual platform cross-section
+(width, height, cladding) use section 2, because the game's train is main-line
+gauge.
+
+- **Train as a wall:** platform screen doors and the exposed concrete wall
+  opposite give a clean hard edge down one long side. The train sits in that
+  slot and fills the side. The grid already reserves rows 8 to 24 for this. On a
+  main-line-gauge platform this slot is wider and taller than the deep-tube one
+  here.
 - **Corridor to a vanishing point:** the platform is long, straight, low lit,
   and lined with the repeating oval columns and the ribbed soffit. The horde
   walking out of the dark far end down that colonnade is exactly the reference
@@ -131,8 +147,9 @@ maintenance:
 
 ## 2. Canary Wharf Elizabeth line station, under Crossrail Place (Foster and Partners with Arup, structure; Grimshaw line-wide platform design; opened for the Elizabeth line 2022, retail 2015)
 
-A different building: a deep concrete box in the dock with a long timber roofed
-retail and park structure floating over it.
+**This is the lead reference for the game's platform**, because the game's train
+is a main-line-gauge Class 345. A deep concrete box in the dock with a long
+timber roofed retail and park structure floating over it.
 
 ### Overall concept and dimensions
 
@@ -163,7 +180,8 @@ retail and park structure floating over it.
 
 ### Elizabeth line platform environment (Grimshaw line-wide design)
 
-Applies to the deep platform level, useful if the arena leans newer:
+This is the platform the game's arena is modelled on (main-line gauge, matching
+the Aventra):
 
 - Platforms and passenger tunnels are near **double the length and height** of a
   standard Tube station.
@@ -177,13 +195,15 @@ Applies to the deep platform level, useful if the arena leans newer:
 
 ### What translates to the arena
 
+- The **GFRC curved tunnel cladding** with its continuous coved corners is the
+  default platform wall treatment: smoother, paler, more clinical than raw
+  board-marked concrete. Raw concrete can still feature on the opposite (track)
+  wall or in back-of-house.
+- The **oversized double-height main-line tunnel** is the model for the platform
+  hall itself and for a wide, tall spawn corridor feeding it. This is the "tall
+  tiled corridor receding to a vanishing point" of the reference frame.
 - The **timber lattice** is a memorable ceiling for the upper concourse or
   entrance box if you want to distinguish the mezzanine from the platform.
-- The **GFRC curved tunnel cladding** with its continuous coved corners is an
-  alternative platform wall treatment to raw board marked concrete: smoother,
-  paler, more clinical, if the art direction wants the newer look on one side.
-- The oversized double height Elizabeth line tunnel is a good model for a wide,
-  tall spawn corridor feeding the platform.
 
 ### Reference URLs (all reference only, not downloaded)
 

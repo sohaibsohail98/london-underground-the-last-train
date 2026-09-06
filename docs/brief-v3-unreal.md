@@ -1,11 +1,11 @@
-# LAST TRAIN v3 — Unreal Engine 5, first person
+# LAST TRAIN v3 - Unreal Engine 5, first person
 
 Supersedes `brief-v2.md`. The game design is largely retained; the engine,
 camera and delivery target all change.
 
 Status of the earlier documents:
 
-- `brief-v2.md` — superseded for engine, renderer and camera. Still
+- `brief-v2.md` - superseded for engine, renderer and camera. Still
   authoritative for the round loop, the train mechanic, station tiering, the
   mechanic library, the economy and the legal constraints.
 - `phase-1-plan.md`. Removed. It described a Three.js render graph and the
@@ -21,7 +21,7 @@ Status of the earlier documents:
 
 ---
 
-## PART 0 — WHAT CHANGED, AND WHAT IT COSTS
+## PART 0 - WHAT CHANGED, AND WHAT IT COSTS
 
 | Area | v2 | v3 |
 |---|---|---|
@@ -41,7 +41,9 @@ All of it is design, none of it is code:
 - The round loop, breather, and difficulty scaling curve.
 - The train mechanic: 100 second interval, 25 second dwell, boarding as
   optional escape, station heat when you stay.
-- The 41 station list, tiering, adjacency, and the fixed mechanic library.
+- The station tiering, adjacency, and the fixed mechanic library. The 41
+  station list is an aspirational expansion list, not a plan: v1 commits to 2
+  stations (see Part 5).
 - The economy: 10 per hit, 60 per kill, 130 per headshot kill.
 - The four perks, the lost property office, the upgrade bench, Oyster Credit.
 - Original announcement phrasing and the legal constraints.
@@ -76,7 +78,7 @@ Do not measure early milestones against the frame. Measure them against
 
 ---
 
-## PART 1 — TARGET AND CONSTRAINTS
+## PART 1 - TARGET AND CONSTRAINTS
 
 **Engine.** UE5.4 or later. Windows development. C++ for reusable systems,
 Blueprints for level assembly and configuration, per
@@ -101,6 +103,40 @@ be mechanical, not cosmetic:
 These numbers exist and are tuned: see `Source/LastTrain/Public/Weapons/`.
 The spread model from the discarded web build transfers directly as design.
 
+**Line identity and rolling stock (canonical).** The fictional line is a
+fictionalised Crossrail-scale line: a main-line loading-gauge line modelled on
+the Elizabeth line, NOT a deep-level tube. The line is renamed in-world;
+station names and real geography stay factual.
+
+- **Rolling stock:** the Class 345 "Aventra" silhouette. Full-width curved
+  wraparound cab windscreen (the "smiling" front), walk-through articulated
+  interior with full open gangways (you see the whole train end to end down the
+  centre, NOT distinct cars with black gaps between them), 3 double-leaf sliding
+  plug doors per side per car, near-vertical body sides (a box with only slight
+  tumblehome), long and low with a flat roof and a deep skirt. Approximate
+  dimensions: 23 m driving cars, 22.5 m intermediate cars, 2.77 m body width,
+  3.76 m rail to roof, 1.145 m floor above rail, a 9-car unit about 205 m long.
+  LED strip lighting, ceiling-mounted passenger-information screens,
+  longitudinal (side-facing) seating near the doors and transverse further in.
+- **Station profile:** because the train is main-line gauge, the platform
+  environment is a large tiled hall or big-bore tunnel: a tall tiled corridor
+  receding to a vanishing point, a train filling one whole side as a wall,
+  platform screen doors optional. It is NOT a cramped deep-tube bore.
+- **Safe livery** (the project's own): a charcoal `#16161C` bodyshell, a sodium
+  `#E0A030` cab band, violet `#6C4C9C` door surrounds, an original wayfinding
+  typeface (not Johnston), a made-up operator mark. The silhouette says "modern
+  London rail"; the dressing says "not TfL".
+- **Off limits, do not lift:** the purple ELIZABETH LINE roundel on car sides
+  or station totems; the TfL grey/white bodyshell with a single purple sole-bar
+  stripe copied as a complete livery; New Johnston on destination blinds, car
+  numbering or signage; the operator name or "MTR Elizabeth line" branding; the
+  specific TfL purple used as the sole livery colour with nothing else (the
+  project may use its own violet `#6C4C9C` as ONE of its four palette colours,
+  e.g. door surrounds or a cab band, but a train that is simply purple-and-white
+  and unmarked still reads as Elizabeth line and must be avoided).
+
+Full physical detail is in `docs/reference/canary-wharf-research/rolling-stock.md`.
+
 **Legal.** Unchanged and non-negotiable. Station names and geography are
 factual and fine. No roundel. No Johnston or New Johnston. No reproduction of
 the official line diagram. No operator livery or logo. No transcribed
@@ -113,7 +149,7 @@ user-facing strings. Never use em-dashes.
 
 ---
 
-## PART 2 — VERTICAL SLICE FIRST
+## PART 2 - VERTICAL SLICE FIRST
 
 `00_PROJECT_README.md` is right and this plan obeys it: do not build the
 station before the loop works.
@@ -133,12 +169,12 @@ renderer with no game in it. Do not repeat it in the other direction.
 
 ---
 
-## PART 3 — PHASES
+## PART 3 - PHASES
 
 Each phase has an acceptance test you can actually run. A phase is not done
 because it compiles.
 
-### Phase 0 — project and tooling
+### Phase 0 - project and tooling
 
 Create the UE5 project, first person template as a starting point only. Set up
 the folder structure from `03_TECHNICAL_ARCHITECTURE.md`. Add the `LastTrain`
@@ -148,7 +184,7 @@ content. Confirm the project opens and packages an empty build.
 **Accept:** you can launch, walk around a default room, and produce a packaged
 Windows build.
 
-### Phase 1 — combat slice
+### Phase 1 - combat slice
 
 C++: `ALTPlayerCharacter`, `ULTWeaponComponent`, `ULTWeaponData`,
 `ALTZombieCharacter`, `ULTPointsComponent`, `ALTRoundManager` in its simplest
@@ -158,7 +194,7 @@ the spread model. One zombie that navigates to the player and attacks.
 **Accept:** shoot a zombie, kill it, points increase, headshots pay more,
 ADS is visibly tighter than hip fire, sprinting forces hip fire.
 
-### Phase 2 — rounds and spawning
+### Phase 2 - rounds and spawning
 
 `ALTSpawnPoint`, wave composition, round transitions, the breather, increasing
 count and health per round, live zombie cap.
@@ -166,7 +202,7 @@ count and health per round, live zombie cap.
 **Accept:** rounds 1 to 5 play without touching the editor, difficulty rises
 readably, the round ends exactly once.
 
-### Phase 3 — classic economy
+### Phase 3 - classic economy
 
 Wall buys, purchasable debris doors, the interaction framework via
 `ULTInteractableInterface`, purchase validation and feedback, navigation
@@ -175,7 +211,7 @@ rebuild on door open.
 **Accept:** earn points, buy a weapon off a wall, buy open a door, and the new
 area is navigable by zombies.
 
-### Phase 4 — grey box Canary Wharf
+### Phase 4 - grey box Canary Wharf
 
 Block out the station with primitives only. Platform, train volume, concourse,
 secondary platform or service area, escalator bank, traversal loops, spawn
@@ -184,7 +220,7 @@ routes. Use the v2 ASCII grid for Canary Wharf as the layout sketch.
 **Accept:** the map is enjoyable to train zombies around using nothing but grey
 boxes. If it is not fun grey, materials will not save it.
 
-### Phase 5 — the train mechanic
+### Phase 5 - the train mechanic
 
 The signature system, and the one thing that makes this not just another
 Zombies map. Train arrives on a timer, dwells, doors animate, boarding ends the
@@ -194,14 +230,14 @@ diegetically rather than as a HUD counter. Station heat when you stay.
 **Accept:** a train arrives on schedule, you can board it during dwell, and
 staying visibly raises pressure.
 
-### Phase 6 — classic systems
+### Phase 6 - classic systems
 
 Perks, the weapon upgrade bench, the lost property office as the mystery box
 equivalent, downed and revive, equipment.
 
 **Accept:** a complete survival session is possible, start to death.
 
-### Phase 7 — art pass
+### Phase 7 - art pass
 
 Now, and not before. Modular kit, trim sheets, decals, clutter. Priority order
 from `04_DEVELOPMENT_ROADMAP.md`: platform, train, signage, lighting, props,
@@ -211,7 +247,7 @@ happen here, and this is where the reference frame becomes the target.
 **Accept:** a screenshot of the platform stands next to the reference frame
 without embarrassment. Not equal. Not embarrassing.
 
-### Phase 8 — audio
+### Phase 8 - audio
 
 Ambience, train hum, original announcements, zombie vocals, weapon audio,
 interaction, round stingers. Priority order from `01_GAME_VISION.md`. Silence
@@ -219,7 +255,7 @@ is a tool.
 
 **Accept:** you can tell what is happening behind you with your eyes closed.
 
-### Phase 9 — HUD
+### Phase 9 - HUD
 
 Restrained, per `08_CLASSIC_ZOMBIES_STYLE_GUIDE.md`. Round, points, health,
 perks, weapon, magazine, reserve, equipment, minimal prompts. The station
@@ -230,7 +266,7 @@ banner.
 **Accept:** you can play well using only the information on screen, and nothing
 on screen is decoration.
 
-### Phase 10 — second station and travel
+### Phase 10 - second station and travel
 
 Only now does the line open up. A second station, adjacency, travel on the
 train, per-station mechanics from the fixed library.
@@ -238,14 +274,14 @@ train, per-station mechanics from the fixed library.
 **Accept:** you can survive at Canary Wharf, board, and continue at a second
 station with its round counter intact.
 
-### Phase 11 — balance, polish, packaging
+### Phase 11 - balance, polish, packaging
 
 Balance to round 12 to 15 on a first serious run, 30 as an achievement. Profile
 before optimising. Spawn fairness. Weapon feel.
 
 ---
 
-## PART 4 — MODEL SPLIT
+## PART 4 - MODEL SPLIT
 
 Revised for the loss of automated verification.
 
@@ -268,7 +304,7 @@ ask for a phase in one prompt.
 
 ---
 
-## PART 5 — RISKS
+## PART 5 - RISKS
 
 1. **No verification loop.** Every line of C++ here is unverified until you
    compile it. Keep changes small, compile often, commit working states.
@@ -279,7 +315,8 @@ ask for a phase in one prompt.
 4. **Scope.** 41 stations was ambitious in a procedural browser build. Hand
    built in UE it is not realistic for one person. Treat the line as an
    expansion path, not a launch requirement. Two good stations beats forty
-   grey ones.
+   grey ones. **v1 commits to exactly 2 stations.** Any "41 stations" reference
+   anywhere in the docs is an aspirational expansion list, not a plan.
 5. **The discarded build.** If UE proves too heavy, `phase-03` on `main` is a
    working, typechecked, browser-deployable fallback. That is worth remembering
    rather than resenting.

@@ -1,4 +1,11 @@
-# LAST TRAIN v2 — high fidelity 3D build brief
+# LAST TRAIN v2 - high fidelity 3D build brief
+
+> **This document is PARTLY SUPERSEDED. DEAD: engine, renderer, camera, phase
+> plan, gates, asset strategy, the Fable/Opus prompts (Parts 0 to 4 and 6).
+> LIVE: the round loop, train timing (100s interval, 25s dwell), station heat,
+> the five zombie types, the mechanic library, the economy numbers, the legal
+> constraints (scattered through Parts 4 and 5). For engine, camera and phases
+> see brief-v3-unreal.md.**
 
 Supersedes v1. Same game design, new rendering target.
 
@@ -11,13 +18,18 @@ the round loop, the train mechanic, station tiering, the mechanic library, the
 economy and the legal constraints; the engine and renderer are superseded by
 `brief-v3-unreal.md`.
 
-Round-based zombie survival on a fictionalised Elizabeth line, rendered in real
-time 3D with a full post-processing stack. Visual target is stylised realism with
-heavy atmospheric lighting, not photorealism.
+Round-based zombie survival on a fictionalised Crossrail-scale line (a
+main-line loading-gauge line modelled on the Elizabeth line, NOT a deep-level
+tube), rendered in real time 3D with a full post-processing stack. Visual
+target is stylised realism with heavy atmospheric lighting, not photorealism.
+The line name is renamed in-world; station names and geography stay factual.
+Rolling stock and station profile are the Class 345 "Aventra" silhouette and
+main-line-gauge platform halls, per `docs/brief-v3-unreal.md` Part 1 and
+`docs/reference/canary-wharf-research/rolling-stock.md`.
 
 ---
 
-## PART 0 — WHAT CHANGED FROM V1, AND WHY
+## PART 0 - WHAT CHANGED FROM V1, AND WHY
 
 Everything in Parts 1.1 to 1.12 of v1 (the core loop, train timer, rounds,
 zombie roster, weapons, perks, economy, persistence) is **unchanged and still
@@ -61,7 +73,7 @@ impression of high production value in a dark, enclosed setting:
 
 ---
 
-## PART 1 — ASSET STRATEGY, READ THIS FIRST
+## PART 1 - ASSET STRATEGY, READ THIS FIRST
 
 This is the only part of the project a model cannot do for you. Source these
 before Phase 4 or the build stalls.
@@ -88,7 +100,14 @@ palette, original typography, original announcement phrasing.
 
 ---
 
-## PART 2 — RENDERING SPEC
+## PART 2 - RENDERING SPEC
+
+> **DEAD.** This whole part describes the discarded Three.js render pipeline.
+> Unreal Engine 5 with Lumen replaces it. See `brief-v3-unreal.md` Parts 0 and 1.
+> The camera model in 2.7 (steep angled third person at roughly 55 degrees,
+> spring arm, cursor lookahead, occlusion fade, minimap-heavy HUD) is DEAD:
+> `brief-v3-unreal.md` first person at FOV 95 is canonical and the C++
+> `ALTPlayerCharacter` follows it.
 
 ### 2.1 Pipeline
 
@@ -169,6 +188,10 @@ Instancing is mandatory. Target under 400 draw calls on the largest station.
 
 ### 2.7 Camera
 
+> **DEAD.** First person per `brief-v3-unreal.md` is canonical. Everything below,
+> the 55 degree third person pitch, the spring arm, the cursor lookahead and the
+> occlusion fade, is superseded.
+
 Steep angled third person at roughly 55 degrees, spring-arm follow with damping,
 mild lookahead toward the cursor, FOV punch on firing, shake on damage. Player
 must never be occluded by geometry: fade or dither any wall between camera and
@@ -176,7 +199,12 @@ player.
 
 ---
 
-## PART 3 — REVISED CREDIT STRATEGY AND GATES
+## PART 3 - REVISED CREDIT STRATEGY AND GATES
+
+> **DEAD.** The Fable-does-Phases-1-to-5 / Opus-does-6-to-8 split below is
+> superseded. `CLAUDE.md` and `brief-v3-unreal.md` Part 4 are the live
+> model-split guidance. The gate structure (Gates A to E) is also dead; the
+> live roadmap is `docs/tasks/README.md` (Phases A to G).
 
 Scope roughly doubles in v2, so the split shifts and the gates get stricter. The
 failure mode to guard against is a beautiful engine with no game in it.
@@ -203,27 +231,29 @@ crowd system, since those are what make it look like a real game.
 
 ### Hard gates
 
-- **GATE A** — plan only, no code. You review the render graph and file layout.
-- **GATE B** — an empty test station renders with the full lighting and post
+- **GATE A** - plan only, no code. You review the render graph and file layout.
+- **GATE B** - an empty test station renders with the full lighting and post
   stack, torch working, profiler visible, all three presets switchable. No
   gameplay. This is the go/no-go on whether it looks good enough to continue.
-- **GATE C** — the generator turns one ASCII grid into a complete station you can
+- **GATE C** - the generator turns one ASCII grid into a complete station you can
   fly a debug camera through, and 46 VAT zombies animate at 60fps.
-- **GATE D** — engine core runs: player moves, shoots, zombies path and jostle.
-- **GATE E** — rounds, breather, train timer and travel across three stations.
+- **GATE D** - engine core runs: player moves, shoots, zombies path and jostle.
+- **GATE E** - rounds, breather, train timer and travel across three stations.
 
 Gate B is the important one. If the empty station does not look striking with
 nothing in it, stop and retune before spending anything on gameplay.
 
 ---
 
-## PART 4 — THE FABLE PROMPT
+## PART 4 - THE FABLE PROMPT
 
 Paste as a single message.
 
 ```
 You are building LAST TRAIN: a round-based zombie survival shooter set on a
-fictionalised version of London's Elizabeth line, rendered in real time 3D.
+fictionalised Crossrail-scale London rail line (main-line loading gauge,
+modelled on the Elizabeth line, NOT a deep-level tube; line renamed in-world),
+rendered in real time 3D.
 
 VISUAL TARGET
 Stylised realism with heavy atmospheric lighting. Dark underground stations, a
@@ -397,15 +427,17 @@ Do not proceed past GATE E. Begin Phase 1 now.
 
 ---
 
-## PART 5 — THE OPUS PROMPTS
+## PART 5 - THE OPUS PROMPTS
 
 Run in Claude Code against the repo Fable produced, one session each.
 
-### Phase 6 — content volume
+### Phase 6 - content volume
 
 ```
 This repo is LAST TRAIN, a 3D round-based zombie survival shooter on a
-fictionalised Elizabeth line. Engine, renderer, procedural geometry generator,
+fictionalised Crossrail-scale line (main-line loading gauge, modelled on the
+Elizabeth line, NOT a deep-level tube; line renamed in-world). Engine,
+renderer, procedural geometry generator,
 crowd system, schemas and three reference stations (Canary Wharf, Whitechapel,
 Paddington) already exist. Read data/stations/, data/balance.ts and the geometry
 generator first, and match existing conventions exactly.
@@ -436,7 +468,7 @@ Pause after the first five stations so I can review before you do the rest.
 British spelling. Never use em-dashes. No TfL trademarks.
 ```
 
-### Phase 7 — interface, audio, persistence
+### Phase 7 - interface, audio, persistence
 
 ```
 Continuing LAST TRAIN. Plan first, then build:
@@ -464,7 +496,7 @@ Continuing LAST TRAIN. Plan first, then build:
 British spelling. Never use em-dashes.
 ```
 
-### Phase 8 — balance, optimisation, packaging
+### Phase 8 - balance, optimisation, packaging
 
 ```
 Continuing LAST TRAIN. Feature complete. Plan first, then:
@@ -488,7 +520,7 @@ British spelling. Never use em-dashes.
 
 ---
 
-## PART 6 — RISKS
+## PART 6 - RISKS
 
 1. **Gate B is the real decision point.** If an empty station with full lighting
    does not look striking, more gameplay will not save it. Retune there or fall

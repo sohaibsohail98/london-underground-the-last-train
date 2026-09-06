@@ -6,7 +6,11 @@ material from the maps, do not expect a ready made "Tube platform" material.
 
 ## Concrete
 
-The dominant material at Canary Wharf Jubilee. Three distinct concrete reads:
+The dominant material family across both real Canary Wharf stations. Three
+distinct concrete reads. Because the game's arena is modelled on the main-line /
+Elizabeth-line-scale platform, read 3 (GFRC) is the **default platform wall
+treatment**; reads 1 and 2 are the Jubilee-box look, still useful for the track
+wall, back-of-house, the concourse and columns.
 
 1. **Board marked in situ concrete**, walls and soffit. Vertical timber plank
    impressions, tie rod holes on a grid, subtle pour lines and colour
@@ -15,9 +19,9 @@ The dominant material at Canary Wharf Jubilee. Three distinct concrete reads:
 2. **Fair faced structural concrete**, the big oval columns. Same mix, cleaner,
    fewer marks, sometimes a very light seal or anti graffiti coat that adds a
    faint sheen and darkens it.
-3. **Sprayed / GFRC panel concrete** (Elizabeth line alternative). Creamy pale,
-   near seamless, coved corners, fine matte texture, panel joint lines on a
-   large module with a shadow gap.
+3. **Sprayed / GFRC panel concrete** (the main-line platform default). Creamy
+   pale, near seamless, coved corners, fine matte texture, panel joint lines on
+   a large module with a shadow gap.
 
 Wear on concrete: greasy dark hand height smears near openings and stairs,
 scuffs and black rubber transfer marks along skirting height where trolleys and
