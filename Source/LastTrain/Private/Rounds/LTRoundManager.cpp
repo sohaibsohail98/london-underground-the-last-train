@@ -227,8 +227,7 @@ void ALTRoundManager::TrySpawnOne()
 	Chosen->MarkUsed(WorldTime);
 	PendingSpawns -= 1;
 
-	// DIAGNOSTIC, remove after the spawn plateau is confirmed.
-	LT_LOG(Log, TEXT("Spawned zombie. Alive %d, pending %d, cap %d, round %d."), LiveZombies.Num(),
+	LT_LOG(Verbose, TEXT("Spawned zombie. Alive %d, pending %d, cap %d, round %d."), LiveZombies.Num(),
 		PendingSpawns, MaximumAlive, CurrentRound);
 }
 

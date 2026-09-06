@@ -52,6 +52,10 @@ void ALTZombieCharacter::BeginPlay()
 	CurrentTarget = UGameplayStatics::GetPlayerPawn(this, 0);
 
 	RepathTimer = FMath::FRandRange(0.f, RepathIntervalSeconds);
+
+	// A fixed per-instance sign, so a stalled zombie always shoulders past on the
+	// same side and the queue fans out instead of oscillating in place.
+	StallLateralSign = FMath::RandBool() ? 1.f : -1.f;
 }
 
 void ALTZombieCharacter::ApplyRoundScaling(const int32 Round)
@@ -101,6 +105,8 @@ void ALTZombieCharacter::Tick(const float DeltaSeconds)
 		RepathTimer = RepathIntervalSeconds + FMath::FRandRange(-Jitter, Jitter);
 	}
 
+	UpdateStallRecovery(DeltaSeconds);
+
 	TryAttack();
 }
 
@@ -134,21 +140,59 @@ void ALTZombieCharacter::DriveTowardsTarget()
 	}
 }
 
+void ALTZombieCharacter::UpdateStallRecovery(const float DeltaSeconds)
+{
+	if (!CurrentTarget)
+	{
+		StallTimer = 0.f;
+		return;
+	}
+
+	// Only a zombie that still has ground to cover should be recovering. One in
+	// melee range is meant to be stationary while it swings.
+	const float Distance = FVector::Dist(GetActorLocation(), CurrentTarget->GetActorLocation());
+	if (Distance <= AttackRange)
+	{
+		StallTimer = 0.f;
+		return;
+	}
+
+	// Path following reports success but the pawn is pinned by another capsule
+	// ahead in a corridor, so it sits at zero velocity outside AttackRange. Count
+	// how long that has held.
+	if (GetVelocity().SizeSquared2D() < FMath::Square(StallSpeedThreshold))
+	{
+		StallTimer += DeltaSeconds;
+	}
+	else
+	{
+		StallTimer = 0.f;
+		return;
+	}
+
+	if (StallTimer < StallGraceSeconds)
+	{
+		return;
+	}
+
+	// Shove toward the target with a lateral bias, so the blocked zombie slides
+	// around the one in front rather than pressing straight into its back.
+	const FVector ToTarget = (CurrentTarget->GetActorLocation() - GetActorLocation()).GetSafeNormal2D();
+	const FVector Lateral = FVector::CrossProduct(ToTarget, FVector::UpVector) * StallLateralSign;
+	const FVector Nudge = (ToTarget + Lateral * StallLateralFraction).GetSafeNormal2D();
+	AddMovementInput(Nudge);
+}
+
 void ALTZombieCharacter::TryAttack()
 {
 	if (AttackCooldown > 0.f || !CurrentTarget)
 	{
-		// DIAGNOSTIC, remove after the attack bug is confirmed.
-		LT_LOG(Verbose, TEXT("TryAttack early out: cooldown %.2f target %s"), AttackCooldown,
-			CurrentTarget ? TEXT("set") : TEXT("null"));
 		return;
 	}
 
 	const float Distance = FVector::Dist(GetActorLocation(), CurrentTarget->GetActorLocation());
 	if (Distance > AttackRange)
 	{
-		// DIAGNOSTIC, remove after the attack bug is confirmed.
-		LT_LOG(Verbose, TEXT("TryAttack out of range: distance %.1f range %.1f"), Distance, AttackRange);
 		return;
 	}
 
@@ -158,10 +202,6 @@ void ALTZombieCharacter::TryAttack()
 	// window a moving player can be clipped in.
 
 	AttackCooldown = AttackCooldownSeconds;
-
-	// DIAGNOSTIC, remove after the attack bug is confirmed.
-	LT_LOG(Log, TEXT("TryAttack firing ApplyDamage %.1f on %s at distance %.1f"), AttackDamage,
-		*CurrentTarget->GetName(), Distance);
 
 	UGameplayStatics::ApplyDamage(CurrentTarget, AttackDamage, GetController(), this, nullptr);
 }

@@ -83,6 +83,21 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	float RepathJitterFraction = 0.4f;
 
+	/** Ground speed below which the zombie counts as stalled. Path following can
+	    report success while a capsule ahead pins it at zero velocity. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	float StallSpeedThreshold = 8.f;
+
+	/** Seconds of near-zero velocity outside AttackRange before the direct nudge
+	    kicks in. Short enough that a corridor queue never visibly freezes. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	float StallGraceSeconds = 0.5f;
+
+	/** How much of the stall nudge is lateral rather than straight at the target,
+	    so a blocked zombie slides around the one in front. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	float StallLateralFraction = 0.6f;
+
 	/** Bone names treated as the head. Set to match the imported skeleton. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	TArray<FName> HeadBoneNames = {TEXT("head"), TEXT("Head"), TEXT("neck_01")};
@@ -118,7 +133,18 @@ private:
 	    if the navmesh cannot path there, so the zombie never freezes. */
 	void DriveTowardsTarget();
 
+	/** Detects the path-following-succeeds-but-pinned-by-a-pawn case and applies a
+	    lateral direct nudge, so a corridor queue does not stall behind the front
+	    attacker. */
+	void UpdateStallRecovery(float DeltaSeconds);
+
 	float RepathTimer = 0.f;
+	float StallTimer = 0.f;
+
+	/** Fixed +1 or -1 per instance, so a stalled zombie shoulders past on a
+	    consistent side and the queue fans out. */
+	float StallLateralSign = 1.f;
+
 	bool bDead = false;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Combat", Transient,
