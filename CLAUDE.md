@@ -32,16 +32,18 @@ against. Notes on what to lift and what is off limits are in
 |---|---|---|
 | Player | `Player/LTPlayerCharacter` | FP pawn, camera, health with 4s delay regen, ADS FOV lerp, sprint cancels aim. Enhanced Input actions are `EditDefaultsOnly` and null until a Blueprint assigns them. |
 | Weapons | `Weapons/LTWeaponComponent`, `Weapons/LTWeaponData` | Hitscan, hip and ADS spread, movement and recoil bloom, pellets, penetration, falloff, reload, refill. Traces on `ECC_GameTraceChannel1`. |
-| Zombies | `Zombies/LTZombieCharacter` | Health, `ApplyRoundScaling`, head bone hitbox, attack via `ApplyDamage`, death broadcast. Navigation is `AIController::MoveToActor` every tick, no behaviour tree. |
-| Rounds | `Rounds/LTRoundManager`, `Rounds/LTSpawnPoint` | Wave counts, `MaximumAlive` cap, breather, decaying spawn interval, weighted spawn point choice. |
+| Zombies | `Zombies/LTZombieCharacter` | Health, `ApplyRoundScaling`, head bone hitbox, attack via `ApplyDamage`, death broadcast. Navigation is `AIController::MoveToActor` on a jittered repath cadence (B1), no behaviour tree, plus a stall-recovery nudge for queued attackers. |
+| Rounds | `Rounds/LTRoundManager`, `Rounds/LTSpawnPoint`, `Rounds/LTStationHeat` | Wave counts, `MaximumAlive` cap, breather, decaying spawn interval, weighted spawn point choice. Station heat widens the live cap and quickens spawns; the round manager reads it if present. |
 | Economy | `Economy/LTPointsComponent` | 500 start, 10 hit, 60 kill, 130 headshot kill. `TrySpend`, `CanAfford`. |
-| Interaction | `Interaction/LTInteractableInterface` | Interface only. No implementation and no caller yet. |
+| Interaction | `Interaction/LTInteractableInterface`, `Interaction/LTInteractionComponent`, `Interaction/LTWallBuy` | Interface, a tracing component that holds the current interactable and drives the prompt delegate, and `ALTWallBuy` as the first implementer (weapon then ammunition). |
+| Core | `Core/LTGameMode`, `Core/LTGameState` | Run lifecycle for one station arena. `ELTRunState` (PreGame, Active, Downed, Dead, Boarded); the game mode flips it and starts the round manager. Travel and boarding are Phase C. |
 | Module | `LastTrain.h/.cpp` in `Private/`, NOT the module root. `LT_LOG` macro lives here. |
 
-`Content/` is empty apart from README and attribution markdown. No maps,
-Blueprints, Input assets or data assets exist yet. The C++ is a chassis with no
-body. `web/` is the discarded Three.js build, tagged `phase-03`, not part of this
-work.
+`Content/LastTrain/` now holds the Phase A/B editor assets: the grey box maps
+(`L_GreyboxTest`, `L_CanaryWharf_Greybox`), the `BP_` Blueprints, the Enhanced
+Input assets, `DA_Weapon_SMG` and `WBP_HUD`. The C++ is otherwise still a chassis:
+no train, no zombie types, no perks, no travel. `web/` is the discarded Three.js
+build, tagged `phase-03`, not part of this work.
 
 ## Conventions, enforced by `tools/ci/`
 
@@ -77,11 +79,15 @@ original work. Palette: `#16161C` charcoal, `#6C4C9C` violet, `#E0A030` sodium,
 - `docs/brief-v2.md` - superseded for engine, still authoritative for the round
   loop, train timing (100s interval, 25s dwell), station heat, the five zombie
   types, the mechanic library and the economy numbers.
+- `docs/design/gameplay-canon.md` - the settled design distilled tight: round
+  loop, run lifecycle, train, heat, zombie roster, economy, HUD, with coded
+  values marked authoritative and provisional values marked as such. Replaced
+  the 167-item open-questions sweep, which is in git history at commit `0b7e35f`.
 - `docs/art-direction.md` - palette, composition, trademark substitutions.
 - `docs/unreal-setup.md` - the editor steps the C++ cannot do for itself.
-- `docs/strategy.md` - phase history and the honest risk position.
 - `docs/tasks/` - one bounded task spec per file. Point a fresh session at the
-  relevant one rather than re typing the spec.
+  relevant one rather than re typing the spec. `docs/tasks/NEXT.md` is the
+  resume point.
 
 ## Working rules for models
 

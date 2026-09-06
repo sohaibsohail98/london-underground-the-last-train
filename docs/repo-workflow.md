@@ -81,8 +81,8 @@ none needs the engine:
   dashes, British spelling in strings).
 - **docs**: `tools/ci/check_docs.py` over `docs/`, `CLAUDE.md`, `README.md`:
   British spelling, no em or en dashes, no trailing whitespace, every
-  `.json` parses, `open-questions.json` item count and ids are consistent,
-  and every relative markdown link points at a file that exists.
+  tracked `.json` parses, and every relative markdown link points at a file
+  that exists.
 - **hygiene**: `tools/ci/check_hygiene.py`: secret patterns, absolute local
   paths, trademark leakage (roundel, Johnston, operator name, third party
   titles).
