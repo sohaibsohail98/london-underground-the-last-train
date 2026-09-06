@@ -2,6 +2,7 @@
 
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Core/LTGameMode.h"
 #include "Economy/LTPointsComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -271,6 +272,14 @@ float ALTPlayerCharacter::TakeDamage(
 			Weapon->StopFiring();
 		}
 		OnDied();
+
+		if (const UWorld* World = GetWorld())
+		{
+			if (ALTGameMode* GameMode = World->GetAuthGameMode<ALTGameMode>())
+			{
+				GameMode->NotifyPlayerDied();
+			}
+		}
 	}
 
 	return Applied;

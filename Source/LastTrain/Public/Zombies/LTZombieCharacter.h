@@ -56,8 +56,15 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Zombie")
 	float SpeedPerStep = 55.f;
 
+	/** Root to root reach for the melee gate. Generous, since capsule contact is
+	    about 72 units root to root and a strafing player should still be hit. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	float AttackRange = 130.f;
+
+	/** Acceptance radius passed to MoveToActor, edge to edge. Kept small so the
+	    zombie presses into contact instead of stopping short and freezing. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	float ContactRange = 15.f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	float AttackDamage = 24.f;
@@ -65,7 +72,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	float AttackCooldownSeconds = 1.3f;
 
-	/** Seconds between navmesh repath requests. Path following steers between them. */
+	/** Seconds between navmesh repath requests. Path following steers between them.
+	    The request is re-issued every interval even in contact, so the zombie
+	    tracks a moving player rather than sitting on a stale arrival. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	float RepathIntervalSeconds = 0.35f;
 
@@ -104,6 +113,10 @@ protected:
 private:
 	void Die(bool bHeadshot, AActor* Killer);
 	void TryAttack();
+
+	/** Issues the move request toward CurrentTarget, with a direct-push fallback
+	    if the navmesh cannot path there, so the zombie never freezes. */
+	void DriveTowardsTarget();
 
 	float RepathTimer = 0.f;
 	bool bDead = false;

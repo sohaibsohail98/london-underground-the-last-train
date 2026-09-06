@@ -6,6 +6,7 @@
 
 class ALTZombieCharacter;
 class ALTSpawnPoint;
+class ULTStationHeat;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRoundStarted, int32, Round);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRoundEnded, int32, Round);
@@ -39,6 +40,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Rounds")
 	int32 GetZombiesRemaining() const { return PendingSpawns + LiveZombies.Num(); }
 
+	/** MaximumAlive plus the current station heat's live cap bonus. */
+	UFUNCTION(BlueprintPure, Category = "Rounds")
+	int32 GetEffectiveMaximumAlive() const;
+
 	/** Set per station to vary the roster. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rounds")
 	TSubclassOf<ALTZombieCharacter> ZombieClass;
@@ -70,6 +75,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(EEndPlayReason::Type EndPlayReason) override;
 
 private:
 	void StartRound(int32 Round);
@@ -83,6 +89,9 @@ private:
 
 	UPROPERTY() TArray<TObjectPtr<ALTSpawnPoint>> SpawnPoints;
 	UPROPERTY() TArray<TObjectPtr<ALTZombieCharacter>> LiveZombies;
+
+	/** Optional. Found in the level on BeginPlay. Null means base cap and rate. */
+	UPROPERTY() TObjectPtr<ULTStationHeat> Heat;
 
 	int32 CurrentRound = 0;
 	int32 PendingSpawns = 0;

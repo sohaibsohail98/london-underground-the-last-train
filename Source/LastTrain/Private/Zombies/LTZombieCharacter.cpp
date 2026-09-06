@@ -6,6 +6,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "LastTrain.h"
+#include "Navigation/PathFollowingComponent.h"
 
 ALTZombieCharacter::ALTZombieCharacter()
 {
@@ -94,18 +95,43 @@ void ALTZombieCharacter::Tick(const float DeltaSeconds)
 	RepathTimer -= DeltaSeconds;
 	if (RepathTimer <= 0.f)
 	{
-		if (AAIController* AI = Cast<AAIController>(GetController()))
-		{
-			// MoveToActor's acceptance radius is measured between capsule edges, so
-			// this leaves the zombie inside its own AttackRange reach once stopped.
-			AI->MoveToActor(CurrentTarget, AttackRange * 0.5f);
-		}
+		DriveTowardsTarget();
 
 		const float Jitter = RepathIntervalSeconds * RepathJitterFraction;
 		RepathTimer = RepathIntervalSeconds + FMath::FRandRange(-Jitter, Jitter);
 	}
 
 	TryAttack();
+}
+
+void ALTZombieCharacter::DriveTowardsTarget()
+{
+	if (!CurrentTarget)
+	{
+		return;
+	}
+
+	AAIController* AI = Cast<AAIController>(GetController());
+	if (!AI)
+	{
+		// No controller yet. Push straight at the target so a freshly spawned
+		// zombie still closes while possession settles.
+		AddMovementInput((CurrentTarget->GetActorLocation() - GetActorLocation()).GetSafeNormal());
+		return;
+	}
+
+	// Re-issued every repath interval, in contact or not, so the zombie tracks a
+	// moving player instead of parking on a stale arrival. ContactRange is edge to
+	// edge, small enough that the zombie presses right up to the player.
+	const EPathFollowingRequestResult::Type Result = AI->MoveToActor(CurrentTarget, ContactRange);
+
+	if (Result == EPathFollowingRequestResult::Failed)
+	{
+		// Navmesh could not path there this frame (player off the mesh, or the
+		// crowd is blocking every poly). Fall back to a direct push so the zombie
+		// never freezes in place waiting on a path that will not come.
+		AddMovementInput((CurrentTarget->GetActorLocation() - GetActorLocation()).GetSafeNormal());
+	}
 }
 
 void ALTZombieCharacter::TryAttack()
@@ -125,6 +151,11 @@ void ALTZombieCharacter::TryAttack()
 		LT_LOG(Verbose, TEXT("TryAttack out of range: distance %.1f range %.1f"), Distance, AttackRange);
 		return;
 	}
+
+	// AttackRange is a forgiving root to root gate. It is wide on purpose: it must
+	// still catch a player strafing out of a stationary zombie's reach. Capsule
+	// contact sits near 72 units root to root, so the slack up to 130 is the
+	// window a moving player can be clipped in.
 
 	AttackCooldown = AttackCooldownSeconds;
 

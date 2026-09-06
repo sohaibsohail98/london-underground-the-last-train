@@ -3,6 +3,7 @@
 #include "EngineUtils.h"
 #include "LastTrain.h"
 #include "Rounds/LTSpawnPoint.h"
+#include "Rounds/LTStationHeat.h"
 #include "Zombies/LTZombieCharacter.h"
 
 ALTRoundManager::ALTRoundManager()
@@ -23,6 +24,44 @@ void ALTRoundManager::BeginPlay()
 	{
 		LT_LOG(Warning, TEXT("Round manager found no spawn points in the level. No rounds will run."));
 	}
+
+	// Station heat is optional. Prefer one on this actor, else the first found in
+	// the level. With none, the cap and spawn interval stay at their base values.
+	Heat = FindComponentByClass<ULTStationHeat>();
+	if (!Heat)
+	{
+		for (TActorIterator<AActor> It(GetWorld()); It; ++It)
+		{
+			if (ULTStationHeat* Found = It->FindComponentByClass<ULTStationHeat>())
+			{
+				Heat = Found;
+				break;
+			}
+		}
+	}
+}
+
+void ALTRoundManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	// Drop every reference this actor holds into the world before teardown. The
+	// bound OnZombieDied delegates and the LiveZombies array otherwise keep PIE
+	// actors alive into garbage collection, which the editor's transaction buffer
+	// then trips over on EndPlayMap.
+	StopRounds();
+
+	for (const TObjectPtr<ALTZombieCharacter>& Zombie : LiveZombies)
+	{
+		if (Zombie)
+		{
+			Zombie->OnZombieDied.RemoveAll(this);
+		}
+	}
+
+	LiveZombies.Reset();
+	SpawnPoints.Reset();
+	Heat = nullptr;
+
+	Super::EndPlay(EndPlayReason);
 }
 
 void ALTRoundManager::BeginRounds()
@@ -59,8 +98,20 @@ int32 ALTRoundManager::ComputeRoundCount(const int32 Round) const
 
 float ALTRoundManager::ComputeSpawnInterval(const int32 Round) const
 {
-	const float Interval = BaseSpawnIntervalSeconds * FMath::Pow(SpawnIntervalDecay, static_cast<float>(Round - 1));
+	float Interval = BaseSpawnIntervalSeconds * FMath::Pow(SpawnIntervalDecay, static_cast<float>(Round - 1));
+
+	// Heat quickens spawns. A higher rate is a shorter interval.
+	if (Heat)
+	{
+		Interval /= FMath::Max(0.01f, Heat->GetSpawnRateMultiplier());
+	}
+
 	return FMath::Max(MinimumSpawnInterval, Interval);
+}
+
+int32 ALTRoundManager::GetEffectiveMaximumAlive() const
+{
+	return MaximumAlive + (Heat ? Heat->GetLiveCapBonus() : 0);
 }
 
 void ALTRoundManager::StartRound(const int32 Round)
@@ -106,7 +157,7 @@ void ALTRoundManager::Tick(const float DeltaSeconds)
 	if (PendingSpawns > 0)
 	{
 		SpawnTimer -= DeltaSeconds;
-		if (SpawnTimer <= 0.f && LiveZombies.Num() < MaximumAlive)
+		if (SpawnTimer <= 0.f && LiveZombies.Num() < GetEffectiveMaximumAlive())
 		{
 			TrySpawnOne();
 			SpawnTimer = ComputeSpawnInterval(CurrentRound);
@@ -183,5 +234,10 @@ void ALTRoundManager::TrySpawnOne()
 
 void ALTRoundManager::HandleZombieDied(ALTZombieCharacter* Zombie, const bool bHeadshot)
 {
+	if (Zombie)
+	{
+		Zombie->OnZombieDied.RemoveAll(this);
+	}
+
 	LiveZombies.Remove(Zombie);
 }

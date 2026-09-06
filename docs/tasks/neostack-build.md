@@ -37,6 +37,19 @@ you should stop and flag it.
    back every asset created (path and type), anything you did differently from
    the spec and why, and the PIE result. Then stop. Do not roll straight into
    the next phase.
+10. **Never mutate actors, assets or levels while PIE is running.** No
+    `set_actor_property`, no spawning, no `open_level`, no asset save, no widget
+    or Blueprint edit during a live Play In Editor session. Doing so puts a PIE
+    world object into the editor's transaction (undo) buffer, and on PIE end
+    `UEditorEngine::EndPlayMap` asserts on the still referenced `GameInstance`
+    and the editor crashes with a `SIGSEGV`. This has crashed the editor at
+    least three times. Order of work is always: stop PIE cleanly, then mutate,
+    then start PIE again to observe. During PIE, read only: `playtest` status,
+    screenshots, log reads, `DisplayAll` console reads, pausing to inspect the
+    Details panel.
+11. **Stop PIE cleanly.** Use `playtest.stop` or press Escape in the PIE
+    viewport. Never end a session by closing the PIE window directly, that is
+    the messy teardown path that trips the crash above.
 
 ## What NeoStack cannot do, hand these to a human
 
