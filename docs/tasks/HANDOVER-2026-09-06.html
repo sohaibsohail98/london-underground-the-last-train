@@ -1,0 +1,374 @@
+<title>Last Train Session Handover</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #16161C; --surface: #1E1E26; --surface-2: #24242E;
+    --hairline: #2E2E38; --hairline-2: #3A3A46;
+    --text: #E8E6EF; --muted: #9A97A8; --faint: #6C6A78;
+    --sodium: #E0A030; --violet: #9A7CC8; --violet-deep: #6C4C9C;
+    --crimson: #B02030; --crimson-bright: #D6455A;
+    --done-bg: rgba(224,160,48,0.12); --blocked-bg: rgba(176,32,48,0.13);
+    --wip-bg: rgba(108,76,156,0.18); --green: #4FA96A;
+  }
+  :root[data-theme="light"] {
+    --ground: #F3F2F6; --surface: #FFFFFF; --surface-2: #F7F6FA;
+    --hairline: #DEDCE6; --hairline-2: #CBC8D6;
+    --text: #1A1A21; --muted: #55535F; --faint: #85838F;
+    --sodium: #986410; --violet: #5A3E85; --violet-deep: #6C4C9C;
+    --crimson: #A11B2B; --crimson-bright: #B02030;
+    --done-bg: rgba(224,160,48,0.14); --blocked-bg: rgba(176,32,48,0.10);
+    --wip-bg: rgba(108,76,156,0.12); --green: #2F8A4A;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --ground: #F3F2F6; --surface: #FFFFFF; --surface-2: #F7F6FA;
+      --hairline: #DEDCE6; --hairline-2: #CBC8D6;
+      --text: #1A1A21; --muted: #55535F; --faint: #85838F;
+      --sodium: #986410; --violet: #5A3E85; --violet-deep: #6C4C9C;
+      --crimson: #A11B2B; --crimson-bright: #B02030;
+      --done-bg: rgba(224,160,48,0.14); --blocked-bg: rgba(176,32,48,0.10);
+      --wip-bg: rgba(108,76,156,0.12); --green: #2F8A4A;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--ground); color: var(--text);
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    font-size: 14.5px; line-height: 1.6;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 40px 24px 100px; }
+
+  header { margin-bottom: 32px; }
+  .kicker {
+    font-family: "JetBrains Mono", monospace; font-size: 11px;
+    letter-spacing: 0.22em; text-transform: uppercase; color: var(--faint);
+    margin: 0 0 10px;
+  }
+  h1 {
+    font-family: "Barlow Condensed", sans-serif; font-weight: 700;
+    font-size: clamp(2rem, 5vw, 2.9rem); line-height: 1.03;
+    text-transform: uppercase; letter-spacing: 0.01em; margin: 0 0 14px;
+    text-wrap: balance;
+  }
+  .lede {
+    background: var(--surface); border: 1px solid var(--hairline);
+    border-left: 3px solid var(--violet-deep); padding: 14px 18px;
+    font-size: 14px; max-width: 780px;
+  }
+  .lede strong { color: var(--sodium); }
+  .updated {
+    font-family: "JetBrains Mono", monospace; font-size: 11px;
+    color: var(--faint); margin-top: 10px;
+  }
+
+  h2 {
+    font-family: "Barlow Condensed", sans-serif; font-weight: 600;
+    font-size: 24px; text-transform: uppercase; letter-spacing: 0.04em;
+    margin: 40px 0 6px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--hairline-2);
+  }
+  h2 .n {
+    font-family: "JetBrains Mono", monospace; font-size: 13px;
+    color: var(--faint); margin-right: 10px;
+  }
+  h3 {
+    font-family: "Barlow Condensed", sans-serif; font-weight: 600;
+    font-size: 18px; letter-spacing: 0.02em; margin: 22px 0 8px;
+  }
+  p { margin: 8px 0; }
+  .muted { color: var(--muted); }
+  code, .mono {
+    font-family: "JetBrains Mono", monospace; font-size: 12.5px;
+    color: var(--muted); word-break: break-word;
+  }
+  a { color: var(--violet); }
+
+  .tbl-wrap { overflow-x: auto; margin: 12px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 520px; }
+  th {
+    text-align: left; font-family: "JetBrains Mono", monospace;
+    font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--faint); padding: 7px 12px 7px 0; border-bottom: 1px solid var(--hairline-2);
+  }
+  td { padding: 10px 12px 10px 0; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  td:first-child, th:first-child { padding-left: 12px; }
+
+  .pill {
+    display: inline-block; font-family: "JetBrains Mono", monospace;
+    font-size: 9.5px; font-weight: 500; letter-spacing: 0.08em;
+    text-transform: uppercase; padding: 3px 8px; border: 1px solid; white-space: nowrap;
+    border-radius: 3px;
+  }
+  .pill.done { color: var(--sodium); border-color: rgba(224,160,48,0.5); background: var(--done-bg); }
+  .pill.blocked { color: var(--crimson-bright); border-color: rgba(176,32,48,0.5); background: var(--blocked-bg); }
+  .pill.wip { color: var(--violet); border-color: rgba(108,76,156,0.5); background: var(--wip-bg); }
+  .pill.todo { color: var(--muted); border-color: var(--hairline-2); }
+  .pill.ok { color: var(--green); border-color: var(--green); }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--hairline);
+    border-radius: 6px; padding: 14px 16px; margin: 12px 0;
+  }
+  .card.warn { border-left: 3px solid var(--crimson); }
+  .card.info { border-left: 3px solid var(--violet-deep); }
+  .card.good { border-left: 3px solid var(--sodium); }
+  .card h3 { margin-top: 0; }
+
+  ol.steps { counter-reset: s; list-style: none; padding: 0; margin: 8px 0; }
+  ol.steps > li {
+    counter-increment: s; display: grid; grid-template-columns: 30px 1fr;
+    gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--hairline);
+  }
+  ol.steps > li:last-child { border-bottom: none; }
+  ol.steps > li::before {
+    content: counter(s); font-family: "Barlow Condensed", sans-serif;
+    font-weight: 700; font-size: 20px; color: var(--violet); line-height: 1.4;
+  }
+  ol.steps .t { color: var(--text); font-weight: 500; }
+  ol.steps .d { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+  ol.steps .meta {
+    font-family: "JetBrains Mono", monospace; font-size: 10px;
+    color: var(--faint); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 3px;
+  }
+
+  ul.tight { margin: 8px 0; padding-left: 20px; }
+  ul.tight li { margin: 5px 0; }
+
+  .links { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; }
+  .links a {
+    font-family: "JetBrains Mono", monospace; font-size: 12px;
+    padding: 8px 12px; background: var(--surface); border: 1px solid var(--hairline);
+    border-radius: 4px; text-decoration: none; color: var(--violet);
+  }
+  .links a:hover { border-color: var(--violet-deep); }
+  .links a .lbl { color: var(--faint); }
+
+  footer {
+    margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--hairline);
+    font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--faint);
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="kicker">Last Train &middot; UE 5.8 &middot; Overnight Handover</p>
+    <h1>Where We Are, What's Next</h1>
+    <div class="lede">
+      Phase B acceptance is close. The <strong>zombie attack fix works for the front zombie</strong> but
+      a new stall was found: zombies <strong>queued behind it in a corridor freeze completely</strong>, which
+      is a C++ bug still open. HUD health bar is fixed. Phase C groundwork (station heat, game state
+      backbone) and two Phase C specs are written and committed. 167 design questions are in the
+      decision console for you to work through.
+    </div>
+    <p class="updated">Snapshot 2026-09-06 ~01:25 &middot; branch phase/b-acceptance-prep, 6 commits ahead of the last push, NOT pushed</p>
+  </header>
+
+  <h2><span class="n">A</span> Live Artifacts</h2>
+  <div class="links">
+    <a href="https://claude.ai/code/artifact/aabd8040-6c6f-4fe3-afe4-6b832386492e"><span class="lbl">decision console &nbsp;</span>167 questions, 18 proposals, auto-saving &mdash; work through this first</a>
+    <a href="https://claude.ai/code/artifact/ad72d796-1d3d-4021-af30-77d42d7a064b"><span class="lbl">status board &nbsp;</span>from earlier, now partly stale &mdash; will be refreshed</a>
+  </div>
+
+  <h2><span class="n">B</span> What NeoStack Did Overnight</h2>
+  <p class="muted">Its run checklist is <code>docs/tasks/neostack-run-2026-09-06.md</code>. Results so far:</p>
+  <div class="tbl-wrap">
+  <table>
+    <thead><tr><th>Section</th><th>Result</th><th>Detail</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>1 &mdash; HUD health bar</td>
+        <td><span class="pill done">All PASS</span></td>
+        <td>Root cause was a layout bug, not a binding bug: <code>HealthTrackBox</code> SizeBox had <code>HeightOverride = 4</code> (a 4px sliver). Set to <code>WidthOverride = 260, HeightOverride = 16</code>. Bar now draws and drains in step with damage. Verified in PIE.</td>
+      </tr>
+      <tr>
+        <td>2 &mdash; zombie attack fix</td>
+        <td><span class="pill done">All PASS</span> <span class="pill blocked">2.6 BLOCKED</span></td>
+        <td><strong>Outcome A</strong>: the front zombie's attack fires reliably, health drops in clean 24-point steps. My <code>DriveTowardsTarget</code> + <code>ContactRange</code> fix works for the zombie in contact. <strong>BUT 2.6 reproduced a NEW stall</strong> &mdash; see the warning box below.</td>
+      </tr>
+      <tr>
+        <td>3 &mdash; B1 crowd frame check</td>
+        <td><span class="pill blocked">Mostly BLOCKED</span></td>
+        <td>This NeoStack chat has only the <strong>desktop tool</strong> (no asset editing), so it could not set <code>OpeningRoundCounts</code> to 30. 3.1 and 3.5 passed (read the override, left the map as found). 3.2 to 3.4 blocked.</td>
+      </tr>
+      <tr>
+        <td>4 &mdash; B2/B3 acceptance</td>
+        <td><span class="pill blocked">BLOCKED</span></td>
+        <td>Depends on Section 3. Not attempted.</td>
+      </tr>
+      <tr>
+        <td>5 &mdash; Canary Wharf Level BP</td>
+        <td><span class="pill todo">TODO</span></td>
+        <td>Not reached. Likely blocks on the same no-asset-editing limitation and the known Level Blueprint API gap.</td>
+      </tr>
+      <tr>
+        <td>6 &mdash; HUD polish</td>
+        <td><span class="pill todo">TODO</span></td>
+        <td>Stretch. Not reached.</td>
+      </tr>
+      <tr>
+        <td>7 &mdash; wrap up</td>
+        <td><span class="pill todo">TODO</span></td>
+        <td>Not reached.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="card warn">
+    <h3>Open bug: corridor stall on queued zombies</h3>
+    <p>NeoStack item 2.6 reproduced the exact stall the fix was meant to kill, just moved one place back in the queue. With 6 zombies alive: the front one (<code>BP_Zombie0</code>) stayed in melee and attacked fine. <code>BP_Zombie1</code> to <code>5</code> sat in a single-file line, each ~68 units apart, with <code>velocity = (0,0,0)</code>, for 12.5+ continuous seconds. All had a <strong>valid non-null CurrentTarget</strong> and <strong>AttackCooldown = 0</strong>, and were 68 to 342 units behind the front zombie, well outside <code>AttackRange = 130</code>.</p>
+    <p><strong>Diagnosis:</strong> <code>DriveTowardsTarget()</code>'s <code>MoveToActor</code> is not re-issuing, or is being starved, when a zombie's path is blocked by <em>another pawn's capsule</em> in a narrow corridor. My direct-push fallback only triggers on <code>EPathFollowingRequestResult::Failed</code> or a missing controller, not on "path technically valid but blocked by a pawn ahead". The queued zombies think they have a live move request and just wait.</p>
+    <p><strong>Fix direction (for the fresh session):</strong> in <code>ALTZombieCharacter::DriveTowardsTarget</code>, also apply the direct <code>AddMovementInput</code> nudge when the zombie has a move request outstanding but its velocity has been near-zero for more than ~0.5s while still outside <code>AttackRange</code>. Track a small <code>StallTimer</code>. Possibly add a per-instance lateral offset to the target point so the crowd does not form a perfect single-file conga. Keep RVO at 45. This is a bounded C++ change, compile and re-verify.</p>
+  </div>
+
+  <h2><span class="n">C</span> Committed This Session (branch phase/b-acceptance-prep)</h2>
+  <div class="tbl-wrap">
+  <table>
+    <thead><tr><th>Commit</th><th>Contents</th></tr></thead>
+    <tbody>
+      <tr><td><code>a5492f8</code></td><td>Phase C zombie types spec (<code>phase-c-zombie-types.md</code>, 22 decision markers) + <code>open-questions.json</code> (the 167-item audit parsed for the console)</td></tr>
+      <tr><td><code>20b4be1</code></td><td>Phase C1 train actor spec (<code>phase-c1-train.md</code>, 12 decision markers)</td></tr>
+      <tr><td><code>a718512</code></td><td>Station heat component (<code>ULTStationHeat</code>), game state backbone (<code>ALTGameMode</code> / <code>ALTGameState</code>), the zombie approach fix (<code>DriveTowardsTarget</code> + <code>ContactRange</code>), the <code>EndPlayMap</code> crash defensive fix (round manager <code>EndPlay</code> cleanup), and the 167-item design audit (<code>open-questions.md</code> + <code>open-questions-review.md</code>). Compiled clean, binary 0008.</td></tr>
+      <tr><td><code>e5dc237</code></td><td>The NeoStack run checklist</td></tr>
+      <tr><td><code>d038f78</code></td><td>Earlier: diagnostics, docs sweep prep, Canary Wharf blockout map</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="muted"><strong>Not pushed.</strong> Push <code>phase/b-acceptance-prep</code> to origin only after you have reviewed it, or merge to main when Phase B is signed off.</p>
+
+  <div class="card info">
+    <h3>Uncommitted on disk, deliberately</h3>
+    <ul class="tight">
+      <li><code>Content/LastTrain/UI/WBP_HUD.uasset</code> &mdash; NeoStack's Section 1 health-bar fix. Verified passing. Commit it once NeoStack's run is fully done.</li>
+      <li><code>Content/LastTrain/Blueprints/BP_RoundManager.uasset</code> &mdash; NeoStack touched this during the Section 3 attempts. Check <code>OpeningRoundCounts</code> is back at <code>(6,8,10,12,14)</code> before committing.</li>
+      <li><code>docs/tasks/neostack-run-2026-09-06.md</code> &mdash; NeoStack's live checklist with its notes. Commit with the above.</li>
+      <li><code>docs/design/open-questions.json</code> shows modified &mdash; a whitespace-normalised variant was generated for the console embed; the committed one is the canonical parse. Leave as-is or <code>git checkout</code> it.</li>
+    </ul>
+  </div>
+
+  <h2><span class="n">D</span> Tomorrow &mdash; Ordered</h2>
+
+  <h3>D1. The C++ bug (fresh session, highest priority)</h3>
+  <ol class="steps">
+    <li>
+      <div>
+        <div class="t">Fix the corridor stall in <code>ALTZombieCharacter::DriveTowardsTarget</code></div>
+        <div class="d">Add a <code>StallTimer</code>: if a move request is outstanding but velocity has been near-zero &gt; ~0.5s while outside <code>AttackRange</code>, apply the direct <code>AddMovementInput</code> nudge (currently only fires on <code>Failed</code> / no controller). Consider a small per-instance lateral target offset so the crowd does not form a perfect conga line. Compile (binary will be 0009+).</div>
+        <div class="meta">C++ &middot; ~1 file &middot; compile locally</div>
+      </div>
+    </li>
+    <li>
+      <div>
+        <div class="t">Restart the editor onto the new binary, PIE-verify</div>
+        <div class="d">Editor is currently on 0008 (or older &mdash; check). Restart, PIE <code>L_GreyboxTest</code>, let 6+ zombies queue in the corridor, confirm they all keep closing and attacking in turn, none freeze &gt; 2s. Then strip the diagnostic <code>LT_LOG</code> lines from <code>TryAttack</code> and <code>TrySpawnOne</code> (keep the field exposure), recompile, commit.</div>
+        <div class="meta">editor + C++</div>
+      </div>
+    </li>
+  </ol>
+
+  <h3>D2. Unblock the B1 crowd check (30 seconds in the editor, by hand)</h3>
+  <ol class="steps">
+    <li>
+      <div>
+        <div class="t">Clear the <code>GreyboxTest_RoundManager</code> instance override</div>
+        <div class="d">In <code>L_GreyboxTest</code>, select the placed <code>GreyboxTest_RoundManager</code>, in Details find <code>Opening Round Counts</code>, hit the yellow reset arrow. For the frame test, set index 0 to 30 on the instance. This is what NeoStack could not do (its chat has no asset editing).</div>
+        <div class="meta">editor, by hand</div>
+      </div>
+    </li>
+    <li>
+      <div>
+        <div class="t">PIE with <code>stat unit</code>, confirm 24+ alive holds ~60 fps</div>
+        <div class="d">Watch <code>LogLastTrain</code> for <code>Spawned zombie. Alive N ...</code> climbing past 6 toward 24 (needs ~38s minimum at the current spawn interval). Record game-thread ms. Then revert index 0 to 6, save. That closes the Phase B gate.</div>
+        <div class="meta">editor</div>
+      </div>
+    </li>
+  </ol>
+
+  <h3>D3. Work the decision console</h3>
+  <ol class="steps">
+    <li>
+      <div>
+        <div class="t">Filter to Proposals first (18 items)</div>
+        <div class="d">These are the ones that unblock the most downstream work: 3.1 zombie stats, 4.11 rolling stock (1996 Stock vs Class 345 &mdash; a Phase C blocker that decides the arena), 4.8 what "banks points" means, 1.7 / 9.3 downed-and-revive, 8.1 weapon roster, 10.2 stamina, 12.1 music fork.</div>
+        <div class="meta">you, in the console</div>
+      </div>
+    </li>
+    <li>
+      <div>
+        <div class="t">Then the top-priority non-proposals</div>
+        <div class="d">15.1 name the line, 16.1 extract a gameplay-canon doc from brief-v2, 5.1 the single heat + cap model, 17.1/17.2 the GameMode/GameInstance backbone (partly built already), 6.1 commit to 2 stations and name station 2.</div>
+        <div class="meta">you, in the console</div>
+      </div>
+    </li>
+  </ol>
+
+  <h3>D4. Fold decisions into the briefs</h3>
+  <ol class="steps">
+    <li>
+      <div>
+        <div class="t">Read the console decisions back, section by section</div>
+        <div class="d">Where you marked AGREED: fold the proposal into <code>brief-v2.md</code> / <code>brief-v3-unreal.md</code> as settled design, showing each diff before it lands. Where CHANGED: use your note. Where DISCUSS: leave a marked open item.</div>
+        <div class="meta">fresh session + you</div>
+      </div>
+    </li>
+    <li>
+      <div>
+        <div class="t">Resolve the two silent contradictions</div>
+        <div class="d"><code>reference-frame-notes.md</code> still mentions flow-field pathfinding (that is the dead web build &mdash; UE uses navmesh). And the Elizabeth-vs-Jubilee rolling stock: pick one, retcon the "fictionalised Elizabeth line" wording in brief-v2 and art-direction.</div>
+        <div class="meta">doc edits</div>
+      </div>
+    </li>
+  </ol>
+
+  <h3>D5. Start Phase C proper (once D3/D4 give the numbers)</h3>
+  <ol class="steps">
+    <li>
+      <div>
+        <div class="t">Implement <code>ALTTrain</code> from <code>phase-c1-train.md</code></div>
+        <div class="d">Resolve its 12 <code>[DECISION NEEDED]</code> markers from your console answers first. Then the state machine (Approaching / Dwelling / Departing / Away), the presentation hooks, the boarding trigger, <code>ALTGameMode::NotifyPlayerBoarded</code>. Travel between stations stays out of scope.</div>
+        <div class="meta">C++</div>
+      </div>
+    </li>
+    <li>
+      <div>
+        <div class="t">Implement <code>ULTZombieTypeData</code> from <code>phase-c-zombie-types.md</code></div>
+        <div class="d">Resolve its 22 markers from the console. Then the data asset, <code>ApplyTypeData</code>, the roster on <code>ALTRoundManager</code> (keep <code>ZombieClass</code> as the empty-roster fallback). Data entry of the five stat blocks is a separate Sonnet task once signed off.</div>
+        <div class="meta">C++ then data entry</div>
+      </div>
+    </li>
+  </ol>
+
+  <h2><span class="n">E</span> Standing State You Should Not Lose</h2>
+  <div class="card">
+    <ul class="tight">
+      <li><strong>Two NeoStack surfaces exist.</strong> The in-editor <code>execute_script</code> (full asset editing, built everything) and <code>mcp__neostack-desktop__execute</code> (builds, browser, PIE streaming only, no asset editing). A fresh NeoStack chat must confirm <code>execute_script</code> is in its tool list before any build task &mdash; ask it "list your tools" first. Trial expires ~2026-09-07.</li>
+      <li><strong>The <code>EndPlayMap</code> SIGSEGV crash</strong> is the editor's transaction buffer holding a PIE object, caused by mutating actors/assets during a live PIE session. Ground rules 10 and 11 in <code>neostack-build.md</code> forbid that now. Full writeup: <code>docs/tasks/editor-crash-endplaymap.md</code>. Seen 3+ times.</li>
+      <li><strong>Never mutate during PIE. Stop PIE with playtest.stop or Escape</strong>, never by closing the PIE window.</li>
+      <li><strong>Diagnostic <code>LT_LOG</code> lines</strong> are still in <code>TryAttack</code> and <code>TrySpawnOne</code> (marked <code>// DIAGNOSTIC</code>). Strip them after the corridor stall is fixed and verified. Keep the <code>BlueprintReadOnly</code> field exposure on the zombie.</li>
+      <li><strong>Build:</strong> <code>"/Users/Shared/Epic Games/UE_5.8"/Engine/Build/BatchFiles/Mac/Build.sh LastTrainEditor Mac Development -Project="$PWD/LastTrain.uproject"</code> &mdash; external Xcode on <code>/Volumes/DriveSohaib</code> must be mounted. No CI compile.</li>
+      <li><strong>Engine-to-HDD migration</strong> is a pending task: <code>docs/tasks/drive-migration.md</code>. Do it when NeoStack is idle and the editor fully closed. Frees ~43 GiB.</li>
+      <li><strong>Docker Desktop is kept</strong> (platform engineering). Do not uninstall it. <code>docker system prune -a --volumes</code> reclaims space without uninstalling.</li>
+      <li><strong>Conventions:</strong> British spelling everywhere, no em or en dashes in source (task specs allow one em dash in the H1 only), <code>LT_LOG</code> not <code>UE_LOG</code>, <code>TObjectPtr</code> in containers, <code>.generated.h</code> last include, <code>LT</code> prefix. Palette <code>#16161C #6C4C9C #E0A030 #B02030</code>. No roundel, no Johnston typeface, no line diagram, no operator livery, no CoD names.</li>
+      <li><strong>Design docs:</strong> <code>open-questions.md</code> (167 items, 23 sections, 18 proposals) is the master. <code>open-questions-review.md</code> is the adversarial review kept as the record. The console reads a parsed JSON of the same.</li>
+    </ul>
+  </div>
+
+  <h2><span class="n">F</span> What The Fresh Session Will Do Unprompted</h2>
+  <div class="card good">
+    <ul class="tight">
+      <li>Watch the NeoStack run checklist and the editor. If the editor crashes and NeoStack cannot recover it, restart it.</li>
+      <li>When NeoStack's run finishes and its test values are reverted, commit the <code>WBP_HUD</code> fix + <code>BP_RoundManager</code> (if clean) + the checklist.</li>
+      <li>Fix the corridor stall (D1), compile, and have it ready with the diagnostics stripped &mdash; but not push.</li>
+      <li>Refresh the status board artifact.</li>
+      <li>NOT make any design decision from <code>open-questions.md</code>. NOT push the branch. NOT start <code>ALTTrain</code> or <code>ULTZombieTypeData</code> implementation (they need your console answers). NOT do the drive migration.</li>
+    </ul>
+  </div>
+
+  <footer>
+    Last Train overnight handover &middot; branch phase/b-acceptance-prep &middot; grey-box phase &middot; palette #16161C / #6C4C9C / #E0A030 / #B02030
+  </footer>
+</div>
