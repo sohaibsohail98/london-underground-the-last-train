@@ -2,6 +2,7 @@
 
 #include "EngineUtils.h"
 #include "LastTrain.h"
+#include "NavigationSystem.h"
 #include "Rounds/LTSpawnPoint.h"
 #include "Rounds/LTStationHeat.h"
 #include "Zombies/LTZombieCharacter.h"
@@ -209,11 +210,32 @@ void ALTRoundManager::TrySpawnOne()
 		}
 	}
 
+	// Snap the spawn to the navmesh. A hand placed point that sits slightly
+	// above, below or beside walkable ground would otherwise drop a zombie into
+	// the void on spawn, since the character has no floor to catch it.
+	FVector SpawnLocation = Chosen->GetActorLocation();
+	if (UNavigationSystemV1* Nav = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld()))
+	{
+		FNavLocation Projected;
+		if (Nav->ProjectPointToNavigation(SpawnLocation, Projected, NavProjectionExtent))
+		{
+			SpawnLocation = Projected.Location;
+			// Lift by the capsule half height so the capsule rests on the floor
+			// rather than clipping through it.
+			SpawnLocation.Z += SpawnCapsuleLift;
+		}
+		else
+		{
+			LT_LOG(
+				Warning, TEXT("Spawn point %s is not near the navmesh. Zombie may fall through."), *Chosen->GetName());
+		}
+	}
+
 	FActorSpawnParameters Params;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-	ALTZombieCharacter* Zombie = GetWorld()->SpawnActor<ALTZombieCharacter>(
-		ZombieClass, Chosen->GetActorLocation(), Chosen->GetActorRotation(), Params);
+	ALTZombieCharacter* Zombie =
+		GetWorld()->SpawnActor<ALTZombieCharacter>(ZombieClass, SpawnLocation, Chosen->GetActorRotation(), Params);
 
 	if (!Zombie)
 	{

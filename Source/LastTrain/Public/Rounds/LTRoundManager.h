@@ -48,8 +48,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rounds")
 	TSubclassOf<ALTZombieCharacter> ZombieClass;
 
-	/** Formula takes over past the end of this array. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Rounds")
+	/** Formula takes over past the end of this array. EditAnywhere so a placed
+		round manager can be tuned per map without a new Blueprint. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rounds")
 	TArray<int32> OpeningRoundCounts = {6, 8, 10, 12, 14};
 
 	/** Additional zombies per round once the formula applies. */
@@ -72,6 +73,16 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Rounds")
 	float MinimumSpawnInterval = 0.35f;
+
+	/** Search box for snapping a spawn point onto the navmesh. Generous on Z so
+		a point placed a little above or below the floor still resolves. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Rounds")
+	FVector NavProjectionExtent = FVector(200.f, 200.f, 500.f);
+
+	/** Added to the projected navmesh Z so the spawned capsule rests on the
+		floor rather than half sunk into it. Roughly a character half height. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Rounds")
+	float SpawnCapsuleLift = 90.f;
 
 protected:
 	virtual void BeginPlay() override;

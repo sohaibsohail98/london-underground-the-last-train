@@ -144,23 +144,35 @@ void ALTZombieCharacter::UpdateStallRecovery(const float DeltaSeconds)
 {
 	if (!CurrentTarget)
 	{
-		StallTimer = 0.f;
+		EndStallRecovery();
 		return;
 	}
 
-	// Only a zombie that still has ground to cover should be recovering. One in
-	// melee range is meant to be stationary while it swings.
+	// One in melee range is meant to be stationary while it swings. Only a
+	// zombie with ground still to cover counts as stalled.
 	const float Distance = FVector::Dist(GetActorLocation(), CurrentTarget->GetActorLocation());
 	if (Distance <= AttackRange)
 	{
-		StallTimer = 0.f;
+		EndStallRecovery();
 		return;
 	}
 
-	// Path following reports success but the pawn is pinned by another capsule
-	// ahead in a corridor, so it sits at zero velocity outside AttackRange. Count
-	// how long that has held.
-	if (GetVelocity().SizeSquared2D() < FMath::Square(StallSpeedThreshold))
+	const bool bBarelyMoving = GetVelocity().SizeSquared2D() < FMath::Square(StallSpeedThreshold);
+
+	if (bStallRecovering)
+	{
+		// Already shoving. Keep going until the zombie is moving again or has
+		// closed to melee range, then hand control back to path following.
+		if (!bBarelyMoving)
+		{
+			EndStallRecovery();
+			return;
+		}
+		DriveStallNudge();
+		return;
+	}
+
+	if (bBarelyMoving)
 	{
 		StallTimer += DeltaSeconds;
 	}
@@ -170,7 +182,58 @@ void ALTZombieCharacter::UpdateStallRecovery(const float DeltaSeconds)
 		return;
 	}
 
-	if (StallTimer < StallGraceSeconds)
+	if (StallTimer >= StallGraceSeconds)
+	{
+		BeginStallRecovery();
+		DriveStallNudge();
+	}
+}
+
+void ALTZombieCharacter::BeginStallRecovery()
+{
+	bStallRecovering = true;
+
+	// The path following component sets velocity every frame while a MoveTo is
+	// active, which clobbers AddMovementInput. Cancel the request so the
+	// movement component honours the direct push.
+	if (AAIController* AI = Cast<AAIController>(GetController()))
+	{
+		AI->StopMovement();
+	}
+
+	// RVO braking is what pins a boxed in zombie at zero velocity. Drop it for
+	// the duration of the shove so the zombie can push through the crowd.
+	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+	{
+		Movement->bUseRVOAvoidance = false;
+	}
+
+	LT_LOG(Verbose, TEXT("%s entering stall recovery."), *GetName());
+}
+
+void ALTZombieCharacter::EndStallRecovery()
+{
+	StallTimer = 0.f;
+
+	if (!bStallRecovering)
+	{
+		return;
+	}
+
+	bStallRecovering = false;
+
+	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+	{
+		Movement->bUseRVOAvoidance = true;
+	}
+
+	// Next Tick repath will re-issue a MoveToActor.
+	RepathTimer = 0.f;
+}
+
+void ALTZombieCharacter::DriveStallNudge()
+{
+	if (!CurrentTarget)
 	{
 		return;
 	}
@@ -180,7 +243,7 @@ void ALTZombieCharacter::UpdateStallRecovery(const float DeltaSeconds)
 	const FVector ToTarget = (CurrentTarget->GetActorLocation() - GetActorLocation()).GetSafeNormal2D();
 	const FVector Lateral = FVector::CrossProduct(ToTarget, FVector::UpVector) * StallLateralSign;
 	const FVector Nudge = (ToTarget + Lateral * StallLateralFraction).GetSafeNormal2D();
-	AddMovementInput(Nudge);
+	AddMovementInput(Nudge, StallNudgeScale);
 }
 
 void ALTZombieCharacter::TryAttack()

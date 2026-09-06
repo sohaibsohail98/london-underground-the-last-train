@@ -98,6 +98,11 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	float StallLateralFraction = 0.6f;
 
+	/** Movement input scale while shoving out of a stall. Full strength, since
+		the point is to break contact with whatever is pinning the zombie. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	float StallNudgeScale = 1.f;
+
 	/** Bone names treated as the head. Set to match the imported skeleton. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	TArray<FName> HeadBoneNames = {TEXT("head"), TEXT("Head"), TEXT("neck_01")};
@@ -133,13 +138,24 @@ private:
 		if the navmesh cannot path there, so the zombie never freezes. */
 	void DriveTowardsTarget();
 
-	/** Detects the path-following-succeeds-but-pinned-by-a-pawn case and applies a
+	/** Detects the path-following-succeeds-but-pinned-by-a-pawn case and drives a
 		lateral direct nudge, so a corridor queue does not stall behind the front
 		attacker. */
 	void UpdateStallRecovery(float DeltaSeconds);
 
+	/** Cancels the AI move request and drops RVO so AddMovementInput can push
+		the zombie clear of whatever is pinning it. */
+	void BeginStallRecovery();
+
+	/** Restores RVO and forces a repath. Safe to call when not recovering. */
+	void EndStallRecovery();
+
+	/** One frame of the lateral shove toward CurrentTarget. */
+	void DriveStallNudge();
+
 	float RepathTimer = 0.f;
 	float StallTimer = 0.f;
+	bool bStallRecovering = false;
 
 	/** Fixed +1 or -1 per instance, so a stalled zombie shoulders past on a
 		consistent side and the queue fans out. */
