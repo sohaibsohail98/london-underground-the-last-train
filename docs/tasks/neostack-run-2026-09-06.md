@@ -183,6 +183,15 @@ mechanics. Palette only.
 
 ## Run summary, follow-up session 2026-09-06 (afternoon)
 
+> **SUPERSEDED, read the 2026-09-07 session below before trusting anything in
+> this block.** This session's editor was built from code predating commit
+> `bb0ec42`. Its three "still broken" conclusions (crowd gate not
+> instance-editable, corridor stall still reproducing, zombies free-falling)
+> were all measured against a stale binary. The crowd gate is confirmed fixed
+> on a rebuilt binary; the fall-through has a different root cause than guessed
+> here. The precondition check below passed only because it tested for
+> `5f549c9`'s properties, which were present, and did not test for `bb0ec42`'s.
+
 Picked up after the human's two claimed fixes. Precondition confirmed: fresh
 binary (`StallSpeedThreshold`, `StallGraceSeconds`, `StallLateralFraction`,
 `ContactRange` all reflect on `LTZombieCharacter`, matching commit `5f549c9`).
@@ -260,3 +269,140 @@ binary (`StallSpeedThreshold`, `StallGraceSeconds`, `StallLateralFraction`,
   4. Investigate the intermittent first-spawn stall found in Section 4: after some number of PIE sessions in one editor run, `Round 1 starting` logs but no `Spawned zombie` follows. Unclear if this is a real bug or an artefact of rapid repeated PIE cycling from this bridge; worth a manual repro.
   5. Consider whether the NeoStack toolset would benefit from a `BlueprintCallable` helper for setting a player's control rotation (for FP-aim-dependent scripted verification) and/or a reset-instance-property-to-default verb, both of which blocked otherwise-reachable checklist items this run.
   6. Section 6 (HUD polish) was not attempted and remains fully open.
+
+---
+
+## Session 2026-09-07: rebuild on `bb0ec42`, Canary Wharf spawn points
+
+Ran step zero properly this time: quit the editor, confirmed the working tree
+already contained `bb0ec42`, `445bf54`, `f76e0a4`, `93de8e8` (`git pull` said
+"Already up to date"; `bb0ec42` **is** an ancestor of `HEAD`, it just did not
+show in a short `git log`), rebuilt `LastTrainEditor` (succeeded, 5 actions,
+32s), relaunched, and confirmed the new binary by reflection:
+`NavProjectionExtent`, `SpawnCapsuleLift` on `LTRoundManager` and the new
+`StallNudgeScale` on `LTZombieCharacter` all present, and the
+`OpeningRoundCounts` tooltip now reads "EditAnywhere".
+
+**The prior session's three "still broken" findings were measured on a stale
+binary and should be discarded.** Corrected status below.
+
+### Task 8, crowd gate: PASS
+
+`set_actor_property("GreyboxTest_RoundManager", "OpeningRoundCounts",
+"(30,8,10,12,14)")` now **succeeds** on the placed instance
+(`status="updated"`, `target="actor"`, readback `(30,8,10,12,14)`). Reverted to
+`(6,8,10,12,14)` and confirmed by readback. This was the prior session's number
+one blocker and `bb0ec42` genuinely fixes it. The Phase B crowd gate is now
+reachable; it still has not been *measured* (see "not done" below).
+
+### Tasks 1 and 2, spawn point properties: the brief's diagnosis is wrong
+
+The 10 spawn points are labelled `CW_SpawnPoint_1` to `_10` (single digit, not
+zero padded). Properties as found, all read via `get_actor_property`:
+
+| Label | bEnabled | AreaTag | FirstRound | CooldownSeconds | Weight | Location |
+|---|---|---|---|---|---|---|
+| CW_SpawnPoint_1 | True | (empty) | 1 | 0.9 | 2.0 | (0,0,0) |
+| CW_SpawnPoint_2 | True | (empty) | 1 | 0.9 | 2.0 | (0,0,0) |
+| CW_SpawnPoint_3 | True | (empty) | 1 | 0.9 | 2.0 | (0,0,0) |
+| CW_SpawnPoint_4 | True | (empty) | 1 | 0.9 | 2.0 | (0,0,0) |
+| CW_SpawnPoint_5 | True | (empty) | 1 | 0.9 | 2.0 | (0,0,0) |
+| CW_SpawnPoint_6 | True | (empty) | 1 | 0.9 | 2.0 | (0,0,0) |
+| CW_SpawnPoint_7 | True | (empty) | 1 | 0.9 | 2.0 | (0,0,0) |
+| CW_SpawnPoint_8 | True | (empty) | 1 | 0.9 | 2.0 | (0,0,0) |
+| CW_SpawnPoint_9 | True | (empty) | 4 | 0.9 | 1.0 | (0,0,0) |
+| CW_SpawnPoint_10 | True | (empty) | 4 | 0.9 | 1.0 | (0,0,0) |
+
+**Nothing is gated off.** Every point has `bEnabled=True` and an empty
+`AreaTag`; eight have `FirstRound=1` so they are live in round 1. Points 9 and
+10 at `FirstRound=4` are clearly deliberate design, not a bug. `CooldownSeconds`
+is 0.9 everywhere, well under the "absurd (>10)" threshold. **Task 2 was a no
+op: there was nothing to un-gate.** Note also that `ALTSpawnPoint::IsAvailable`
+does not read `AreaTag` at all, it only checks `bEnabled`, `FirstRound` and the
+cooldown, so the brief's "AreaTag door gating" theory could not have applied
+regardless. `ZombieClass` on `CW_RoundManager` is correctly set to
+`BP_Zombie_C` (Task 6 answered: not the bug).
+
+### Real root cause: `ALTSpawnPoint` has no root component
+
+Every spawn point sits at world origin `(0,0,0)` while `CW_Floor` is centred at
+`(5550,3150,-10)` spanning x 0..11100 / y 0..6300, `CW_PlayerStart` is at
+`(5625,1125,100)` and `CW_RoundManager` at `(5625,3150,100)`. The points are
+roughly 5,500 to 6,900 units off the platform.
+
+They cannot be moved. `set_actor_property(..., "ActorLocation", ...)` fails
+with "property not found on actor or root component";
+`invoke("K2_SetActorLocation")` returns `false` and the location stays
+`(0,0,0)`; `list_actor_components` returns **0 components** and the inherited
+`RootComponent` property reads `None`.
+
+Confirmed in `Source/LastTrain/Private/Rounds/LTSpawnPoint.cpp` (read only):
+`ALTSpawnPoint::ALTSpawnPoint()` sets `PrimaryActorTick.bCanEverTick=false` and
+`bIsSpatiallyLoaded=false` but **never creates a `USceneComponent` root**. An
+actor with no root component cannot hold or persist a world transform. That is
+also why commit `f76e0a4`, which claims to have moved all 10 points, produced a
+**2 line diff on a binary `.umap`**: the `NavMeshBoundsVolume` half of that
+commit did persist (confirmed present at `(5550,3150,200)` over `CW_Floor`), the
+10 spawn point moves silently did not.
+
+`ALTRoundManager::TrySpawnOne` then calls `Chosen->GetActorLocation()`, which
+always returns `(0,0,0)`. `ProjectPointToNavigation` with
+`NavProjectionExtent=(200,200,500)` **succeeds** near origin rather than
+failing, so the "not near the navmesh" warning never fires and the code has no
+idea anything is wrong. Zero such warnings appear in the log across both runs.
+
+### Task 4, PIE result
+
+- "Round 1 starting with 6 zombies.": **yes**
+- "Spawned zombie. Alive 2..6, pending 0, cap 24, round 1.": **yes, spawning
+  works.** The prior session recorded "no Spawned zombie line" only because
+  those lines are `Verbose` (downgraded in `5f549c9`) and it searched the log
+  before `Log LogLastTrain Verbose` had taken effect. Corrected: spawning is
+  fine.
+- Zombies on the platform pathing to the player: **no.** All 6 free fall at
+  terminal velocity, `velocity.z = -4000` constant, z dropping from about
+  -18,000 to -67,000 over 4 seconds, x/y drifting only slightly. A `scene`
+  capture from the player start shows an empty platform.
+- Fall through: **yes, every zombie, every run.**
+
+### Not done this session
+
+Tasks 5 (walk the space) and 7 (corridor stall verification) were **not
+completed**. Task 7 was mid flight on `L_GreyboxTest` with a denser round 1 set
+to 12 (using the now working instance write) and had collected three snapshots
+showing several zombies stationary outside `AttackRange`, when the NeoStack
+bridge dropped with "NeoStack access is unavailable" and did not recover. The
+editor came back under a new PID, so the PIE session ended with it. **No
+verdict on the stall fix either way, it needs a fresh session.** Per the run's
+ground rules, an unavailable `execute_script` bridge is an explicit hard stop.
+
+### State left behind
+
+Clean. `git status Content/` reports no modifications: the temporary
+`OpeningRoundCounts=(12,...)` used for the density test lived only in editor
+memory and died with the editor restart, so `L_GreyboxTest` on disk still holds
+`(6,8,10,12,14)`. No level or asset was saved this session. No `Source/` file
+was touched. The only git commands run were the `git pull` from step zero plus
+read only inspection (`log`, `show`, `status`, `cat-file`); note `git-lfs` is
+**not installed** on this machine, so LFS tracked `Content/` files cannot be
+diffed or checked out.
+
+### Handoff
+
+1. **`ALTSpawnPoint` needs a root component** (a `USceneComponent` created in
+   the constructor and assigned to `RootComponent`). This is a `Source/` change,
+   out of scope for this bridge. Until it lands, the 10 Canary Wharf spawn
+   points cannot be positioned by any means, in the editor UI or by script, and
+   every Canary Wharf zombie will keep spawning at world origin and falling.
+   Once fixed, the points need placing along the north end of the platform,
+   around y=5600, x roughly 900 to 10200, z=100, near the two tunnel mouths at
+   x=4050 and x=7050.
+2. Consider tightening `NavProjectionExtent`'s Z, or warning when the projected
+   point moves more than some sane distance. The current (200,200,500) box
+   silently "succeeds" at world origin, which is what hid this bug: the failure
+   path that would have logged "not near the navmesh" never ran.
+3. Re-run task 7 (corridor stall) and task 5 (walk the space) in a fresh
+   session. The crowd gate being instance-editable now makes a dense stall test
+   easy to set up on `L_GreyboxTest`.
+4. The Phase B crowd/frame gate (24 to 40 zombies at 60 fps) is now
+   **reachable but still unmeasured**.

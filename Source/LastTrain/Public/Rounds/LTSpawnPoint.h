@@ -4,6 +4,8 @@
 #include "GameFramework/Actor.h"
 #include "LTSpawnPoint.generated.h"
 
+class UArrowComponent;
+
 /** A hand placed zombie spawn. Carries an area for door gating and a weight for traffic. */
 UCLASS()
 class LASTTRAIN_API ALTSpawnPoint : public AActor
@@ -40,5 +42,18 @@ public:
 	void MarkUsed(float WorldTime) { LastUsedTime = WorldTime; }
 
 private:
+	/** Without a root the actor cannot be moved: RootComponent stays null and every
+		SetActorLocation, editor drag and K2_SetActorLocation silently no-ops,
+		pinning the point at the world origin. */
+	UPROPERTY(VisibleAnywhere, Category = "Spawning")
+	TObjectPtr<USceneComponent> Root;
+
+#if WITH_EDITORONLY_DATA
+	/** Editor only. Shows where the point is and which way a spawned zombie faces,
+		since TrySpawnOne spawns with this actor's rotation. */
+	UPROPERTY()
+	TObjectPtr<UArrowComponent> DirectionArrow;
+#endif
+
 	float LastUsedTime = -1000.f;
 };
