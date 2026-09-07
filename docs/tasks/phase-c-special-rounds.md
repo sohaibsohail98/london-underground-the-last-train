@@ -1,5 +1,19 @@
 # Phase C - special rounds (sprinter round, brute round)
 
+**C++ WRITTEN, NOT COMPILED** (`b1424bf`). `FLTRoundPlan`, `BuildRoundPlan`, the
+three-way branch in `TrySpawnOne`, `IsSpecialRound` and `GetSpecialRoundTag` are
+all in `ALTRoundManager`. All five CI gates pass; nothing has been compiled.
+**Still open:** the roster wiring that makes it observable, per `neostack.md`.
+Two deliberate deviations from the body below, both because
+`docs/design/gameplay-canon.md` lines 218 to 223 say otherwise: the brute pair
+lands at roughly 30 and 70 per cent through the round rather than as a group up
+front, and a round that is both (20, 30) is a sprinter round that also carries the
+pair, rather than the brute rule taking precedence. The special types are looked
+up on the roster by type id rather than duplicated as `SprinterType` and
+`BruteType` properties, which is what this spec's own "reuse whatever
+phase-c-zombie-types.md uses" instruction asks for. Body below is the original
+spec.
+
 **Engine:** Unreal Engine 5.8, macOS. Xcode on `/Volumes/DriveSohaib` mounted
 (`xcode-select -p`). If not, STOP.
 
@@ -154,6 +168,6 @@ otherwise.
 
 ## On pass
 
-Update `docs/tasks/NEXT.md` and the Phase C row in `docs/tasks/README.md`. Note
+Update `docs/tasks/handover.md` and the Phase C row in `docs/tasks/README.md`. Note
 the remaining special-behaviour work (screamer alert, crawler low profile, the
 heat-3+ roster-pressure weight shift) as follow-ups.

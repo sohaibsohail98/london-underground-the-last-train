@@ -180,6 +180,6 @@ and a flash later. Call it after a successful spend.
 
 ## On pass
 
-Update `docs/tasks/NEXT.md`. The remaining Phase B work is the hit marker and
+Update `docs/tasks/handover.md`. The remaining Phase B work is the hit marker and
 prompt widget in `docs/tasks/phase-b3-feedback-widgets.md`, which is editor work
 and needs no C++.

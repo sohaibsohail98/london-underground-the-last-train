@@ -3,10 +3,12 @@
 **CODE LANDED.** The throttled repath, plus follow-on fixes (RVO radius 90 to 45,
 `DriveTowardsTarget` with `ContactRange`, and a stall-recovery nudge for queued
 attackers) are all in `LTZombieCharacter`. **Still open:** the 24 to 40 zombie
-crowd frame gate has never been measured (the `GreyboxTest_RoundManager` instance
-caps every PIE run at 6, see `NEXT.md`), and one corridor stall edge case remains
-where the nudge does not fire for a zombie just outside `AttackRange`. Body below
-is the original spec.
+crowd frame gate has never been measured. It is not blocked: `bb0ec42` made
+`OpeningRoundCounts` `EditAnywhere` and a placed round manager takes the write, so
+set index 0 to 30, measure, and put it back (see `neostack.md`). One corridor
+stall edge case also remains, where the nudge does not fire for a zombie just
+outside `AttackRange`, and the 2026-09-07 attempt to verify it was cut short with
+no verdict either way. Body below is the original spec.
 
 **Engine:** Unreal Engine 5.8, macOS, external Xcode on `/Volumes/DriveSohaib`
 mounted. Compile after the change with the batch build in `CLAUDE.md`.
@@ -120,6 +122,6 @@ not `* 0.75f`. See the current `LTZombieCharacter.cpp`.
 
 ## On pass
 
-Update `docs/tasks/NEXT.md`. Next Phase B task is the interaction system
+Update `docs/tasks/handover.md`. Next Phase B task is the interaction system
 (`Interaction/LTInteractableInterface` has no implementation or caller yet):
 write `docs/tasks/phase-b2-interaction.md`.

@@ -1,5 +1,19 @@
 # Phase C - the five zombie types
 
+**C++ WRITTEN, NOT COMPILED** (`b1424bf`). `ULTZombieTypeData`,
+`ALTZombieCharacter::ApplyTypeData` with the armour plate, the sprinter lunge and
+the screamer, and the weighted roster on `ALTRoundManager` are all in. All five CI
+gates pass; nothing has been compiled. **Still open:** the five data assets, the
+tintable material and its instances, the `BP_Zombie` graph additions and the
+roster wiring, all specified with their numbers in `neostack.md`. Divergences:
+`ApplyTypeData` re-runs `ApplyRoundScaling` rather than multiplying live values,
+so it is idempotent and order-independent; a capsule resize also shifts the actor
+so a taller type does not spawn sunk in the floor; the front-hit test for the
+armour plate is a negative dot of shot direction and actor forward, which is the
+opposite sign to the one written below and the one the design intends; and the
+special-round layer lives in `phase-c-special-rounds.md` rather than being built
+twice. Body below is the original spec.
+
 **Engine:** Unreal Engine 5.8, macOS, external Xcode on `/Volumes/DriveSohaib`
 mounted. Compile after each step with the batch build in `CLAUDE.md`.
 
@@ -428,7 +442,7 @@ The five `ULTZombieTypeData` assets, the shared tintable zombie material with a
 `TintColour` vector parameter and its five instances, the anim Blueprint reading
 `GetAnimPlayRate()`, and the roster wiring on the placed round managers in
 `L_GreyboxTest` and `L_CanaryWharf_Greybox` are NeoStack editor work. Stub them
-into `docs/tasks/neostack-build.md` once this C++ compiles. This task ends at
+into `docs/tasks/neostack.md` once this C++ compiles. This task ends at
 "the C++ compiles and, with assets present, behaves as the acceptance list
 says".
 
@@ -610,10 +624,10 @@ Until then, step 1 is the bar.
 
 ## On pass
 
-Update `docs/tasks/NEXT.md` and the Phase C row in `docs/tasks/README.md`. The
+Update `docs/tasks/handover.md` and the Phase C row in `docs/tasks/README.md`. The
 resolved values are already in `docs/design/gameplay-canon.md` section 6; update
 them there if the Phase G balance pass moves any. Stub the five data assets, the
 tintable material and the roster wiring into
-`docs/tasks/neostack-build.md` for a NeoStack editor pass. The next Phase C C++
+`docs/tasks/neostack.md` for a NeoStack editor pass. The next Phase C C++
 is the train (`ALTTrainActor`): arrival on the 100s interval, 25s dwell,
 boarding as an interactable during dwell.

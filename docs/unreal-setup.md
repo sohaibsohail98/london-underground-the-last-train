@@ -59,10 +59,21 @@ head shots do nothing if these names are wrong. Confirm the mesh blocks the
 
 **`BP_RoundManager`**, parent `LTRoundManager`. Set `ZombieClass` to
 `BP_Zombie`. Place one in the level and call `BeginRounds` from the level
-Blueprint or the game mode.
+Blueprint or the game mode. Its `Roster` of `LTZombieTypeData` assets is what
+turns the five zombie types on; leave it empty and every spawn is a plain walker,
+exactly as before the roster existed. Give it a `LTStationHeat` component: the
+train, the live cap and the high-heat roster shift all read one.
 
 **`BP_GameMode`**, set Default Pawn Class to `BP_PlayerCharacter`. Set it in
-World Settings.
+World Settings. **Parent it to `LTGameMode`**: it was built on plain
+`GameModeBase`, and on that parent none of the run lifecycle, boarding or travel
+runs at all. Once reparented, fill `StationRoutes` with each map's destination
+(`L_GreyboxTest` to `L_CanaryWharf_Greybox` and back), because that property is a
+class default and one shared game mode Blueprint cannot hold two different
+`NextStationMap` values.
+
+The full outstanding editor list, with every asset and every value, is
+`docs/tasks/neostack.md`. This file is the how; that file is the what is left.
 
 ## 5. Weapon data asset
 

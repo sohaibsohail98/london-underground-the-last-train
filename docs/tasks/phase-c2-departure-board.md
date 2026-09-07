@@ -1,5 +1,16 @@
 # Phase C2 - the departure board actor
 
+**C++ WRITTEN, NOT COMPILED** (`64535f6`). `ALTDepartureBoard` is in
+`Source/LastTrain/{Public,Private}/Train/LTDepartureBoard.{h,cpp}`, `ALTTrain` was
+not touched, and all five CI gates pass. It was written in a remote session with
+no Unreal engine, so the first local build is its compile gate. **Still open:**
+the runtime acceptance needs a `BP_DepartureBoard` with a text render child, per
+`neostack.md`. Two deliberate divergences from the body below: the display is
+seeded on the first Tick rather than in `BeginPlay`, because actor BeginPlay order
+is not deterministic and the board would otherwise push the train's pre-BeginPlay
+numbers, and `DisplaySeconds` starts at -1 so the first hook always fires even on
+a genuine zero. Body below is the original spec.
+
 **Engine:** Unreal Engine 5.8, macOS. Xcode is on an external drive at
 `/Volumes/DriveSohaib/Applications/Xcode.app`, which must be mounted to compile.
 Check with `xcode-select -p`. If `/Volumes/DriveSohaib` is not mounted, STOP.
@@ -206,5 +217,5 @@ matches the train's cycle and switches wording on `OnPhaseChanged`.
 
 ## On pass
 
-Update `docs/tasks/NEXT.md` and the Phase C row in `docs/tasks/README.md`. Note
+Update `docs/tasks/handover.md` and the Phase C row in `docs/tasks/README.md`. Note
 that the runtime acceptance is an editor task pending `BP_DepartureBoard`.

@@ -7,9 +7,53 @@
 class ALTZombieCharacter;
 class ALTSpawnPoint;
 class ULTStationHeat;
+class ULTZombieTypeData;
+enum class ELTZombieType : uint8;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRoundStarted, int32, Round);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRoundEnded, int32, Round);
+
+/** One spawnable zombie type on a station's roster. A struct rather than a bare
+	pointer so per-station overrides can be added later without touching maps. */
+USTRUCT(BlueprintType)
+struct FLTZombieRosterEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Roster")
+	TObjectPtr<ULTZombieTypeData> TypeData;
+};
+
+/** What one round is made of. Decided once in StartRound and read by every spawn,
+	so a round's composition cannot drift halfway through it. */
+USTRUCT()
+struct FLTRoundPlan
+{
+	GENERATED_BODY()
+
+	/** Zombies in the normal or forced composition, before the guaranteed group. */
+	UPROPERTY()
+	int32 TotalCount = 0;
+
+	/** True on a sprinter round: every spawn in TotalCount is ForcedType. */
+	UPROPERTY()
+	bool bForceSingleType = false;
+
+	UPROPERTY()
+	TObjectPtr<ULTZombieTypeData> ForcedType = nullptr;
+
+	/** Brutes placed on top of TotalCount, at GuaranteedSpawnIndices. */
+	UPROPERTY()
+	int32 GuaranteedCount = 0;
+
+	UPROPERTY()
+	TObjectPtr<ULTZombieTypeData> GuaranteedType = nullptr;
+
+	/** Spawn indices within the round that the guaranteed group lands on, so the
+		pair arrives spread through the round rather than together at the start. */
+	UPROPERTY()
+	TArray<int32> GuaranteedSpawnIndices;
+};
 
 /** The round loop. Spawn points come from the level, so this is station agnostic. */
 UCLASS()
@@ -44,9 +88,43 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Rounds")
 	int32 GetEffectiveMaximumAlive() const;
 
-	/** Set per station to vary the roster. */
+	/** True on a sprinter or a brute round. For a HUD banner. */
+	UFUNCTION(BlueprintPure, Category = "Rounds")
+	bool IsSpecialRound() const;
+
+	/** "Sprinters", "Brutes", "SprintersAndBrutes" on a round that is both, or
+		None on a normal round. A tag rather than an enum so a widget can switch on
+		it without the round manager owning the presentation. */
+	UFUNCTION(BlueprintPure, Category = "Rounds")
+	FName GetSpecialRoundTag() const;
+
+	/** Set per station to vary the roster. Every zombie is spawned from this class
+		whatever its type: the roster drives type data, not the spawned class. There
+		is one mesh. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rounds")
 	TSubclassOf<ALTZombieCharacter> ZombieClass;
+
+	/** The station's zombie types. When empty, the round manager spawns
+		ZombieClass with no type data, exactly as before the roster existed, so a
+		map with no roster keeps working unchanged. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rounds")
+	TArray<FLTZombieRosterEntry> Roster;
+
+	/** Every Nth round is an all-sprinter round. 0 disables. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Rounds")
+	int32 SprinterRoundInterval = 5;
+
+	/** A sprinter round spawns this fraction of the normal round count. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Rounds")
+	float SprinterRoundCountFraction = 0.75f;
+
+	/** Every Nth round adds a fixed group of brutes on top of the normal count.
+		0 disables. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Rounds")
+	int32 BruteRoundInterval = 10;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Rounds")
+	int32 BruteRoundBruteCount = 2;
 
 	/** Formula takes over past the end of this array. EditAnywhere so a placed
 		round manager can be tuned per map without a new Blueprint. */
@@ -95,8 +173,29 @@ private:
 	int32 ComputeRoundCount(int32 Round) const;
 	float ComputeSpawnInterval(int32 Round) const;
 
+	/** Decides a round's count and composition. Special rounds are data driven off
+		the four interval properties, and a round can be both: canon has rounds 20,
+		30 and so on as a sprinter round carrying a brute pair as well. */
+	FLTRoundPlan BuildRoundPlan(int32 Round) const;
+
+	/** The type for one spawn: the guaranteed group first, then a forced single
+		type, then the normal weighted mix. Null leaves a plain walker on the coded
+		defaults, which is what an empty roster gets. */
+	const ULTZombieTypeData* ChooseTypeForSpawn(int32 InSpawnIndex, int32 Round) const;
+
+	/** The roster's entry for a type, or null when the station does not carry it.
+		Mutable, because the round plan stores it in a TObjectPtr. */
+	ULTZombieTypeData* FindRosterType(ELTZombieType Type) const;
+
+	int32 CountAliveOfType(ELTZombieType Type) const;
+
 	UFUNCTION()
 	void HandleZombieDied(ALTZombieCharacter* Zombie, bool bHeadshot);
+
+	/** A screamer asks for an extra wave. WalkerCount zero is a cancel: the
+		screamer died inside its cancel window. */
+	UFUNCTION()
+	void HandleZombieScreamed(ALTZombieCharacter* Screamer, int32 WalkerCount);
 
 	UPROPERTY() TArray<TObjectPtr<ALTSpawnPoint>> SpawnPoints;
 	UPROPERTY() TArray<TObjectPtr<ALTZombieCharacter>> LiveZombies;
@@ -104,8 +203,19 @@ private:
 	/** Optional. Found in the level on BeginPlay. Null means base cap and rate. */
 	UPROPERTY() TObjectPtr<ULTStationHeat> Heat;
 
+	UPROPERTY()
+	FLTRoundPlan CurrentPlan;
+
 	int32 CurrentRound = 0;
 	int32 PendingSpawns = 0;
+
+	/** Spawns made this round, so the guaranteed group lands on its planned
+		indices. Reset in StartRound. */
+	int32 SpawnIndex = 0;
+
+	/** Of PendingSpawns, how many came from a scream and can still be cancelled. */
+	int32 PendingScreamSpawns = 0;
+
 	float SpawnTimer = 0.f;
 	float BreatherRemaining = 0.f;
 

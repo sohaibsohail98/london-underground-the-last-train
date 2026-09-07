@@ -6,6 +6,23 @@
 #include "Rounds/LTSpawnPoint.h"
 #include "Rounds/LTStationHeat.h"
 #include "Zombies/LTZombieCharacter.h"
+#include "Zombies/LTZombieTypeData.h"
+
+namespace
+{
+	/** Heat at or above which the special types roughly double their share of a
+		normal round. Provisional, from gameplay-canon section 6. */
+	constexpr int32 HighHeatWeightThreshold = 3;
+
+	/** A type's weight in a normal round's mix, with the high heat shift applied. */
+	float NormalRoundWeight(const ULTZombieTypeData& Type, const bool bHighHeat)
+	{
+		const float Base = FMath::Max(0.f, Type.SpawnWeightNormalRound);
+		const float HeatMultiplier = bHighHeat ? FMath::Max(0.f, Type.HighHeatWeightMultiplier) : 1.f;
+
+		return Base * HeatMultiplier;
+	}
+} // namespace
 
 ALTRoundManager::ALTRoundManager()
 {
@@ -24,6 +41,33 @@ void ALTRoundManager::BeginPlay()
 	if (SpawnPoints.Num() == 0)
 	{
 		LT_LOG(Warning, TEXT("Round manager found no spawn points in the level. No rounds will run."));
+	}
+
+	int32 UsableTypes = 0;
+	for (const FLTZombieRosterEntry& Entry : Roster)
+	{
+		if (Entry.TypeData)
+		{
+			UsableTypes += 1;
+		}
+	}
+
+	if (Roster.Num() == 0)
+	{
+		LT_LOG(Log, TEXT("Round manager has no zombie roster. Every spawn is a plain ZombieClass walker."));
+	}
+	else if (UsableTypes == 0)
+	{
+		LT_LOG(
+			Warning,
+			TEXT(
+				"Round manager roster has %d entries but no type data on any of them. Every spawn is a plain "
+				"walker."),
+			Roster.Num());
+	}
+	else
+	{
+		LT_LOG(Log, TEXT("Round manager roster carries %d zombie type(s)."), UsableTypes);
 	}
 
 	// Station heat is optional. Prefer one on this actor, else the first found in
@@ -55,8 +99,11 @@ void ALTRoundManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		if (Zombie)
 		{
 			Zombie->OnZombieDied.RemoveAll(this);
+			Zombie->OnZombieScreamed.RemoveAll(this);
 		}
 	}
+
+	CurrentPlan = FLTRoundPlan();
 
 	LiveZombies.Reset();
 	SpawnPoints.Reset();
@@ -115,14 +162,215 @@ int32 ALTRoundManager::GetEffectiveMaximumAlive() const
 	return MaximumAlive + (Heat ? Heat->GetLiveCapBonus() : 0);
 }
 
+bool ALTRoundManager::IsSpecialRound() const
+{
+	return !GetSpecialRoundTag().IsNone();
+}
+
+FName ALTRoundManager::GetSpecialRoundTag() const
+{
+	const bool bSprinters = CurrentPlan.bForceSingleType && CurrentPlan.ForcedType != nullptr;
+	const bool bBrutes = CurrentPlan.GuaranteedCount > 0 && CurrentPlan.GuaranteedType != nullptr;
+
+	if (bSprinters && bBrutes)
+	{
+		return TEXT("SprintersAndBrutes");
+	}
+	if (bSprinters)
+	{
+		return TEXT("Sprinters");
+	}
+	if (bBrutes)
+	{
+		return TEXT("Brutes");
+	}
+
+	return NAME_None;
+}
+
+FLTRoundPlan ALTRoundManager::BuildRoundPlan(const int32 Round) const
+{
+	FLTRoundPlan Plan;
+	Plan.TotalCount = ComputeRoundCount(Round);
+
+	// A round can be both. Canon: rounds 20, 30 and so on are a sprinter round
+	// that also carries the brute pair.
+	const bool bSprinterRound = SprinterRoundInterval > 0 && Round % SprinterRoundInterval == 0;
+	const bool bBruteRound = BruteRoundInterval > 0 && Round % BruteRoundInterval == 0;
+
+	// A station with no sprinter or brute on its roster simply plays a normal
+	// round, so a map that has not been given one is unaffected.
+	if (bSprinterRound)
+	{
+		if (ULTZombieTypeData* Sprinter = FindRosterType(ELTZombieType::Sprinter))
+		{
+			Plan.bForceSingleType = true;
+			Plan.ForcedType = Sprinter;
+			Plan.TotalCount =
+				FMath::Max(1, FMath::RoundToInt(static_cast<float>(Plan.TotalCount) * SprinterRoundCountFraction));
+		}
+	}
+
+	if (bBruteRound && BruteRoundBruteCount > 0)
+	{
+		if (ULTZombieTypeData* Brute = FindRosterType(ELTZombieType::Brute))
+		{
+			Plan.GuaranteedType = Brute;
+			Plan.GuaranteedCount = BruteRoundBruteCount;
+
+			// Spread the group through the round rather than dropping it at the
+			// gate: canon puts a pair at roughly 30 and 70 per cent of the count.
+			const int32 TotalSpawns = Plan.TotalCount + Plan.GuaranteedCount;
+
+			for (int32 Placed = 0; Placed < Plan.GuaranteedCount; ++Placed)
+			{
+				const float Fraction = static_cast<float>(Placed + 1) / static_cast<float>(Plan.GuaranteedCount + 1);
+
+				int32 Index = FMath::Clamp(
+					FMath::RoundToInt(Fraction * static_cast<float>(TotalSpawns)), 0, FMath::Max(0, TotalSpawns - 1));
+
+				// A very short round can collide two fractions on one index. Walk
+				// forward so every brute still gets a slot of its own.
+				while (Plan.GuaranteedSpawnIndices.Contains(Index) && Index < TotalSpawns)
+				{
+					Index += 1;
+				}
+
+				Plan.GuaranteedSpawnIndices.Add(Index);
+			}
+		}
+	}
+
+	return Plan;
+}
+
+ULTZombieTypeData* ALTRoundManager::FindRosterType(const ELTZombieType Type) const
+{
+	for (const FLTZombieRosterEntry& Entry : Roster)
+	{
+		if (Entry.TypeData && Entry.TypeData->Type == Type)
+		{
+			return Entry.TypeData;
+		}
+	}
+
+	return nullptr;
+}
+
+int32 ALTRoundManager::CountAliveOfType(const ELTZombieType Type) const
+{
+	int32 Count = 0;
+
+	for (const TObjectPtr<ALTZombieCharacter>& Zombie : LiveZombies)
+	{
+		if (Zombie && !Zombie->IsDead() && Zombie->GetZombieType() == Type)
+		{
+			Count += 1;
+		}
+	}
+
+	return Count;
+}
+
+const ULTZombieTypeData* ALTRoundManager::ChooseTypeForSpawn(const int32 InSpawnIndex, const int32 Round) const
+{
+	if (Roster.Num() == 0)
+	{
+		return nullptr;
+	}
+
+	// The guaranteed group first: a brute round's pair lands on planned indices.
+	if (CurrentPlan.GuaranteedType && CurrentPlan.GuaranteedSpawnIndices.Contains(InSpawnIndex))
+	{
+		return CurrentPlan.GuaranteedType;
+	}
+
+	// Then a forced single type: a sprinter round is nothing but sprinters, so no
+	// crawler or screamer mixes in.
+	if (CurrentPlan.bForceSingleType && CurrentPlan.ForcedType)
+	{
+		return CurrentPlan.ForcedType;
+	}
+
+	// Then the normal weighted mix.
+	const bool bHighHeat = Heat && Heat->GetHeat() >= HighHeatWeightThreshold;
+
+	float TotalWeight = 0.f;
+	TArray<const ULTZombieTypeData*> Available;
+
+	for (const FLTZombieRosterEntry& Entry : Roster)
+	{
+		const ULTZombieTypeData* Type = Entry.TypeData;
+
+		// A special-only type (weight zero) never appears in a normal round.
+		if (!Type || Type->IsSpecialOnly() || Round < Type->FirstRoundAvailable)
+		{
+			continue;
+		}
+
+		if (Type->MaxAliveOfThisType > 0 && CountAliveOfType(Type->Type) >= Type->MaxAliveOfThisType)
+		{
+			continue;
+		}
+
+		Available.Add(Type);
+		TotalWeight += NormalRoundWeight(*Type, bHighHeat);
+	}
+
+	if (Available.Num() > 0 && TotalWeight > 0.f)
+	{
+		float Roll = FMath::FRand() * TotalWeight;
+
+		for (const ULTZombieTypeData* Type : Available)
+		{
+			Roll -= NormalRoundWeight(*Type, bHighHeat);
+			if (Roll <= 0.f)
+			{
+				return Type;
+			}
+		}
+
+		return Available.Last();
+	}
+
+	// Nothing weighted is available: every candidate is capped out or not yet in
+	// play. Fall back to the roster's plain walker so the round still runs.
+	for (const FLTZombieRosterEntry& Entry : Roster)
+	{
+		if (Entry.TypeData && Entry.TypeData->Behaviour == ELTZombieBehaviour::None)
+		{
+			return Entry.TypeData;
+		}
+	}
+
+	return nullptr;
+}
+
 void ALTRoundManager::StartRound(const int32 Round)
 {
 	CurrentRound = Round;
-	PendingSpawns = ComputeRoundCount(Round);
+	CurrentPlan = BuildRoundPlan(Round);
+
+	// The guaranteed group is on top of the round's own count, so a brute round is
+	// a full walker round plus the pair.
+	PendingSpawns = CurrentPlan.TotalCount + CurrentPlan.GuaranteedCount;
+	SpawnIndex = 0;
+	PendingScreamSpawns = 0;
 	SpawnTimer = 0.f;
 	bInBreather = false;
 
-	LT_LOG(Log, TEXT("Round %d starting with %d zombies."), Round, PendingSpawns);
+	const FName SpecialTag = GetSpecialRoundTag();
+
+	if (SpecialTag.IsNone())
+	{
+		LT_LOG(Log, TEXT("Round %d starting with %d zombies."), Round, PendingSpawns);
+	}
+	else
+	{
+		LT_LOG(
+			Log, TEXT("Round %d starting with %d zombies. Special round: %s."), Round, PendingSpawns,
+			*SpecialTag.ToString());
+	}
 
 	OnRoundStarted.Broadcast(Round);
 }
@@ -243,11 +491,29 @@ void ALTRoundManager::TrySpawnOne()
 	}
 
 	Zombie->ApplyRoundScaling(CurrentRound);
+
+	if (const ULTZombieTypeData* ChosenType = ChooseTypeForSpawn(SpawnIndex, CurrentRound))
+	{
+		Zombie->ApplyTypeData(ChosenType);
+	}
+	else if (Roster.Num() > 0)
+	{
+		LT_LOG(
+			Warning, TEXT("Round %d spawn %d found no usable roster type. Spawned a plain walker."), CurrentRound,
+			SpawnIndex);
+	}
+
 	Zombie->OnZombieDied.AddDynamic(this, &ALTRoundManager::HandleZombieDied);
+	Zombie->OnZombieScreamed.AddDynamic(this, &ALTRoundManager::HandleZombieScreamed);
 
 	LiveZombies.Add(Zombie);
 	Chosen->MarkUsed(WorldTime);
 	PendingSpawns -= 1;
+	SpawnIndex += 1;
+
+	// Summoned walkers are ordinary pending spawns, so a cancel can only drop the
+	// ones still queued. Which of them this spawn was does not matter.
+	PendingScreamSpawns = FMath::Max(0, PendingScreamSpawns - 1);
 
 	LT_LOG(
 		Verbose, TEXT("Spawned zombie. Alive %d, pending %d, cap %d, round %d."), LiveZombies.Num(), PendingSpawns,
@@ -259,7 +525,36 @@ void ALTRoundManager::HandleZombieDied(ALTZombieCharacter* Zombie, const bool bH
 	if (Zombie)
 	{
 		Zombie->OnZombieDied.RemoveAll(this);
+		Zombie->OnZombieScreamed.RemoveAll(this);
 	}
 
 	LiveZombies.Remove(Zombie);
+}
+
+void ALTRoundManager::HandleZombieScreamed(ALTZombieCharacter* Screamer, const int32 WalkerCount)
+{
+	if (!bRunning || bInBreather)
+	{
+		return;
+	}
+
+	if (WalkerCount > 0)
+	{
+		// Ordinary pending spawns: they obey the live cap and the spawn interval
+		// like anything else, so a scream raises pressure rather than bypassing it.
+		PendingSpawns += WalkerCount;
+		PendingScreamSpawns += WalkerCount;
+
+		LT_LOG(Log, TEXT("Screamer called %d extra walkers. Pending now %d."), WalkerCount, PendingSpawns);
+		return;
+	}
+
+	// A cancel: the screamer died inside its window. Drop whatever of its wave has
+	// not spawned yet.
+	const int32 Dropped = FMath::Min(PendingScreamSpawns, PendingSpawns);
+
+	PendingSpawns -= Dropped;
+	PendingScreamSpawns = 0;
+
+	LT_LOG(Log, TEXT("Screamer cancelled. Dropped %d queued walkers, pending now %d."), Dropped, PendingSpawns);
 }
