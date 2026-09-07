@@ -40,6 +40,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Economy")
 	void AddPoints(int32 Amount);
 
+	/** Assigns the total outright and broadcasts a zero delta. For a travel carry
+		landing, which is neither an award nor a spend and must not be coloured as
+		one on the HUD. */
+	UFUNCTION(BlueprintCallable, Category = "Economy")
+	void SetPoints(int32 NewTotal);
+
 	/** Does not spend. */
 	UFUNCTION(BlueprintPure, Category = "Economy")
 	bool CanAfford(int32 Cost) const { return Points >= Cost; }

@@ -28,7 +28,7 @@ void ULTInteractionComponent::TickComponent(
 	Super::TickComponent(DeltaSeconds, TickType, ThisTickFunction);
 
 	UWorld* World = GetWorld();
-	if (!World)
+	if (!World || !bInteractionEnabled)
 	{
 		return;
 	}
@@ -72,9 +72,35 @@ void ULTInteractionComponent::TickComponent(
 	}
 }
 
+void ULTInteractionComponent::SetInteractionEnabled(const bool bEnabled)
+{
+	if (bInteractionEnabled == bEnabled)
+	{
+		return;
+	}
+
+	bInteractionEnabled = bEnabled;
+
+	if (bInteractionEnabled)
+	{
+		// The next tick sweeps and broadcasts whatever is under the crosshair now.
+		return;
+	}
+
+	CurrentInteractable = nullptr;
+
+	if (bCurrentAvailable || !CurrentPrompt.IsEmpty())
+	{
+		CurrentPrompt = FText::GetEmpty();
+		bCurrentAvailable = false;
+
+		OnInteractableChanged.Broadcast(CurrentPrompt, bCurrentAvailable);
+	}
+}
+
 void ULTInteractionComponent::TryInteract()
 {
-	if (!CurrentInteractable)
+	if (!bInteractionEnabled || !CurrentInteractable)
 	{
 		return;
 	}

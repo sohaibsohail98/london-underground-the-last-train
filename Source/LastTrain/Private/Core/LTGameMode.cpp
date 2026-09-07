@@ -29,10 +29,33 @@ void ALTGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
+	StampStationName();
+
 	if (bAutoStart)
 	{
 		StartRun();
 	}
+}
+
+void ALTGameMode::StampStationName()
+{
+	ALTGameState* State = GetGameState<ALTGameState>();
+	if (!State)
+	{
+		return;
+	}
+
+	const FName ThisMap(*UGameplayStatics::GetCurrentLevelName(this, true));
+	const FText* Routed = StationDisplayNames.Find(ThisMap);
+	const FText Label = Routed && !Routed->IsEmpty() ? *Routed : StationDisplayName;
+
+	if (Label.IsEmpty())
+	{
+		LT_LOG(Log, TEXT("No station display name for map %s. The station label reads blank."), *ThisMap.ToString());
+		return;
+	}
+
+	State->SetStationName(Label);
 }
 
 void ALTGameMode::StartRun()
@@ -106,11 +129,10 @@ void ALTGameMode::RehydrateFromTravel()
 	if (ULTPointsComponent* Points = PlayerPawn->FindComponentByClass<ULTPointsComponent>())
 	{
 		// Land on exactly the carried balance whatever the component seeded itself
-		// with, so the 500 opening float is not paid a second time. This does show
-		// on the HUD as a points delta, which reads as a spend when the carry is
-		// under the 500 seed: a SetPoints on ULTPointsComponent would fix it, and
-		// that component is out of scope for this task.
-		Points->AddPoints(Payload.CarriedPoints - Points->GetPoints());
+		// with, so the 500 opening float is not paid a second time. SetPoints
+		// rather than a difference: the difference broadcast a negative delta,
+		// which the HUD coloured as a spend whenever the carry was under the seed.
+		Points->SetPoints(Payload.CarriedPoints);
 	}
 
 	if (ULTWeaponComponent* Weapon = PlayerPawn->FindComponentByClass<ULTWeaponComponent>())

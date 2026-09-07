@@ -27,8 +27,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnTrainPhaseChanged, ELTTrainPhase
 /** The train for one station arena. Owns the arrive, dwell, depart and away
 	timing, the presentation hooks a station Blueprint drives its mesh, lights,
 	doors and audio from, and the boarding interact. It stays thin: boarding
-	calls one game mode hook and lets the game mode orchestrate the consequences.
-	Travel to another station is a later task. */
+	calls one game mode hook and lets the game mode orchestrate the consequences,
+	travel to the next station included. */
 UCLASS()
 class LASTTRAIN_API ALTTrain : public AActor, public ILTInteractableInterface
 {

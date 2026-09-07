@@ -296,7 +296,16 @@ float ALTPlayerCharacter::TakeDamage(
 
 	const float Applied = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 
-	Health = FMath::Max(0.f, Health - Damage);
+	if (Applied <= 0.f)
+	{
+		// A damage modifier or an immunity absorbed the whole hit. Nothing lands,
+		// and the regeneration clock must not restart on a hit that did nothing.
+		return 0.f;
+	}
+
+	// The modified value, not the raw request. Reporting one figure to the caller
+	// and subtracting another made every damage modifier a lie.
+	Health = FMath::Max(0.f, Health - Applied);
 	TimeSinceDamage = 0.f;
 
 	OnHealthChanged.Broadcast(GetHealthFraction());
@@ -355,6 +364,13 @@ void ALTPlayerCharacter::Down()
 		Weapon->SetAiming(false);
 	}
 
+	// Interact is already gated, but the sweep is not: without this the prompt
+	// stays on screen through the whole bleed-out with an inert key under it.
+	if (Interaction)
+	{
+		Interaction->SetInteractionEnabled(false);
+	}
+
 	if (const UWorld* World = GetWorld())
 	{
 		if (ALTGameMode* GameMode = World->GetAuthGameMode<ALTGameMode>())
@@ -391,6 +407,11 @@ void ALTPlayerCharacter::Revive()
 	// Regeneration waits the usual delay from the moment of the revive.
 	TimeSinceDamage = 0.f;
 
+	if (Interaction)
+	{
+		Interaction->SetInteractionEnabled(true);
+	}
+
 	OnHealthChanged.Broadcast(GetHealthFraction());
 
 	if (const UWorld* World = GetWorld())
@@ -420,6 +441,11 @@ void ALTPlayerCharacter::Die()
 	if (Weapon)
 	{
 		Weapon->StopFiring();
+	}
+
+	if (Interaction)
+	{
+		Interaction->SetInteractionEnabled(false);
 	}
 
 	OnHealthChanged.Broadcast(GetHealthFraction());

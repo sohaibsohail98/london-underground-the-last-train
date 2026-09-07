@@ -128,6 +128,11 @@ void ALTRoundManager::StopRounds()
 	bRunning = false;
 	bInBreather = false;
 	PendingSpawns = 0;
+	PendingScreamSpawns = 0;
+
+	// The plan describes a round that is no longer running, so a HUD reading
+	// GetSpecialRoundTag would keep flying a SPRINTERS banner over a stopped run.
+	CurrentPlan = FLTRoundPlan();
 }
 
 int32 ALTRoundManager::ComputeRoundCount(const int32 Round) const
@@ -193,14 +198,18 @@ FLTRoundPlan ALTRoundManager::BuildRoundPlan(const int32 Round) const
 	FLTRoundPlan Plan;
 	Plan.TotalCount = ComputeRoundCount(Round);
 
-	// A round can be both. Canon: rounds 20, 30 and so on are a sprinter round
-	// that also carries the brute pair.
 	const bool bSprinterRound = SprinterRoundInterval > 0 && Round % SprinterRoundInterval == 0;
 	const bool bBruteRound = BruteRoundInterval > 0 && Round % BruteRoundInterval == 0;
 
+	// Every brute round is also a sprinter round on the shipped intervals, and
+	// canon reads both ways on what that round should be. The flag decides:
+	// set, round 10 is the walker round plus the pair every acceptance list
+	// describes; clear, it is a sprinter round carrying the pair as well.
+	const bool bForceSprinters = bSprinterRound && !(bBruteRound && bBruteRoundOverridesSprinterRound);
+
 	// A station with no sprinter or brute on its roster simply plays a normal
 	// round, so a map that has not been given one is unaffected.
-	if (bSprinterRound)
+	if (bForceSprinters)
 	{
 		if (ULTZombieTypeData* Sprinter = FindRosterType(ELTZombieType::Sprinter))
 		{
@@ -215,28 +224,47 @@ FLTRoundPlan ALTRoundManager::BuildRoundPlan(const int32 Round) const
 	{
 		if (ULTZombieTypeData* Brute = FindRosterType(ELTZombieType::Brute))
 		{
-			Plan.GuaranteedType = Brute;
-			Plan.GuaranteedCount = BruteRoundBruteCount;
-
 			// Spread the group through the round rather than dropping it at the
 			// gate: canon puts a pair at roughly 30 and 70 per cent of the count.
-			const int32 TotalSpawns = Plan.TotalCount + Plan.GuaranteedCount;
+			const int32 TotalSpawns = Plan.TotalCount + BruteRoundBruteCount;
 
-			for (int32 Placed = 0; Placed < Plan.GuaranteedCount; ++Placed)
+			for (int32 Placed = 0; Placed < BruteRoundBruteCount; ++Placed)
 			{
-				const float Fraction = static_cast<float>(Placed + 1) / static_cast<float>(Plan.GuaranteedCount + 1);
+				const float Fraction = static_cast<float>(Placed + 1) / static_cast<float>(BruteRoundBruteCount + 1);
 
 				int32 Index = FMath::Clamp(
 					FMath::RoundToInt(Fraction * static_cast<float>(TotalSpawns)), 0, FMath::Max(0, TotalSpawns - 1));
 
 				// A very short round can collide two fractions on one index. Walk
-				// forward so every brute still gets a slot of its own.
-				while (Plan.GuaranteedSpawnIndices.Contains(Index) && Index < TotalSpawns)
+				// forward for a free slot, then back from the end if the round has
+				// run out of room ahead. Walking off the end silently cost a brute
+				// its slot: the spawn happened, but as an ordinary roster roll.
+				while (Index < TotalSpawns && Plan.GuaranteedSpawnIndices.Contains(Index))
 				{
 					Index += 1;
 				}
 
-				Plan.GuaranteedSpawnIndices.Add(Index);
+				if (Index >= TotalSpawns)
+				{
+					Index = TotalSpawns - 1;
+					while (Index >= 0 && Plan.GuaranteedSpawnIndices.Contains(Index))
+					{
+						Index -= 1;
+					}
+				}
+
+				if (Index >= 0)
+				{
+					Plan.GuaranteedSpawnIndices.Add(Index);
+				}
+			}
+
+			// Count what actually got a slot, so PendingSpawns cannot promise a
+			// brute the round has nowhere to put.
+			if (Plan.GuaranteedSpawnIndices.Num() > 0)
+			{
+				Plan.GuaranteedType = Brute;
+				Plan.GuaranteedCount = Plan.GuaranteedSpawnIndices.Num();
 			}
 		}
 	}
@@ -467,6 +495,18 @@ void ALTRoundManager::TrySpawnOne()
 		FNavLocation Projected;
 		if (Nav->ProjectPointToNavigation(SpawnLocation, Projected, NavProjectionExtent))
 		{
+			// A projection that moves the point a long way found a floor nobody
+			// placed this spawn on. It still counts as a success, so say so: an
+			// unplaced point sitting at world origin is otherwise silent until
+			// zombies start arriving somewhere nobody expects them.
+			const float Moved = FVector::Dist(SpawnLocation, Projected.Location);
+			if (NavProjectionWarnDistance > 0.f && Moved > NavProjectionWarnDistance)
+			{
+				LT_LOG(
+					Warning, TEXT("Spawn point %s snapped %.0f units onto the navmesh. Check where it is placed."),
+					*Chosen->GetName(), Moved);
+			}
+
 			SpawnLocation = Projected.Location;
 			// Lift by the capsule half height so the capsule rests on the floor
 			// rather than clipping through it.
@@ -517,7 +557,7 @@ void ALTRoundManager::TrySpawnOne()
 
 	LT_LOG(
 		Verbose, TEXT("Spawned zombie. Alive %d, pending %d, cap %d, round %d."), LiveZombies.Num(), PendingSpawns,
-		MaximumAlive, CurrentRound);
+		GetEffectiveMaximumAlive(), CurrentRound);
 }
 
 void ALTRoundManager::HandleZombieDied(ALTZombieCharacter* Zombie, const bool bHeadshot)

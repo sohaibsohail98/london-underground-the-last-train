@@ -229,7 +229,13 @@ void ALTZombieCharacter::Tick(const float DeltaSeconds)
 	}
 
 	RepathTimer -= DeltaSeconds;
-	if (RepathTimer <= 0.f)
+
+	// Path following owns velocity for as long as a move request is live, so
+	// re-issuing one mid shove clobbers the very nudge BeginStallRecovery
+	// cancelled it for, which is how a stalled zombie stayed stalled. Hold the
+	// repath back while recovering: EndStallRecovery zeroes RepathTimer, so the
+	// move re-issues the moment the shove is done.
+	if (RepathTimer <= 0.f && !bStallRecovering)
 	{
 		DriveTowardsTarget();
 
@@ -298,37 +304,57 @@ void ALTZombieCharacter::UpdateStallRecovery(const float DeltaSeconds)
 
 	if (bStallRecovering)
 	{
-		// Already shoving. Keep going until the zombie is moving again or has
-		// closed to melee range, then hand control back to path following.
-		if (!bBarelyMoving)
+		StallRecoveryElapsed += DeltaSeconds;
+
+		// Freed only once the shove has actually closed ground. A zombie pressed
+		// into the capsule in front twitches over the speed threshold every few
+		// frames without going anywhere, and ending the shove on one of those put
+		// it straight back into the stall it had just left.
+		const bool bClosedGround = (StallRecoveryStartDistance - Distance) >= StallRecoveryProgress;
+		if (!bBarelyMoving && bClosedGround)
 		{
 			EndStallRecovery();
 			return;
 		}
+
+		// A shove that went nowhere in its whole window is pressed into geometry,
+		// not queued behind a zombie that will move. Hand control back to path
+		// following, which can route around it, and lead with the other shoulder
+		// if this one stalls again.
+		if (StallRecoveryElapsed >= StallRecoverySeconds)
+		{
+			StallLateralSign = -StallLateralSign;
+			EndStallRecovery();
+			return;
+		}
+
 		DriveStallNudge();
 		return;
 	}
 
-	if (bBarelyMoving)
+	if (!bBarelyMoving)
 	{
-		StallTimer += DeltaSeconds;
-	}
-	else
-	{
-		StallTimer = 0.f;
+		// Decay rather than reset. A queued zombie twitches over the threshold as
+		// the crowd shifts, and a hard reset on one of those frames meant
+		// StallGraceSeconds could never accumulate: the nudge never fired.
+		StallTimer = FMath::Max(0.f, StallTimer - DeltaSeconds);
 		return;
 	}
 
+	StallTimer += DeltaSeconds;
+
 	if (StallTimer >= StallGraceSeconds)
 	{
-		BeginStallRecovery();
+		BeginStallRecovery(Distance);
 		DriveStallNudge();
 	}
 }
 
-void ALTZombieCharacter::BeginStallRecovery()
+void ALTZombieCharacter::BeginStallRecovery(const float DistanceToTarget)
 {
 	bStallRecovering = true;
+	StallRecoveryElapsed = 0.f;
+	StallRecoveryStartDistance = DistanceToTarget;
 
 	// The path following component sets velocity every frame while a MoveTo is
 	// active, which clobbers AddMovementInput. Cancel the request so the
@@ -351,6 +377,7 @@ void ALTZombieCharacter::BeginStallRecovery()
 void ALTZombieCharacter::EndStallRecovery()
 {
 	StallTimer = 0.f;
+	StallRecoveryElapsed = 0.f;
 
 	if (!bStallRecovering)
 	{
