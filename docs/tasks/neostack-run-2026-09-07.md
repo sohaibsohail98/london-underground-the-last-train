@@ -217,3 +217,127 @@ PIE stopped. `OpeningRoundCounts` reverted to `(6,8,10,12,14)` and the revert
 verified by readback. Note that the first revert attempt was lost when the editor
 bridge socket dropped, and the value was still `(20,8,10,12,14)` on reconnect; it
 was rewritten and confirmed. `L_GreyboxTest` saved.
+
+## Milestone 3, BP_Train and the C1 train cycle
+
+### Editor crash mid milestone
+
+The editor died once during this milestone, taking an unsaved in-memory
+`BP_Train` with it. No crash dump was produced and the log simply ends after a
+HotReload completed at 16:02:58, that is, a C++ rebuild landed from outside this
+session while the editor was open. Both maps had been saved at 17:02 and came
+back intact: the Milestone 2 revert and all spawn point placements survived.
+`BP_Train` was rebuilt from scratch and saved after every step from then on.
+
+### What was built
+
+`Content/LastTrain/Blueprints/BP_Train`, parented to `ALTTrain`.
+
+- `CarriageMesh`, a `StaticMeshComponent` on the engine cube, scaled
+  (20, 3, 3) for a 2000 x 300 x 300 carriage, offset to (0, 250, 150) so it sits
+  in the trackbed beside the platform rather than on it.
+- `BoardingVolume` sized to extent (120, 90, 120) at (0, 80, 110), a door sized
+  aperture at the platform edge and reachable by the player.
+- All ten presentation events overridden, each with a Print String:
+  `OnInboundAnnouncement`, `OnArrivalStarted`, `OnArrivalComplete`,
+  `OnDoorsOpen`, `OnDoorsClose`, `OnDepartureAnnouncement`,
+  `OnDepartureStarted`, `OnTrainAway`, `OnPlayerBoarded`,
+  `OnTrainDeparted_NotBoarded`.
+- `OnTrainPhaseChanged` bound on BeginPlay to a `HandlePhaseChanged` custom
+  event that prints `TRAIN phase OLD -> NEW`.
+
+Compiles clean, zero errors and zero warnings.
+
+One deviation from the task text, forced by the code. Every timing property on
+`ALTTrain` is `EditDefaultsOnly`, so it cannot be set on a placed instance. The
+test timings were set on the Blueprint class defaults instead, which is the only
+available route and achieves the same test.
+
+Placed as `GreyboxTest_Train` at (0, 640, 0) in `L_GreyboxTest`, along the north
+wall so the carriage sits beyond it. A `ULTStationHeat` component was added to
+`GreyboxTest_RoundManager`, which the level did not have and
+`ALTTrain::FindStationHeat` needs.
+
+### Acceptance checklist
+
+| Acceptance point | Result |
+|---|---|
+| Phase starts Away, first stop at load plus 8s | PASS, Away to Approaching at 8s |
+| Cycle Away, Approaching, Dwelling, Departing, Away | PASS, full cycle observed twice |
+| OnInboundAnnouncement once per cycle, 5s before the stop | PASS, fired 16:09:44.1, stop 16:09:49.1 |
+| OnDoorsOpen about 1s into the dwell | PASS, dwell began 49.1, doors 50.1 |
+| OnDoorsClose about 2s before departure | PASS, doors shut 57.1, departure 59.1 |
+| Doors events strictly inside Dwelling | PASS, both between 49.1 and 59.1 |
+| Board prompt only while doors are open | PASS, see below |
+| OnPlayerBoarded fires | PASS |
+| Rounds stop, GetZombiesRemaining stops climbing | PASS, held at 6 |
+| Run state goes Boarded | PASS, `Run state 1 to 4` |
+| Weapon reserve to full | PASS, per the engine log line |
+| Station heat reads 0 after boarding | PASS |
+| Train frozen after boarding | PASS, held Dwelling 12s with no phase logs |
+| Not boarding: OnTrainDeparted_NotBoarded once, heat 0 to 1 | PASS |
+| Second cycle without boarding: heat to 2, not more | PASS, `Heat now 1` then `Heat now 2` |
+
+Hook ordering and timing came from the log, cross checked against the native
+`Train phase X -> Y` lines the C++ already emits, so both the Blueprint hooks and
+the underlying state machine are confirmed rather than just the prints.
+
+The boarding gate was checked in both directions. While the doors were shut, in
+Dwelling and again in Departing, `CanInteract` returned false and `TryBoard`
+returned false. The moment the doors opened, `CanInteract` returned true. The
+prompt text reads `Board train`.
+
+### Blocking defect found, BP_GameMode has the wrong parent class
+
+`TryBoard` initially returned false even with the doors open, the player at full
+health and the run active. The cause is not in the train.
+
+**`BP_GameMode`'s parent class is `GameModeBase`, not `ALTGameMode`.**
+
+So `GetAuthGameMode<ALTGameMode>()` returns null and `ALTTrain::TryBoard` bails
+out with `TryBoard with no ALTGameMode, cannot board`, which is in the log twice.
+The knock on effect is wider than boarding: the level also runs with a plain
+`GameStateBase` rather than `ALTGameState`, so there is no run state at all and
+`ALTTrain::IsRunLive` silently takes its permissive test-level fallback.
+
+To prove the train itself is correct, the world settings game mode was temporarily
+pointed at the native `ALTGameMode` for one PIE run. With that in place the game
+state became `ALTGameState`, the run state read Active, and boarding worked end to
+end with every consequence firing. That override was a diagnostic only and has
+been reverted; the level is back on `BP_GameMode_C`.
+
+`BP_GameMode` was not reparented. That is an edit to an existing asset outside
+this task's scope, and it changes behaviour for every level that uses it, so it
+is the project owner's call. It is the single most important thing to fix: until
+it is, boarding cannot work in any level using `BP_GameMode`, and the run
+lifecycle is effectively absent.
+
+### Clean up
+
+PIE stopped. The world settings game mode override reverted to `BP_GameMode_C`
+and confirmed. All eight `BP_Train` timing values restored to the class defaults
+(30, 100, 25, 4, 4, 1, 3, 15) and confirmed by readback. `BP_Train` and
+`L_GreyboxTest` saved.
+
+## Summary
+
+Milestone 1 and Milestone 2 both pass. Milestone 3 passes every acceptance point
+for the train's own timing, hooks and heat, and passes boarding only once the
+game mode is a real `ALTGameMode`.
+
+What is now playable: Canary Wharf spawns six zombies on the platform that path
+to the player and fight, with no origin spawning and no fall through anywhere
+tested, and the same on the grey box test map. The train runs its full arrive,
+dwell, depart cycle with every presentation hook firing on schedule, raises
+station heat when it leaves without you, and completes a board when the game mode
+is correct.
+
+The single most important thing still broken: `BP_GameMode` is parented to
+`GameModeBase` instead of `ALTGameMode`, so no level using it has a run state and
+boarding always fails.
+
+Also left open: the Phase B crowd frame rate gate was not measurable through this
+harness, because the editor pins its tick to 3 fps while the window is unfocused.
+It needs a focused editor or a packaged build.
+
+Nothing was committed. One `git pull` was run in Step 0, as instructed.
