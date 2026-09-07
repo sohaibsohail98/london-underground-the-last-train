@@ -104,5 +104,5 @@ An empty slot on screen is worse than no slot, so do not reserve space for them.
 
 Phase B is done. Run the Phase B gate: 24 to 40 zombies on the grey box platform
 holding 60fps with `stat unit` open. Record the result in
-`docs/tasks/NEXT.md` and mark Phase B complete in `docs/tasks/README.md`, then
+`docs/tasks/handover.md` and mark Phase B complete in `docs/tasks/README.md`, then
 Phase C begins with the round loop and the train.

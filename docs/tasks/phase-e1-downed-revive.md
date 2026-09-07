@@ -1,5 +1,17 @@
 # Phase E1 - downed and revive
 
+**C++ WRITTEN, NOT COMPILED** (`64535f6`, hardened in `b1424bf`). The downed
+state, the bleed-out clock and the solo auto-revive are in
+`ALTPlayerCharacter`, two files only as the spec required. All five CI gates
+pass; nothing has been compiled. **Still open:** the PIE pass, and two knock-on
+items recorded in `handover.md`: a downed player still receives interaction
+prompts (needs a method on `ULTInteractionComponent`, which this spec put out of
+scope), and solo death is unreachable on these defaults, so Phase E's own gate
+needs `bSoloAutoRevive` cleared or a down cap. Divergences: `Die()` was extracted
+rather than duplicated, the aim blend keeps running while down so the camera does
+not stay zoomed, `Down()` is a no-op once the run state is `Boarded` or `Dead`,
+and revive uses `SetDefaultMovementMode`. Body below is the original spec.
+
 **Engine:** Unreal Engine 5.8, macOS. Xcode on `/Volumes/DriveSohaib` must be
 mounted (`xcode-select -p`). If not, STOP.
 
@@ -221,7 +233,7 @@ after `BleedOutSeconds` the run ends (`OnDied`, run state `Dead`).
 
 ## On pass
 
-Update `docs/tasks/NEXT.md` and add a Phase E row entry in
+Update `docs/tasks/handover.md` and add a Phase E row entry in
 `docs/tasks/README.md`. Note the seams left open: `Revive()` for an item or co-op
 revive, `OnDowned` / `OnRevived` for a last-stand weapon swap, and the downed
 screen treatment for the HUD/art pass.

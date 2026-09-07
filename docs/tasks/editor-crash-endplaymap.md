@@ -61,7 +61,7 @@ code, or a tool driving editor code, can.
 
 ### Process rule, the real fix
 
-Added to `docs/tasks/neostack-build.md` ground rules 10 and 11:
+Added to `docs/tasks/neostack.md` ground rules 10 and 11:
 
 - Never mutate actors, assets or levels while PIE is running. Order of work is
   always: stop PIE cleanly, then mutate, then start PIE again to observe. During

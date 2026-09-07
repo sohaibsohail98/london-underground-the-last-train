@@ -1,5 +1,19 @@
 # Phase C3 - travel between stations
 
+**C++ WRITTEN, NOT COMPILED** (`64535f6`, hardened in `b1424bf`).
+`ULTGameInstance` and the `ALTGameMode` travel path are in, along with the
+`GameInstanceClass` line in `Config/DefaultEngine.ini`. All five CI gates pass;
+nothing has been compiled. **Still open:** reparent `BP_GameMode` to
+`ALTGameMode` and fill `StationRoutes`, per `neostack.md`, then run the boarding
+test. Divergences from the body below, all deliberate: `StationRoutes` (a map of
+this map's name to the destination's) was added alongside `NextStationMap`,
+because one shared game mode Blueprint cannot hold two destinations; travel is
+deferred by `TravelDelaySeconds` so the train's boarding hooks have frames; the
+rehydrate runs on the first tick after `StartRun` and retries for a few ticks
+rather than dropping the carry if the pawn is not possessed yet; and an unclaimed
+payload is dropped one map load on. The reserve carries to full, the compromise
+the spec pre-authorised. Body below is the original spec.
+
 **Engine:** Unreal Engine 5.8, macOS. Xcode on `/Volumes/DriveSohaib` must be
 mounted (`xcode-select -p`). If not, STOP.
 
@@ -269,7 +283,7 @@ compromise was taken), heat should read 0, rounds should start at 1.
 
 ## On pass
 
-Update `docs/tasks/NEXT.md` and the Phase C row in `docs/tasks/README.md`. Record
+Update `docs/tasks/handover.md` and the Phase C row in `docs/tasks/README.md`. Record
 the two design choices made here: rounds restart at 1 on travel, and (if taken)
 reserve carries "to full" rather than exact. Note the station-select picker as
 the hook point for a >2-station future, and that a disk save game is a separate

@@ -19,10 +19,15 @@ against. Notes on what to lift and what is off limits are in
   It must be mounted to compile C++ or shaders. `xcode-select -p` should point
   inside it. The Metal toolchain is installed
   (`xcodebuild -downloadComponent MetalToolchain`).
-- Build the editor target from the engine's batch file:
-  `"/Users/Shared/Epic Games/UE_5.8"/Engine/Build/BatchFiles/Mac/Build.sh LastTrainEditor Mac Development -Project="$PWD/LastTrain.uproject"`
-- **There is no CI compile.** The engine is not available in CI. Compile locally
-  after every C++ change and keep changes small.
+- Build the editor target with `./tools/ci/compile.sh`. It checks the external
+  Xcode mount and then runs the engine's batch file, which is
+  `"/Users/Shared/Epic Games/UE_5.8"/Engine/Build/BatchFiles/Mac/Build.sh LastTrainEditor Mac Development -Project="$PWD/LastTrain.uproject"`.
+  Override the engine path with `LASTTRAIN_ENGINE_ROOT`.
+- **There is no hosted CI compile.** Unreal cannot be installed on a GitHub
+  runner. The workflow carries an opt-in `compile` job that runs the same script
+  on a self-hosted macOS runner (labels `self-hosted, macOS, unreal`, enabled by
+  the repository variable `UNREAL_SELF_HOSTED`). Until that is registered,
+  compile locally after every C++ change and keep changes small.
 
 ## Module layout
 
@@ -46,7 +51,7 @@ Input assets, `DA_Weapon_SMG` and `WBP_HUD`. Every Phase C system is now in C++:
 the train, the departure board, travel between two stations, the five zombie
 types and the special rounds, plus the downed state from Phase E. None of it has
 Blueprints or data assets yet, so in the editor the game still plays as the Phase
-B grey box until `docs/tasks/neostack-build.md` section "Phase C, editor assets"
+B grey box until `docs/tasks/neostack.md` section "Phase C, editor assets"
 is worked through. There are no perks. `web/` is the discarded Three.js build,
 tagged `phase-03`, not part of this work.
 
@@ -62,12 +67,16 @@ tagged `phase-03`, not part of this work.
 - No `TODO`, `FIXME`, `HACK`, `XXX` markers. Finish it or open an issue.
 - clang-format 20 (`.clang-format`), tab indent for `.h/.cpp/.cs`.
 - `.uasset` and `.umap` are Git LFS. Never commit one as raw binary.
-- CI (`.github/workflows/ci.yml`) runs four gates on every push and PR:
+- CI (`.github/workflows/ci.yml`) runs five gates on every push to `main`,
+  `claude/**` or a phase branch, and on every pull request:
   `check_hygiene.py` (secrets, absolute paths, trademark leakage),
   `check_cpp_conventions.py` plus clang-format (source style),
-  `check_docs.py` (British spelling, no dashes, JSON validity, dead links),
-  `check_content.py` (LFS pointer integrity). The engine is not in CI, so
-  C++ is compiled locally after every change.
+  `check_cpp_reflection.py` (the compiler stand-in: missing `GENERATED_BODY()`,
+  a reflected header not including its own `generated.h`, a `.cpp` that does not
+  include its own header first, and `LT_LOG` format specifiers that disagree with
+  their arguments), `check_docs.py` (British spelling, no dashes, JSON validity,
+  dead links), `check_content.py` (LFS pointer integrity). None of them compile
+  anything: see the build note above.
 
 ## Legal, non negotiable
 
@@ -91,8 +100,8 @@ original work. Palette: `#16161C` charcoal, `#6C4C9C` violet, `#E0A030` sodium,
 - `docs/art-direction.md` - palette, composition, trademark substitutions.
 - `docs/unreal-setup.md` - the editor steps the C++ cannot do for itself.
 - `docs/tasks/` - one bounded task spec per file. Point a fresh session at the
-  relevant one rather than re typing the spec. `docs/tasks/NEXT.md` is the
-  resume point.
+  relevant one rather than re typing the spec. `docs/tasks/handover.md` is the
+  resume point and `docs/tasks/neostack.md` is every outstanding editor task.
 
 ## Working rules for models
 

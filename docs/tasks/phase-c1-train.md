@@ -549,7 +549,7 @@ each step observable.
 
 ## On pass
 
-Update `docs/tasks/NEXT.md` and the Phase C row in `docs/tasks/README.md`. The
+Update `docs/tasks/handover.md` and the Phase C row in `docs/tasks/README.md`. The
 next Phase C tasks, in rough order: the departure board actor `ALTDepartureBoard`
 reading `GetSecondsUntilArrival` / `GetSecondsUntilDeparture` (write
 `docs/tasks/phase-c2-departure-board.md`); the travel transition and

@@ -52,7 +52,7 @@ SSD onto `/Volumes/DriveSohaib`, where Xcode already lives.
      to the new path.
 4. Update the hardcoded build path everywhere it appears:
    - `CLAUDE.md`, the "Engine and build" section, the `Build.sh` command.
-   - `docs/tasks/NEXT.md` and any handover doc that repeats it.
+   - `docs/tasks/handover.md` and any handover doc that repeats it.
    - New path:
      `/Volumes/DriveSohaib/Epic Games/UE_5.8/Engine/Build/BatchFiles/Mac/Build.sh`
 5. Test compile from the new location:

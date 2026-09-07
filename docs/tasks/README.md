@@ -19,9 +19,9 @@ Class 345 "Aventra" silhouette. See `docs/brief-v3-unreal.md` Part 1.
 | Phase | Goal | Gate | State |
 |---|---|---|---|
 | A | Foundation and first playable grey box | `unreal-setup.md` section 8 checklist passes | **done 2026-09-04**. `L_GreyboxTest` plays, A5 passed on every testable check (5, 8, 9, 10 not reached due to NeoStack input harness degradation, not code) |
-| B | Engine core hardening: throttled repath, interaction system, hit markers | 24 to 40 zombies on the grey box platform stays stable at 60fps | B1, B2, B3 code all landed. Zombie attack fixed (`DriveTowardsTarget`) and verified. HUD health bar fixed and verified. **Gate not yet measured**: the `GreyboxTest_RoundManager` instance still caps every PIE run at 6 zombies (a per-instance `OpeningRoundCounts` override that needs clearing by hand in the Details panel), so the 24 to 40 crowd frame check has never run. A corridor stall-recovery edge case and the B2 wall-buy PIE acceptance are also open. See `NEXT.md`. |
-| C | Rounds, five zombie types, the train, the departure board, station heat | a train arrives on schedule, you can board during dwell, staying raises pressure, rounds 1 to 10 play untouched | **all five Phase C specs are written as C++**: C1 `ALTTrain`, C2 `ALTDepartureBoard`, C3 travel, the five zombie types and the special rounds. C1 compiled locally; everything after it was written in a remote session with no engine and **has never been compiled**, so the first local build is the gate on the lot. No PIE acceptance has been run. What is left is editor work, specified in `neostack-build.md`: the five type assets, the tintable material, `BP_Train`, `BP_DepartureBoard`, the roster wiring, and reparenting `BP_GameMode` to `ALTGameMode`. Numbers from `brief-v2.md` and `docs/design/gameplay-canon.md`. |
-| D | Grey box Canary Wharf | it is fun to train zombies around in grey boxes | blockout built early (NeoStack, 17 of 18 items), `L_CanaryWharf_Greybox.umap`. Level Blueprint `BeginRounds` wiring is now done and rounds start; a spawn-point fall-through bug (zombies drop through the floor on spawn) blocks the horde smoke test. See the 2026-09-06 run log. |
+| B | Engine core hardening: throttled repath, interaction system, hit markers | 24 to 40 zombies on the grey box platform stays stable at 60fps | B1, B2, B3 code all landed. Zombie attack fixed (`DriveTowardsTarget`) and verified. HUD health bar fixed and verified. **Gate not yet measured**, but no longer blocked: `bb0ec42` made `OpeningRoundCounts` `EditAnywhere` and the 2026-09-07 run proved a placed instance takes the write, so the crowd check is a matter of setting index 0 to 30, measuring, and putting it back. A corridor stall-recovery edge case, the B2 wall-buy PIE acceptance and the B3 polish review are also open. See `handover.md`. |
+| C | Rounds, five zombie types, the train, the departure board, station heat | a train arrives on schedule, you can board during dwell, staying raises pressure, rounds 1 to 10 play untouched | **all five Phase C specs are written as C++**: C1 `ALTTrain`, C2 `ALTDepartureBoard`, C3 travel, the five zombie types and the special rounds. C1 compiled locally; everything after it was written in a remote session with no engine and **has never been compiled**, so the first local build is the gate on the lot. No PIE acceptance has been run. What is left is editor work, specified in `neostack.md`: the five type assets, the tintable material, `BP_Train`, `BP_DepartureBoard`, the roster wiring, and reparenting `BP_GameMode` to `ALTGameMode`. Numbers from `brief-v2.md` and `docs/design/gameplay-canon.md`. |
+| D | Grey box Canary Wharf | it is fun to train zombies around in grey boxes | blockout built early (NeoStack, 17 of 18 items), `L_CanaryWharf_Greybox.umap`. Level Blueprint `BeginRounds` wiring is done and rounds start. The spawn fall-through was root-caused: `ALTSpawnPoint` had no root component, so all ten points were welded to world origin and every zombie spawned off the level. `871f062` fixed the C++; **the ten points still need placing on the platform**, which is now possible. Then the horde smoke test. See `neostack.md`. |
 | E | Perks, upgrade bench, lost property, downed and revive | a full survival session start to death is possible | started. E1 downed and revive (`phase-e1-downed-revive.md`) is written into `ALTPlayerCharacter`: zero health downs rather than kills, a bleed-out clock runs, a solo auto-revive stands the player back up at half health, and `Revive()` is the seam for an item or a co-op revive. Not compiled (written with no engine to hand) and PIE acceptance not run. Perks, the bench and lost property are untouched. |
 | F | Art pass, Fable led | a screenshot of the platform stands next to the reference frame without embarrassment | not started |
 | G | Audio, restrained HUD, second station, balance | play well using only what is on screen | not started |
@@ -40,7 +40,7 @@ Written ahead. Run them in order; each assumes the one before it landed.
 
 | File | Task | Who | State |
 |---|---|---|---|
-| `phase-b1-throttled-repath.md` | Throttle per zombie `MoveToActor` to a jittered cadence | Opus | C++ landed. RVO radius 90 to 45, acceptance `0.75f` to `0.5f`, then a `DriveTowardsTarget` rework with `ContactRange` and a stall-recovery nudge, all on top (supersedes the "do not change the movement setup" line in the spec). The 24 to 40 crowd frame check is still blocked on the `GreyboxTest_RoundManager` instance override, see `NEXT.md`. |
+| `phase-b1-throttled-repath.md` | Throttle per zombie `MoveToActor` to a jittered cadence | Opus | C++ landed. RVO radius 90 to 45, acceptance `0.75f` to `0.5f`, then a `DriveTowardsTarget` rework with `ContactRange` and a stall-recovery nudge, all on top (supersedes the "do not change the movement setup" line in the spec). The 24 to 40 crowd frame check is unmeasured but unblocked: the placed round manager accepts an `OpeningRoundCounts` write since `bb0ec42`. One corridor stall edge case still has no verdict either way. See `handover.md`. |
 | `phase-b2-interaction.md` | Interaction component, `Interact` input, first wall buy | Opus or Sonnet | C++ landed, compiles. `L_GreyboxTest` has the `LTWallBuy`. Acceptance not signed off: the wall-buy prompt and purchase flow have not been exercised in PIE (blocked on scriptable first-person aim; needs an interactive pass). |
 | `phase-b3-feedback-widgets.md` | Hit marker, crosshair, prompt, restrained HUD. No C++ | NeoStack | `WBP_HUD` built and in git. Prompt fade branch fixed. Health bar fixed (a zero-height `SizeBox`, not a binding bug) and verified draining in PIE. Hit marker, crosshair spread and prompt-anchor polish not yet reviewed. |
 
@@ -53,9 +53,9 @@ be handed to a fresh session cold.
 | File | Task | Who | State |
 |---|---|---|---|
 | `phase-c1-train.md` | `ALTTrain` timing state machine, presentation hooks, boarding interact, `NotifyPlayerBoarded` | Opus | **C++ landed** (`7cb7c6d`), compiles clean, 4 CI gates pass. 12-point PIE acceptance pending a `BP_Train` (editor task). |
-| `phase-c-zombie-types.md` | `ULTZombieTypeData`, `ApplyTypeData`, roster on the round manager | Opus, then Sonnet for the 5 stat blocks | **C++ written**: the data asset with both enums, `ApplyTypeData` with the capsule, navigation and behaviour application, the armour plate, the sprinter lunge, the screamer line of sight and summon, and the weighted roster with the heat-3 shift on `ALTRoundManager`. 4 CI gates pass. **Not compiled.** The five stat blocks and the tintable material are editor work, now specified in `neostack-build.md`. |
+| `phase-c-zombie-types.md` | `ULTZombieTypeData`, `ApplyTypeData`, roster on the round manager | Opus, then Sonnet for the 5 stat blocks | **C++ written**: the data asset with both enums, `ApplyTypeData` with the capsule, navigation and behaviour application, the armour plate, the sprinter lunge, the screamer line of sight and summon, and the weighted roster with the heat-3 shift on `ALTRoundManager`. 4 CI gates pass. **Not compiled.** The five stat blocks and the tintable material are editor work, now specified in `neostack.md`. |
 | `phase-c2-departure-board.md` | `ALTDepartureBoard` actor reading the train countdown getters | Opus | **C++ written**, new files only (`Train/LTDepartureBoard.{h,cpp}`), 4 CI gates pass, clang-format 20 clean. **Not compiled**: written in a remote session with no engine. Runtime acceptance needs a `BP_DepartureBoard` with a text render child driven by `OnCountdownChanged`, placed near the `BP_Train`. |
-| `phase-c3-travel.md` | `ULTGameInstance` travel payload, `OpenLevel` on board, rehydrate on arrival, 2 stations | Opus | **C++ written**: `Core/LTGameInstance.{h,cpp}`, `ALTGameMode::NextStationMap` plus the payload build in `NotifyPlayerBoarded` and `RehydrateFromTravel` on arrival, and `GameInstanceClass` in `Config/DefaultEngine.ini`. 4 CI gates pass. **Not compiled.** Editor step left: set `NextStationMap` on each station's game mode. Two design choices recorded: rounds restart at 1 on travel, and the reserve carries to full rather than to the exact count. |
+| `phase-c3-travel.md` | `ULTGameInstance` travel payload, `OpenLevel` on board, rehydrate on arrival, 2 stations | Opus | **C++ written**: `Core/LTGameInstance.{h,cpp}`, `ALTGameMode::NextStationMap` plus the payload build in `NotifyPlayerBoarded` and `RehydrateFromTravel` on arrival, and `GameInstanceClass` in `Config/DefaultEngine.ini`. 4 CI gates pass. **Not compiled.** Editor steps left: reparent `BP_GameMode` to `ALTGameMode`, then fill `StationRoutes` with both directions. Two design choices recorded: rounds restart at 1 on travel, and the reserve carries to full rather than to the exact count. |
 | `phase-c-special-rounds.md` | Sprinter round every 5th, brute pair every 10th, as a plan layer on `ALTRoundManager` | Opus | **C++ written** on top of the roster: `FLTRoundPlan`, `BuildRoundPlan`, the three-way branch in `TrySpawnOne`, `IsSpecialRound` and `GetSpecialRoundTag`. 4 CI gates pass. **Not compiled.** Deviates from the spec on two points where `gameplay-canon.md` says otherwise: the brute pair lands at roughly 30 and 70 per cent through the round rather than as a group up front, and a round that is both (20, 30) is a sprinter round carrying the pair rather than brutes taking precedence. |
 
 ## Phase E tasks
@@ -66,13 +66,17 @@ be handed to a fresh session cold.
 
 ## Building the editor assets
 
-`docs/tasks/neostack-build.md` is the brief for a NeoStack agent driving the
-Unreal editor through `execute_script`: the concrete asset list for A4 and B3,
-the C++ parent classes and property names, the constraints, and what NeoStack
-cannot do (custom trace channels and other bespoke Project Settings UI, actor
-instance-property resets, and the level Blueprint EventGraph all stay human
-only). Phase C editor work is stubbed there, pending the Phase C C++. The dated
-run logs (`neostack-run-2026-09-06.md`) are the live checklists for a session.
+`docs/tasks/neostack.md` is the single brief for every outstanding editor task,
+whether a NeoStack agent drives it through `execute_script` or a human does it by
+hand: the ground rules, the C++ parent classes and property names, the delegate
+table, the five zombie type assets with their full value tables, the tintable
+material, `BP_Train`, `BP_DepartureBoard`, the `BP_GameMode` reparent, the Canary
+Wharf spawn point placement and the Phase B leftovers. It also lists what cannot
+be scripted and has to be done by hand: custom trace channels, other bespoke
+Project Settings UI, and the level Blueprint EventGraph.
+
+The dated NeoStack run logs are gone: their live findings are folded into
+`neostack.md` and `handover.md`, and the rest was history.
 
 ## Free assets to fill the art gap
 
@@ -86,6 +90,6 @@ packs are gitignored and fetched per that file; our own work under
 
 ## How to resume in a fresh context window
 
-Start with `docs/tasks/NEXT.md`. It carries the current state, what was just done,
+Start with `docs/tasks/handover.md`. It carries the current state, what was just done,
 and the exact next action, written so a cold session can pick up without
 re reading the whole history.

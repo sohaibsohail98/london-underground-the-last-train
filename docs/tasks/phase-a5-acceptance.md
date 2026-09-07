@@ -33,5 +33,5 @@ Then bring the specific failures to a fresh session one at a time.
 ## On pass
 
 Phase A gate is met. Update `docs/tasks/README.md` status to mark Phase A done,
-update `docs/tasks/NEXT.md`, and begin Phase B with
+update `docs/tasks/handover.md`, and begin Phase B with
 `docs/tasks/phase-b1-throttled-repath.md` (to be written when Phase A passes).

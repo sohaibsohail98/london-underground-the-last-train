@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, 'phase/**', 'chore/**', 'fix/**', 'feat/**']
+    branches: [main, 'phase/**', 'chore/**', 'fix/**', 'feat/**', 'claude/**']
   pull_request:
     branches: [main]
 
@@ -29,6 +29,9 @@ jobs:
 
       - name: Convention checks
         run: python tools/ci/check_cpp_conventions.py
+
+      - name: Reflection and log format checks
+        run: python tools/ci/check_cpp_reflection.py
 
   docs:
     name: Documentation checks
@@ -65,3 +68,21 @@ jobs:
           python-version: '3.12'
       - name: LFS pointer integrity
         run: python tools/ci/check_content.py
+
+  compile:
+    name: Compile the editor target
+    # Unreal Engine cannot be installed on a hosted runner, so a real compile
+    # needs a self-hosted macOS runner with UE 5.8 and the Metal toolchain. This
+    # job is opt in: register the runner, then set the repository variable
+    # UNREAL_SELF_HOSTED to true. Without it the job is skipped rather than left
+    # queued against a runner that does not exist, so the other gates still
+    # report and a pull request is never blocked waiting on nothing.
+    if: vars.UNREAL_SELF_HOSTED == 'true'
+    runs-on: [self-hosted, macOS, unreal]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+
+      - name: Build LastTrainEditor
+        run: ./tools/ci/compile.sh
