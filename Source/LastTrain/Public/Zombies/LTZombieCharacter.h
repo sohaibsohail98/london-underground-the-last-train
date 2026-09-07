@@ -133,6 +133,18 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	float StallNudgeScale = 1.f;
 
+	/** Longest one shove runs before path following gets the zombie back. Without
+		a ceiling, a zombie shoving into geometry would hold RVO off and keep its
+		repath suppressed for the rest of its life. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	float StallRecoverySeconds = 1.5f;
+
+	/** Ground the shove has to close on the target before the zombie counts as
+		freed. Velocity alone is not enough: one pinned against a capsule twitches
+		over StallSpeedThreshold without going anywhere. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	float StallRecoveryProgress = 40.f;
+
 	/** Bone names treated as the head. Set to match the imported skeleton. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	TArray<FName> HeadBoneNames = {TEXT("head"), TEXT("Head"), TEXT("neck_01")};
@@ -203,8 +215,9 @@ private:
 	void UpdateStallRecovery(float DeltaSeconds);
 
 	/** Cancels the AI move request and drops RVO so AddMovementInput can push
-		the zombie clear of whatever is pinning it. */
-	void BeginStallRecovery();
+		the zombie clear of whatever is pinning it. DistanceToTarget is banked as
+		the mark the shove has to beat to count as having worked. */
+	void BeginStallRecovery(float DistanceToTarget);
 
 	/** Restores RVO and forces a repath. Safe to call when not recovering. */
 	void EndStallRecovery();
@@ -215,6 +228,12 @@ private:
 	float RepathTimer = 0.f;
 	float StallTimer = 0.f;
 	bool bStallRecovering = false;
+
+	/** Seconds the current shove has run, against StallRecoverySeconds. */
+	float StallRecoveryElapsed = 0.f;
+
+	/** Distance to the target when the shove began, against StallRecoveryProgress. */
+	float StallRecoveryStartDistance = 0.f;
 
 	/** Kept so ApplyRoundScaling re-applies the type's health and speed multipliers
 		on top of the round curve rather than losing them. Both are 1 until a type
