@@ -22,7 +22,7 @@ Class 345 "Aventra" silhouette. See `docs/brief-v3-unreal.md` Part 1.
 | B | Engine core hardening: throttled repath, interaction system, hit markers | 24 to 40 zombies on the grey box platform stays stable at 60fps | B1, B2, B3 code all landed. Zombie attack fixed (`DriveTowardsTarget`) and verified. HUD health bar fixed and verified. **Gate not yet measured**: the `GreyboxTest_RoundManager` instance still caps every PIE run at 6 zombies (a per-instance `OpeningRoundCounts` override that needs clearing by hand in the Details panel), so the 24 to 40 crowd frame check has never run. A corridor stall-recovery edge case and the B2 wall-buy PIE acceptance are also open. See `NEXT.md`. |
 | C | Rounds, five zombie types, the train, the departure board, station heat | a train arrives on schedule, you can board during dwell, staying raises pressure, rounds 1 to 10 play untouched | in progress. All C++. `LTStationHeat`, `LTGameMode` and `LTGameState` landed as groundwork. C1 `ALTTrain` (`phase-c1-train.md`) is written and compiles clean: the arrive, dwell, depart, away state machine, the presentation hooks, the boarding interact and `ALTGameMode::NotifyPlayerBoarded`. Its 12-point PIE acceptance is not yet run. Still to do: `phase-c-zombie-types.md`, the departure board, the travel transition. Numbers from `brief-v2.md` and `docs/design/gameplay-canon.md`. |
 | D | Grey box Canary Wharf | it is fun to train zombies around in grey boxes | blockout built early (NeoStack, 17 of 18 items), `L_CanaryWharf_Greybox.umap`. Level Blueprint `BeginRounds` wiring is now done and rounds start; a spawn-point fall-through bug (zombies drop through the floor on spawn) blocks the horde smoke test. See the 2026-09-06 run log. |
-| E | Perks, upgrade bench, lost property, downed and revive | a full survival session start to death is possible | not started |
+| E | Perks, upgrade bench, lost property, downed and revive | a full survival session start to death is possible | not started. `phase-e1-downed-revive.md` spec written and ready (solo downed state, bleed-out, auto-revive, in `ALTPlayerCharacter` only). |
 | F | Art pass, Fable led | a screenshot of the platform stands next to the reference frame without embarrassment | not started |
 | G | Audio, restrained HUD, second station, balance | play well using only what is on screen | not started |
 
@@ -43,6 +43,20 @@ Written ahead. Run them in order; each assumes the one before it landed.
 | `phase-b1-throttled-repath.md` | Throttle per zombie `MoveToActor` to a jittered cadence | Opus | C++ landed. RVO radius 90 to 45, acceptance `0.75f` to `0.5f`, then a `DriveTowardsTarget` rework with `ContactRange` and a stall-recovery nudge, all on top (supersedes the "do not change the movement setup" line in the spec). The 24 to 40 crowd frame check is still blocked on the `GreyboxTest_RoundManager` instance override, see `NEXT.md`. |
 | `phase-b2-interaction.md` | Interaction component, `Interact` input, first wall buy | Opus or Sonnet | C++ landed, compiles. `L_GreyboxTest` has the `LTWallBuy`. Acceptance not signed off: the wall-buy prompt and purchase flow have not been exercised in PIE (blocked on scriptable first-person aim; needs an interactive pass). |
 | `phase-b3-feedback-widgets.md` | Hit marker, crosshair, prompt, restrained HUD. No C++ | NeoStack | `WBP_HUD` built and in git. Prompt fade branch fixed. Health bar fixed (a zero-height `SizeBox`, not a binding bug) and verified draining in PIE. Hit marker, crosshair spread and prompt-anchor polish not yet reviewed. |
+
+## Phase C tasks
+
+Run C1 and the zombie-type mechanism first; the rest are independent except
+special rounds, which needs the zombie types. Each file is self-contained and can
+be handed to a fresh session cold.
+
+| File | Task | Who | State |
+|---|---|---|---|
+| `phase-c1-train.md` | `ALTTrain` timing state machine, presentation hooks, boarding interact, `NotifyPlayerBoarded` | Opus | **C++ landed** (`7cb7c6d`), compiles clean, 4 CI gates pass. 12-point PIE acceptance pending a `BP_Train` (editor task). |
+| `phase-c-zombie-types.md` | `ULTZombieTypeData`, `ApplyTypeData`, roster on the round manager | Opus, then Sonnet for the 5 stat blocks | Not started. Blocks `phase-c-special-rounds.md`. |
+| `phase-c2-departure-board.md` | `ALTDepartureBoard` actor reading the train countdown getters | Opus | Spec ready. Depends only on C1 (landed). New files only. |
+| `phase-c3-travel.md` | `ULTGameInstance` travel payload, `OpenLevel` on board, rehydrate on arrival, 2 stations | Opus | Spec ready. Depends only on C1. Edits `ALTGameMode` + `DefaultEngine.ini`. |
+| `phase-c-special-rounds.md` | Sprinter round every 5th, brute pair every 10th, as a plan layer on `ALTRoundManager` | Opus | Spec ready but **blocked** until `phase-c-zombie-types.md` lands. |
 
 ## Building the editor assets
 

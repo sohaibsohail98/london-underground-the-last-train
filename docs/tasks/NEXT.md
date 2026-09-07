@@ -100,9 +100,32 @@ All C++. Numbers from `docs/design/gameplay-canon.md` and `docs/brief-v2.md`.
   on the zombie, the roster on `ALTRoundManager` (keep `ZombieClass` as the
   empty-roster fallback). Data entry of the five stat blocks is a separate
   Sonnet task once the mechanism lands.
-- Then the departure board actor (`ALTDepartureBoard`) reading the train's
-  countdown getters, and the travel transition that fills the
-  `NotifyPlayerBoarded` seam.
+
+## Specs written and ready for a fresh session to pick up
+
+Each of these is a bounded, self-contained spec with its own build command,
+constraints, and acceptance list. They can be handed cold to a separate Claude
+session (no context from the session that wrote them needed). Rough order:
+
+1. `phase-c2-departure-board.md` - `ALTDepartureBoard` actor, reads the train's
+   `GetSecondsUntilArrival` / `GetSecondsUntilDeparture` / `GetPhase` and fires
+   presentation hooks. New files only, no edit to `LTTrain`. **Ready now**
+   (depends only on C1, which has landed).
+2. `phase-c3-travel.md` - `ULTGameInstance` travel payload, `OpenLevel` on board,
+   rehydrate points and weapon on the far side, heat resets, rounds from 1. Two
+   stations. Edits `ALTGameMode` and `Config/DefaultEngine.ini` plus new
+   `LTGameInstance.{h,cpp}`. **Ready now** (depends on C1).
+3. `phase-c-special-rounds.md` - sprinter round every 5th, brute pair every 10th,
+   as a small plan layer on `ALTRoundManager`. **BLOCKED on
+   `phase-c-zombie-types.md`** landing first - it hooks into the type-data path
+   that task establishes.
+4. `phase-e1-downed-revive.md` - solo downed state, bleed-out timer, auto-revive
+   at half health, in `ALTPlayerCharacter` only. Seams left for an item or co-op
+   revive. **Ready now** (depends only on Phase B).
+
+Independent, can run in any order relative to each other:
+`phase-c2`, `phase-c3`, `phase-e1`. Only `phase-c-special-rounds` has a
+prerequisite in the queue.
 
 ## Editor tooling notes
 
