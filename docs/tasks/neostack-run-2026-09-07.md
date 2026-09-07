@@ -341,3 +341,347 @@ harness, because the editor pins its tick to 3 fps while the window is unfocused
 It needs a focused editor or a packaged build.
 
 Nothing was committed. One `git pull` was run in Step 0, as instructed.
+
+# NeoStack autonomous editor pass, 2026-09-07 evening
+
+Second session the same day, against `main` at `ab9cc8e`. Editor assets only, no
+`Source/` changes, no commits.
+
+## Step 0, sync and rebuild
+
+- `git pull` on `main`: already up to date, HEAD at `ab9cc8e`. All three required
+  commits present: `ab9cc8e` (BP_Train), `bf1878c` (Canary Wharf spawn points),
+  `c4a6369` (the C2/C3 merge).
+- Rebuild: `Result: Succeeded`, "Target is up to date". The merged C++ was
+  already compiled locally.
+- Editor relaunched. `LTGameMode`, `LTDepartureBoard`, `LTZombieTypeData` and
+  `LTGameInstance` all confirmed reflected.
+- `Config/DefaultEngine.ini` has `GameInstanceClass=/Script/LastTrain.LTGameInstance`
+  but **no `GlobalDefaultGameMode`**, so levels must resolve the game mode through
+  their own World Settings override. Both do.
+
+## Milestone 1, reparent BP_GameMode: PASS
+
+This was the blocker the previous run identified, and the reparent fixes it.
+
+### Reparent
+
+`BP_GameMode` parent class changed from `GameModeBase` to `LTGameMode`.
+Compiled clean, zero errors and zero warnings, saved.
+
+Defaults after the reparent, all intact:
+
+| Property | Value |
+|---|---|
+| bAutoStart | True |
+| GameStateClass | `LTGameState`, inherited from the ALTGameMode constructor |
+| DefaultPawnClass | `BP_PlayerCharacter_C`, survived the reparent |
+| NextStationMap | None, filled in Milestone 5 |
+| StationRoutes | empty, filled in Milestone 5 |
+
+### Both levels resolve to an ALTGameMode
+
+`L_GreyboxTest` and `L_CanaryWharf_Greybox` were both already overriding to
+`BP_GameMode_C` in World Settings, so no override change was needed; the
+reparent alone is what makes them resolve to an `ALTGameMode`. Confirmed by CDO
+check: `isinstance LTGameMode: True`. Both levels saved.
+
+### PIE verification
+
+| Check | Result |
+|---|---|
+| Game mode resolves as ALTGameMode | PASS, `BP_GameMode_C isLT: True` |
+| Game state is a real ALTGameState | PASS, `LTGameState`, was `GameStateBase` before |
+| Run state exists | PASS, reads Active at start |
+| Round manager started by the game mode | PASS, `Round 1 starting with 6 zombies.` and `Run state 0 to 1.` |
+| Player goes down, not dead | PASS, 500 damage left health 0 with `is_downed` true |
+| Downed log line | PASS, `Player downed. Bleed-out in 30s.` |
+| Solo auto revive | PASS, `Player revived at 50% health.` and health fraction 0.50 |
+| Run state through the loop | PASS, `Run state 1 to 2.` then `Run state 2 to 1.` |
+
+After the revive the normal 4s-delay regen carried health 0.50 to 1.00 over about
+six seconds, which is the existing player regen behaving correctly on top of the
+new revive.
+
+The board test was skipped here as instructed; `BP_Train` from the previous
+session is still placed in this level and was observed cycling normally during
+the run, and station heat incremented to 1 on a departure without boarding.
+
+This one change also switches on the run state machine for every level using
+`BP_GameMode`, which boarding, downed and travel all depend on.
+
+## Milestone 2, the five zombie type assets and the tintable material: PASS
+
+Values came from the table in `docs/tasks/neostack.md`, which the merge rewrote
+for exactly this. That table is authoritative and differs from the task brief in
+a few places, so the doc was followed: brute `MeshScale` 1.5 not 1.4, crawler 0.5,
+the material parameter is `TintColour` not `Tint`, and the walker and screamer
+tints are white rather than charcoal.
+
+### The five assets
+
+Created under `Content/LastTrain/Zombies/`. Every value below was read back from
+disk after saving, not just written.
+
+| Field | Walker | Sprinter | Brute | Crawler | Screamer |
+|---|---|---|---|---|---|
+| Type | Walker | Sprinter | Brute | Crawler | Screamer |
+| Behaviour | None | Sprint | ArmourPlate | LowProfile | Scream |
+| HealthMultiplier | 1.00 | 0.55 | 5.00 | 0.35 | 0.80 |
+| WalkSpeedMultiplier | 1.00 | 3.85 | 0.73 | 1.15 | 0.85 |
+| AttackDamageOverride | 0 | 18 | 45 | 20 | 10 |
+| AttackCooldownOverride | 0 | 1.0 | 2.2 | 1.1 | 1.5 |
+| MeshScale | 1.00 | 0.95 | 1.50 | 0.50 | 1.00 |
+| AnimPlayRate | 1.00 | 1.35 | 0.80 | 1.00 | 1.00 |
+| RepathIntervalOverride | 0 | 0.2 | 0 | 0.4 | 0 |
+| CapsuleHalfHeightOverride | 0 | 0 | 130 | 45 | 0 |
+| AvoidanceConsiderationRadiusOverride | 0 | 0 | 70 | 0 | 0 |
+| ContactRangeOverride | 0 | 25 | 0 | 0 | 0 |
+| SpawnWeightNormalRound | 100 | 0 | 0 | 12 | 6 |
+| FirstRoundAvailable | 1 | 5 | 10 | 8 | 12 |
+| HighHeatWeightMultiplier | 1.0 | 2.0 | 1.0 | 2.0 | 2.0 |
+| MaxAliveOfThisType | 0 | 0 | 0 | 0 | 1 |
+| SprintLungeImpulse | 0 | 200 | 0 | 0 | 0 |
+| ArmourBodyDamageToBreak | 0 | 0 | 200 | 0 | 0 |
+| CorpseLifetimeOverride | 0 | 0 | 10 | 0 | 0 |
+| DeathScreenShakeRadius | 0 | 0 | 600 | 0 | 0 |
+| bRagdollOnDeath | false | false | false | false | false |
+| ColourTint | white | sodium 0.88, 0.63, 0.19 | crimson 0.69, 0.12, 0.19 | violet 0.42, 0.30, 0.61 | white |
+
+Screamer also carries `ScreamLineOfSightSeconds` 2.0, `ScreamSummonCount` 4 and
+`ScreamCancelWindowSeconds` 0.5.
+
+Worth recording: the first write pass silently did nothing. A Python exception on
+the `bRagdollOnDeath` property name (it reflects as `ragdoll_on_death`, without
+the Hungarian prefix) aborted the script before `save_asset`, so every value it
+had set was discarded when the assets reloaded. The read-back check caught it and
+the pass was redone. Verifying by reading from disk rather than trusting the write
+is what made the difference.
+
+### The material
+
+`Content/LastTrain/Materials/M_Zombie_Tintable`, a default-lit material: a
+`TintColour` vector parameter multiplied into a flat 0.35 grey base colour, with
+roughness 0.85. Grey box appropriate, no texture needed.
+
+Five `UMaterialInstanceConstant` assets, `MI_Zombie_Walker` through
+`MI_Zombie_Screamer`, all parented to it, each with `TintColour` set to its
+type's `ColourTint` and confirmed by read-back.
+
+### How BP_Zombie picks its instance
+
+This needed care because of an ordering constraint in the C++. In
+`ALTRoundManager::TrySpawnOne`, `SpawnActor` completes, and therefore BeginPlay
+runs, **before** `ApplyTypeData` is called. A material swap on BeginPlay alone
+would read the default Walker type on every zombie regardless of its real type.
+
+So the graph is: `Event BeginPlay` to a `Delay` of 0.05s, then a
+`Switch on ELTZombieType` whose Selection comes from the BlueprintPure
+`GetZombieType()`, and one `SetMaterial` per branch on the inherited character
+mesh with the matching `MI_Zombie_*` instance at element index 0.
+
+One shared master, five constant instances, one swap per spawn. No
+`CreateDynamicMaterialInstance`, per the rule in the type asset header.
+
+BP_Zombie compiles clean, zero errors and zero warnings.
+
+### Verify
+
+No PIE check for this milestone on its own, as specified. All five data assets
+and all five material instances open without error and their values match the
+table; the read-backs above are the evidence. The types actually spawning is
+Milestone 4.
+
+## Milestone 3, boarding end to end and BP_DepartureBoard: PASS
+
+### Boarding works without the override
+
+This is the headline result. The previous run could only make boarding work by
+pointing World Settings at the native `ALTGameMode` as a diagnostic. With
+`BP_GameMode` reparented in Milestone 1, boarding works through the normal path:
+
+```
+TRAIN OnPlayerBoarded
+Run state 1 to 4.
+Player boarded. Run state Boarded, rounds stopped, reserve refilled, heat reset.
+```
+
+`TryBoard` returned true, and `TryBoard with no ALTGameMode` does not appear
+anywhere in the run.
+
+### BP_Train and the round manager
+
+`BP_Train` was still placed in `L_GreyboxTest` at (0, 640, 0) from the previous
+session, and `GreyboxTest_RoundManager` still had its `ULTStationHeat` component,
+so neither needed rebuilding.
+
+### BP_DepartureBoard
+
+Created from `ALTDepartureBoard` with a `TextRenderComponent` named `BoardText`,
+world size 48, sodium `#E0A030`, centre aligned. Placed at (0, 560, 260) facing
+the platform.
+
+`OnCountdownChanged(WholeSeconds, Phase)` is overridden and builds the display
+string: the whole seconds through `To String (Integer)`, appended to `"s "`, then
+appended to a phase word from a `Select` on `ELTTrainPhase`. Away and Approaching
+both read `inbound`, Dwelling reads `at platform`, Departing reads `departing`.
+The result goes to `SetText` on `BoardText`; the editor inserted the string to
+text conversion automatically. `OnPhaseChanged` is overridden and left empty for
+a later recolour. Compiles clean.
+
+One deviation. The board shows `8s inbound` rather than `0:08 inbound`. The M:SS
+form needs integer divide and modulo nodes, and the fuzzy node search kept
+resolving `Divide` and `Percent` to `FrameNumber / FrameNumber` and `As Percent`.
+Since every countdown in the coded timings is well under a minute, raw seconds
+with an `s` suffix is correct and readable, so that was kept rather than fight
+the node picker. Worth revisiting when a real board mesh and font arrive.
+
+### Departure board tracking, observed live
+
+| Time | Phase | Doors | Board text |
+|---|---|---|---|
+| 2s | Away | shut | `8s inbound` |
+| 6s | Away | shut | `4s inbound` |
+| 8s | Approaching | shut | `2s inbound` |
+| 10s | Dwelling | shut | `10s at platform` |
+| 12s | Dwelling | **open** | `8s at platform` |
+| 16s | Dwelling | open | `4s at platform` |
+| 18s | Dwelling | shut | `2s at platform` |
+| 20s | Departing | shut | `0s departing` |
+| 22s | Away | shut | `17s inbound` |
+
+The countdown tracks the train exactly and the wording switches on phase.
+
+### C1 acceptance checklist
+
+| Point | Result |
+|---|---|
+| Phase Away to Approaching at load plus 8s | PASS |
+| Full cycle Away, Approaching, Dwelling, Departing, Away | PASS, observed twice |
+| Doors open about 1s into the dwell | PASS, dwell at 10s, doors open by 12s |
+| Doors close about 2s before departure | PASS, shut by 18s, departure 20s |
+| Doors events strictly inside Dwelling | PASS |
+| Board prompt only while doors open | PASS, `Board train`, `CanInteract` true only when open |
+| OnPlayerBoarded fires | PASS |
+| Run state goes Boarded | PASS, `Run state 1 to 4.` |
+| Rounds stop, zombies remaining stops climbing | PASS, held at 6 |
+| Weapon reserve to full | PASS, per the engine log line |
+| Station heat reads 0 after boarding | PASS, went 1 to 0 |
+| Train frozen after boarding | PASS, held Dwelling 10s, zero phase logs after |
+| Not boarded: hook fires, heat 0 to 1 | PASS |
+| Second cycle not boarded: heat to 2, no more | PASS, observed 0, 1, 2, 3 across four departures, one increment each |
+
+Heat also drove the round manager as designed: live cap bonus 6, 12, 18 and spawn
+rate x1.12, x1.24, x1.36 at heat 1, 2, 3.
+
+An incidental observation: boarding succeeded while the run state was Downed.
+`ALTTrain::IsRunLive` only excludes Dead and Boarded, so this is what the code
+says, but whether a downed player should be able to board is a design question
+worth a decision.
+
+### Clean up
+
+PIE stopped. All eight `BP_Train` timing values restored to the class defaults
+(30, 100, 25, 4, 4, 1, 3, 15) and confirmed by read-back. `BP_Train`,
+`BP_DepartureBoard` and `L_GreyboxTest` saved.
+
+## Milestone 4, roster, types and special rounds: MOSTLY PASS
+
+### Roster wiring
+
+`Roster` is a `TArray<FLTZombieRosterEntry>`, each entry a struct with one
+`TypeData` pointer, and it is `EditAnywhere` so it can be set per instance. Both
+`GreyboxTest_RoundManager` and `CW_RoundManager` now carry all five entries in
+order Walker, Sprinter, Brute, Crawler, Screamer, with `ZombieClass` left as
+`BP_Zombie_C`. Both levels saved.
+
+### Types spawn with correct stats and silhouette
+
+| Round | Special | Tag | Composition observed |
+|---|---|---|---|
+| 1 to 4 | no | None | all Walker, the only type with FirstRoundAvailable 1 |
+| 5 | **yes** | **Sprinters** | Sprinter |
+| 6, 7 | no | None | Walker |
+| 8 | no | None | **Crawler** appears, exactly its FirstRoundAvailable |
+| 9 | no | None | 4 Walker plus 2 Crawler, a real weighted mix |
+| 10 | **yes** | **SprintersAndBrutes** | Sprinters plus exactly **2 Brutes** |
+
+Round 10 carries the tag `SprintersAndBrutes` because 10 is divisible by both the
+sprinter interval 5 and the brute interval 10, and the brute count was exactly 2,
+matching `BruteRoundBruteCount`.
+
+Per-type values read off a live brute in PIE:
+
+- armour remaining 200
+- capsule half height 130, radius 34
+- anim play rate 0.80
+- walk speed 204.9, which is the round-scaled base times the 0.73 multiplier
+- mesh component relative scale 1.50, 1.50, 1.50
+
+and off a live screamer: walk speed exactly 110.5, which is 130 x 0.85.
+
+Note that `MeshScale` lands on the **mesh component**, not the actor: actor scale
+stays 1.0 while the mesh reads 1.5. That is correct, just worth knowing when
+checking a brute in the outliner.
+
+### Armour plate: PASS
+
+Four consecutive 50 damage body shots on a brute:
+
+```
+body shot 1 -> armour 150 dead=False
+body shot 2 -> armour 100 dead=False
+body shot 3 -> armour 50 dead=False
+body shot 4 -> armour 0   dead=False
+```
+
+200 damage absorbed by the plate with no health loss and no death, exactly as
+`ArmourBodyDamageToBreak` 200 specifies.
+
+### Tint via material instance: PASS, after a fix
+
+The swap works: a live brute read `MI_Zombie_Brute` on material slot 0.
+
+The first version only covered slot 0. `SKM_Quinn_Simple` has **two** material
+slots, so half the body kept the default `MI_Quinn_02`. A second `SetMaterial`
+per branch at element index 1 was added, and a fresh PIE confirmed
+`slot0=MI_Zombie_Walker slot1=MI_Zombie_Walker`. Ten `SetMaterial` nodes now, two
+per type. Still one shared master and five constant instances, no dynamic
+instances.
+
+### Screamer: NOT VERIFIED
+
+The screamer's data applies correctly. A live one reads
+`Type SCREAMER`, `Behaviour SCREAM` and walk speed 110.5, so `ApplyTypeData` is
+doing its job and the asset values are right.
+
+But it never screamed. Tested at 700 units and at 600 units, directly in front of
+the player with the camera pointed at it and unobstructed floor between, both
+frozen and walking, for eight to ten seconds each time against a
+`ScreamLineOfSightSeconds` of 2.0. No `screamed after` log line, so
+`OnZombieScreamed` never broadcast and the extra wave and the cancel window could
+not be tested either.
+
+Two caveats on that result, stated plainly rather than dressed up:
+
+1. The screamer under test was a **retyped walker**, not one the roster spawned.
+   `FirstRoundAvailable` is 12 and reaching round 12 by hand was beyond the time
+   available. `ApplyTypeData` is documented as idempotent and the behaviour flag
+   did apply, but a retyped actor is not the same as a natural spawn.
+2. Runtime actor spawning is not exposed to the editor Python API here, and
+   `EditorAssetLibrary.load_asset` returns None during PIE, so the type asset had
+   to be fetched through the Asset Registry instead. That cost several attempts
+   and is worth knowing for future runs.
+
+So the scream path is **unverified, not proven broken**. It needs either a real
+round 12 or a temporary `FirstRoundAvailable` of 1 on the screamer asset to force
+a natural spawn. Since the trigger lives in `ALTZombieCharacter::TickScream`,
+under `Source/`, this milestone stops here rather than working around it.
+
+### Clean up
+
+PIE stopped. `OpeningRoundCounts` reverted from the test `(4,4,4,4,4)` to
+`(6,8,10,12,14)` on the placed instance and confirmed. `BreatherSeconds` reverted
+from the test 2.0 to 10.0 on `BP_RoundManager` and confirmed; it is
+`EditDefaultsOnly` so it could only be changed on the class, not the instance.
+`BP_Zombie`, `BP_RoundManager` and both levels saved.

@@ -9,6 +9,13 @@ Plugins/NeoStackAI/
 .neostack/
 .agents/
 
+# Local MCP client configs the in-editor Claude Code terminal and toolset
+# plugins drop. Machine specific, point at a local bridge, not project code.
+.mcp.json
+.codex/
+.cursor/
+.gemini/
+
 # Imported third party content packs. UE-Only Content and Fab Standard
 # licences let us ship these compiled into the game but not re host the raw
 # assets in a public repo. Fetch them per docs/reference/free-assets.md.
