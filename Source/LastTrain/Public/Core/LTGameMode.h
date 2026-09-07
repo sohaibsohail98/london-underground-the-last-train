@@ -6,6 +6,7 @@
 #include "LTGameMode.generated.h"
 
 class ALTRoundManager;
+class ULTStationHeat;
 
 /** Owns the run lifecycle for one station arena. Thin: it flips ALTGameState
 	between run states and starts the round manager. Travel between stations,
@@ -34,6 +35,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Run")
 	void NotifyPlayerRevived();
 
+	/** Called by ALTTrain when the player boards during the dwell. In this arena it
+		ends the run: stops rounds, banks points, refills the reserve, resets heat,
+		and flips the run state to Boarded. Travel to the next station is a later
+		task that hooks in here. */
+	UFUNCTION(BlueprintCallable, Category = "Run")
+	void NotifyPlayerBoarded(AActor* Boarder);
+
 	/** If true, StartRun is called automatically on BeginPlay. Off for a build
 		that opens on a menu or a countdown. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Run")
@@ -45,6 +53,10 @@ protected:
 private:
 	void SetState(ELTRunState NewState);
 	ALTRoundManager* FindRoundManager() const;
+
+	/** The round manager's heat component if there is one, otherwise any heat
+		component in the level. Null on a heat-less test level. */
+	ULTStationHeat* FindStationHeat() const;
 
 	bool bRunStarted = false;
 };

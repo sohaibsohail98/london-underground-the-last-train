@@ -1,6 +1,6 @@
 # NEXT - resume point for a fresh context window
 
-Last updated 2026-09-06. Update this whenever you finish a task so a cold
+Last updated 2026-09-06 (C1 train landed). Update this whenever you finish a task so a cold
 session can pick up without re-reading the whole history.
 
 ## The one line
@@ -10,8 +10,10 @@ all landed and compiled. The zombie attack fix and the HUD health bar are
 verified working in PIE. Phase B is **not signable**: the 24 to 40 zombie crowd
 frame gate has never been measured because the `GreyboxTest_RoundManager`
 instance caps every run at 6, a corridor stall-recovery edge case is still open
-in C++, and the B2 wall-buy flow has not been exercised in PIE. Phase C
-(the train, the five zombie types, the departure board) is specced and waiting.
+in C++, and the B2 wall-buy flow has not been exercised in PIE. Phase C has
+started: **C1 `ALTTrain` has landed and compiles clean**, but its 12-point PIE
+acceptance list has not been run and no `BP_Train` exists yet. The five zombie
+types and the departure board are specced and waiting.
 
 ## State of the tree
 
@@ -68,16 +70,32 @@ in C++, and the B2 wall-buy flow has not been exercised in PIE. Phase C
    most likely the top clusters. Then re-run the horde smoke test.
 
 7. **Mark Phase B done** in `docs/tasks/README.md` and update this file once the
-   gate is measured and 3 to 5 pass. Then Phase C begins.
+   gate is measured and 3 to 5 pass.
+
+8. **C1 train PIE acceptance.** Editor work, no C++ needed. Make `BP_Train` from
+   `ALTTrain`, give it a box mesh child in the trackbed, place it at the platform
+   edge, size `BoardingVolume` over the door aperture, add a `ULTStationHeat`
+   component to `GreyboxTest_RoundManager`, and put print or log nodes on the nine
+   presentation hooks and `OnTrainPhaseChanged`. Then walk the 12-point list in
+   `docs/tasks/phase-c1-train.md`.
 
 ## Phase C, the next real code work
 
 All C++. Numbers from `docs/design/gameplay-canon.md` and `docs/brief-v2.md`.
 
-- `ALTTrain` (`phase-c1-train.md`): the arrive / dwell / depart / away state
-  machine on the 100s interval and 25s dwell, presentation hooks, the boarding
-  interact, `ALTGameMode::NotifyPlayerBoarded`, heat increment on a not-boarded
-  departure. Travel to another station stays out of scope.
+- `ALTTrain` (`phase-c1-train.md`): **C++ DONE**, compiled clean. The arrive /
+  dwell / depart / away state machine on the 100s interval and 25s dwell, the
+  `BlueprintImplementableEvent` presentation hooks, the "Board train" interact,
+  `ALTGameMode::NotifyPlayerBoarded`, and the heat increment on a not-boarded
+  departure. New files `Source/LastTrain/Public/Train/LTTrain.h` and
+  `Source/LastTrain/Private/Train/LTTrain.cpp`. Travel to another station stayed
+  out of scope: `NotifyPlayerBoarded` is the seam and logs that travel is unwired.
+  **Outstanding**: build a `BP_Train` from `ALTTrain` with a box mesh child, place
+  it at the platform edge in `L_GreyboxTest` with `BoardingVolume` over the door
+  aperture, put a `ULTStationHeat` component on the round manager, and run the
+  12-point acceptance list in `phase-c1-train.md`. Drop the tuneables right down
+  (`FirstTrainStopSeconds`, `TrainInterval`, `DwellDuration`) while testing so a
+  cycle takes seconds, then restore 30 / 100 / 25.
 - `ULTZombieTypeData` (`phase-c-zombie-types.md`): the data asset, `ApplyTypeData`
   on the zombie, the roster on `ALTRoundManager` (keep `ZombieClass` as the
   empty-roster fallback). Data entry of the five stat blocks is a separate
