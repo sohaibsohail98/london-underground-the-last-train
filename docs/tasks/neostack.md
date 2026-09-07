@@ -264,25 +264,27 @@ needs that today.
 
 ---
 
-# Canary Wharf spawn points
+# Spawn points, done 2026-09-07
 
-`L_CanaryWharf_Greybox` has ten spawn points, `CW_SpawnPoint_1` to `_10`, and
-**all ten sit at world origin** while the platform is centred around
-`(5550,3150,-10)`. Every zombie therefore spawns 5,500 to 6,900 units off the
-level and free falls. The 2026-09-07 run diagnosed it: `ALTSpawnPoint` had no
-root component, so it could not hold a transform and the moves in `f76e0a4`
-silently did not persist.
+Both maps had every spawn point welded to world origin, because `ALTSpawnPoint`
+had no root component until `871f062`. Both are now placed and verified
+(`bf1878c`, full log and placement tables in `neostack-run-2026-09-07.md`).
+Nothing here is outstanding; it is recorded so the next session does not re-open
+it.
 
-The C++ half is fixed (`871f062` gives the actor a `USceneComponent` root), so
-the points can now be moved. Place them along the north end of the platform,
-around `y=5600`, `x` roughly 900 to 10200, `z=100`, near the two tunnel mouths at
-`x=4050` and `x=7050`. Points 9 and 10 are deliberately `FirstRound=4`; leave
-that alone. Then re-run the horde smoke test: rounds already start, so what you
-are checking is that zombies land on the floor and path to the player.
+- **`L_CanaryWharf_Greybox`**, ten points in two rows either side of the barrier
+  line, `Y` 3800 and 4400 at `Z` 110, clear of the flood zone, the barriers and
+  the platform lip. Navigation rebuilt. PIE: all six round-one zombies spawned on
+  the platform between `Z` 90 and 120, converged on the player and reached melee,
+  nothing fell through at any of nine tested positions, and a mid-round player
+  move of 1500 units had all six close monotonically.
+- **`L_GreyboxTest`**, five points spread across the east half so the crowd
+  converges westward on the player start rather than stacking on one spot. This
+  map was assumed good: world origin simply happens to sit in the middle of its
+  small arena, which hid the bug rather than avoiding it.
 
-Nothing else about those points is wrong. Every one has `bEnabled=True`, an
-empty `AreaTag` (which `IsAvailable` does not even read), `CooldownSeconds` 0.9
-and a sane weight, and `CW_RoundManager` has the right `ZombieClass`.
+One pre-existing, unrelated error remains on Canary Wharf: `WorldSettings Maps
+need lighting rebuilt`.
 
 ---
 
@@ -290,13 +292,25 @@ and a sane weight, and `CW_RoundManager` has the right `ZombieClass`.
 
 Small, and all of them editor or PIE work rather than asset building.
 
-1. **Measure the crowd frame gate.** PIE `L_GreyboxTest`, console `stat unit`,
-   filter the Output Log for `LogLastTrain` at Verbose. Set the placed
-   `GreyboxTest_RoundManager`'s `OpeningRoundCounts` index 0 to 30, confirm
-   `Spawned zombie. Alive N` climbs toward the cap of 24, and record the game
-   thread ms with 24 or more alive over 10 seconds. Pass is the game thread
-   holding near 16.6 ms. Then set index 0 back to 6 and save. This is the last
-   thing standing between Phase B and being signed off.
+1. **Measure the crowd frame gate. A human has to do this one.** It cannot be
+   read over the bridge: the editor throttles its tick while the window is
+   unfocused, so on 2026-09-07 every delta sample came back at exactly 0.33333s
+   (3 fps) whatever the load, with `t.MaxFPS`, `r.VSync`,
+   `Slate.SleepWhenAppIdle` and `editor.LowerFPSWhenNotForeground` all already 0
+   and clearing them changing nothing. Game time still advanced at 0.95x wall
+   clock, so the simulation was fine and only the tick rate was throttled.
+   Reporting that against a 60 fps gate would be actively misleading, so it was
+   left open.
+
+   With the editor window focused, or in a packaged build: PIE `L_GreyboxTest`,
+   console `stat unit`, Output Log filtered to `LogLastTrain` at Verbose. Set the
+   placed `GreyboxTest_RoundManager`'s `OpeningRoundCounts` index 0 to 30 (the
+   instance takes the write since `bb0ec42`, confirmed at runtime by the log
+   reading `Round 1 starting with 20 zombies.`), confirm `Spawned zombie. Alive N`
+   climbs toward the cap of 24, and record the game thread ms with 24 or more
+   alive over 10 seconds. Pass is the game thread holding near 16.6 ms. Then set
+   index 0 back to 6 and save. This is the last thing standing between Phase B
+   and being signed off.
 2. **Wall buy PIE acceptance.** `phase-b2-interaction.md` steps 3 to 7. Needs a
    human at the keyboard: the bridge cannot aim a first-person camera at the
    plate. Walk to `GreyboxTest_WallBuy_SMG`, check the prompt fades in, `E` under
@@ -306,6 +320,10 @@ Small, and all of them editor or PIE work rather than asset building.
    prompt anchor have never been reviewed. Acceptance list in
    `phase-b3-feedback-widgets.md`; the layout, palette and element spec that
    built `WBP_HUD` is in that file too.
+
+The corridor stall recovery is no longer on this list: the 2026-09-07 pass tested
+it clean across three runs. One 1 Hz re-entry anomaly is carried in
+`handover.md` as a code item rather than an editor one.
 
 ---
 

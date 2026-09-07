@@ -12,19 +12,20 @@ from signable. **Every Phase C system now exists in C++**, plus E1 downed and
 revive from Phase E. Everything after C1 was written in remote sessions with no
 Unreal engine and **has never been compiled**, so the first local build is the
 gate on the lot. Once it compiles, the remaining work is almost entirely editor
-work: five data assets, a material, three Blueprints, a reparent, and ten spawn
-points to move. That brief is `neostack.md`.
+work: five data assets, a material, two Blueprints and a reparent. That brief is
+`neostack.md`.
+
+The 2026-09-07 editor pass (`bf1878c`, log in `neostack-run-2026-09-07.md`)
+closed two things this file used to list: every spawn point in both maps is
+placed and verified, and the corridor stall fix now has a verdict. It also found
+that `L_GreyboxTest`'s five points had never been placed either, which is why the
+crowd always converged on world origin.
 
 ## Where the work is
 
-Everything described here landed on the branch
-`claude/docs-tasks-implementation-vd3wm7`, in three commits: `64535f6` (departure
-board, travel, downed and revive), `b1424bf` (the five zombie types, the roster
-and the special rounds) and `ace4b14` (this doc consolidation, the compile gate
-and the CI reflection check). All five CI gates pass on it.
-
-**If a fresh clone of `main` does not show the files this file describes, that
-branch has not been merged yet.** Check it out, or merge it, before starting.
+All of it is on `main`. The Phase C and E1 C++ merged in `c4a6369` (from
+`64535f6`, `b1424bf` and `ace4b14`), and `bf1878c` is a NeoStack editor pass on
+top of it. All five CI gates pass on `main`.
 
 ## The gate: compile first
 
@@ -65,12 +66,16 @@ Three things about that ini line nobody had written down:
    with the full value table, the tintable material and its five instances, the
    `BP_Zombie` graph additions, the roster wiring, `BP_Train`,
    `BP_DepartureBoard`.
-5. **Move the ten Canary Wharf spawn points** off world origin, per
-   `neostack.md`. The C++ half of that bug is fixed; only placement is left.
-6. **Measure the Phase B crowd gate.** Details in `neostack.md`, Phase B
-   leftovers. This is the last thing between Phase B and done.
-7. **Run the acceptance lists** in the table below.
-8. **Mark Phase B done** in `README.md` and here once 6 and the B2 and B3 items
+5. **Measure the Phase B crowd gate, by hand.** It cannot be done over the
+   NeoStack bridge: the editor throttles its tick while the window is unfocused,
+   so every delta sample came back at exactly 0.33333s (3 fps) regardless of
+   load, which would be a meaningless reading against a 60 fps gate. It needs
+   `stat unit` read on screen with the editor window focused, or a packaged
+   build. Set the placed `GreyboxTest_RoundManager`'s `OpeningRoundCounts` index
+   0 to 30, measure with 24 or more alive, then put it back to 6. This is the
+   last thing between Phase B and done.
+6. **Run the acceptance lists** in the table below.
+7. **Mark Phase B done** in `README.md` and here once 5 and the B2 and B3 items
    pass.
 
 ## What has landed
@@ -83,10 +88,16 @@ check. Records: `phase-a4-editor-setup.md`, `phase-a5-acceptance.md`.
 ### Phase B, code complete, one measurement short
 
 B1 throttled repath, B2 interaction and the first wall buy, B3 the HUD widget.
-The zombie attack fix and the HUD health bar are verified in PIE. **Open**: the
-24 to 40 crowd frame gate has never been measured (it is reachable now, see
-action 6), the wall-buy flow has never been exercised in PIE, the HUD polish has
-never been reviewed, and one corridor stall edge case has no verdict either way.
+The zombie attack fix and the HUD health bar are verified in PIE. The 2026-09-07
+pass cleared the corridor stall question: across three runs no zombie stayed
+frozen more than 2 seconds outside melee range while the crowd was genuinely
+pathing, and the apparent freezes were outer ranks queued behind a pile, every
+one of which resumed within 2 seconds once the player moved. One anomaly is
+flagged rather than called a defect: in a dense run with a dead player,
+`BP_Zombie_C_19` logged `entering stall recovery` 122 times at 1 Hz for three
+minutes while the other nineteen logged 6 to 12 times each. It did not reproduce
+in a clean run. **Open**: the 24 to 40 crowd frame gate (see action 5), the
+wall-buy flow, and the HUD polish review.
 
 ### Phase C, all C++ written, none of it compiled
 
@@ -140,7 +151,7 @@ Perks, the upgrade bench and lost property are untouched.
 
 | What | Where | Needs |
 |---|---|---|
-| Crowd frame gate, 24 to 40 at 60fps | `phase-b1-throttled-repath.md` | PIE, `stat unit` |
+| Crowd frame gate, 24 to 40 at 60fps | `phase-b1-throttled-repath.md` | PIE with the editor window **focused**, or a packaged build |
 | Wall buy prompt and purchase | `phase-b2-interaction.md` steps 3 to 7 | a human at the keyboard |
 | HUD polish: hit marker, spread, prompt anchor | `phase-b3-feedback-widgets.md` | PIE |
 | Train, 12 points | `phase-c1-train.md` | `BP_Train` |
@@ -154,12 +165,15 @@ Perks, the upgrade bench and lost property are untouched.
 
 Small, none of them specced, all real.
 
-1. **The corridor stall edge case.** A zombie a short distance outside
-   `AttackRange` can sit at zero velocity while `UpdateStallRecovery`'s nudge
-   never fires. The 2026-09-07 run was mid-test when its bridge dropped, so there
-   is **no verdict either way**. Check the gate order in `UpdateStallRecovery`,
-   the ground-speed sample, and whether `StallTimer` resets before
-   `StallGraceSeconds` can accumulate.
+1. **The corridor stall recovery, now only an anomaly.** The behaviour itself
+   tested clean on 2026-09-07 (see Phase B above), so this is no longer a
+   suspected defect. What is left is the 1 Hz re-entry pattern one zombie showed
+   for three minutes in a dense run with a dead player: `BeginStallRecovery` and
+   `EndStallRecovery` may be able to alternate every frame at the attack
+   position, which would also explain the four re-entries inside 1.6 seconds seen
+   at melee range on Canary Wharf. Worth reading the gate order in
+   `UpdateStallRecovery` against a stationary target before the art pass makes it
+   audible.
 2. **`NavProjectionExtent` is too generous on Z** (500). It let
    `ProjectPointToNavigation` "succeed" at world origin, which is precisely what
    hid the Canary Wharf bug: the "not near the navmesh" warning never fired.
@@ -239,6 +253,9 @@ pack imports to a new folder, add it to `.gitignore` before committing.
 - `neostack.md` - every outstanding editor task, with the numbers.
 - `phase-*.md` - one bounded spec each, with its acceptance list. Every one is
   now implemented in code; the acceptance lists are what remain live.
+- `neostack-run-2026-09-07.md` - the editor run that placed the spawn points and
+  read the stall recovery. The only dated log still here: fold it into this file
+  and `neostack.md` and delete it once its open items close.
 - `drive-migration.md` - the pending engine move.
 - `editor-crash-endplaymap.md` - the PIE teardown crash and the rules that avoid
   it.

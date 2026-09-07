@@ -3,12 +3,13 @@
 **CODE LANDED.** The throttled repath, plus follow-on fixes (RVO radius 90 to 45,
 `DriveTowardsTarget` with `ContactRange`, and a stall-recovery nudge for queued
 attackers) are all in `LTZombieCharacter`. **Still open:** the 24 to 40 zombie
-crowd frame gate has never been measured. It is not blocked: `bb0ec42` made
-`OpeningRoundCounts` `EditAnywhere` and a placed round manager takes the write, so
-set index 0 to 30, measure, and put it back (see `neostack.md`). One corridor
-stall edge case also remains, where the nudge does not fire for a zombie just
-outside `AttackRange`, and the 2026-09-07 attempt to verify it was cut short with
-no verdict either way. Body below is the original spec.
+crowd frame gate has never been measured, and it needs a human: the write to
+raise the round count works, but the editor throttles its tick while the window
+is unfocused, so a scripted measurement reads a meaningless 3 fps. Details in
+`neostack.md`. The corridor stall edge case this spec's fix targeted **tested
+clean** on 2026-09-07 across three runs; what remains is one zombie's 1 Hz
+re-entry into stall recovery in a dense run, carried in `handover.md` as an
+anomaly. Body below is the original spec.
 
 **Engine:** Unreal Engine 5.8, macOS, external Xcode on `/Volumes/DriveSohaib`
 mounted. Compile after the change with the batch build in `CLAUDE.md`.
