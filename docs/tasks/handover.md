@@ -74,8 +74,9 @@ check. Records: `phase-a4-editor-setup.md`, `phase-a5-acceptance.md`.
 B1 throttled repath, B2 interaction and the first wall buy, B3 the HUD widget.
 The zombie attack fix and the HUD health bar are verified in PIE. **Open**: the
 24 to 40 crowd frame gate has never been measured (it is reachable now, see
-action 6), the wall-buy flow has never been exercised in PIE, the HUD polish has
-never been reviewed, and one corridor stall edge case has no verdict either way.
+action 6), the wall-buy flow has never been exercised in PIE, and the HUD polish
+has never been reviewed. The corridor stall edge case has a verdict and a fix as
+of 2026-09-07, unverified in PIE: open code item 1 below.
 
 ### Phase C, all C++ written, none of it compiled
 
@@ -105,11 +106,16 @@ never been reviewed, and one corridor stall edge case has no verdict either way.
   is byte-for-byte the old single-walker behaviour.
 - **Special rounds** (`phase-c-special-rounds.md`): `FLTRoundPlan` decided once
   per round, a three-way branch in `TrySpawnOne`, and `GetSpecialRoundTag` for a
-  banner. Two deliberate deviations from that spec, both because
-  `docs/design/gameplay-canon.md` lines 218 to 223 say otherwise: the brute pair
+  banner. Reviewed against its spec on 2026-09-07, write up in
+  `phase-c-review-2026-09-07.md`. The first deviation stands: the brute pair
   lands at roughly 30 and 70 per cent through the round rather than as a group up
-  front, and a round that is both (20, 30) is a sprinter round that also carries
-  the pair, rather than brutes taking precedence.
+  front, because `docs/design/gameplay-canon.md` section 6 says so. The second
+  was wider than recorded here, and changed: every brute round is divisible by 5,
+  so round 10 was an all-sprinter round carrying two brutes, against canon's own
+  "a normal walker round plus 2 brutes" and all three acceptance lists. It is now
+  `bBruteRoundOverridesSprinterRound`, default set, so a brute round is a walker
+  round plus the pair. Clearing it on `BP_RoundManager` restores `b1424bf`. Canon
+  section 6 contradicts itself here and wants settling either way.
 
 ### Phase E, started
 
@@ -136,49 +142,52 @@ Perks, the upgrade bench and lost property are untouched.
 | Live countdown on a sign | `phase-c2-departure-board.md` | `BP_DepartureBoard` |
 | Board and arrive with the carry | `phase-c3-travel.md` | reparent plus routes |
 | Zombie types, 11 points | `phase-c-zombie-types.md` | five assets, material, roster |
-| Sprinter round 5, brutes on 10, both on 20 | `phase-c-special-rounds.md` | roster |
+| Sprinters on 5 and 15, brutes on 10 and 20 | `phase-c-special-rounds.md` | roster |
 | Down, bleed out, auto revive | `phase-e1-downed-revive.md` | PIE only |
 
 ## Open code items
 
-Small, none of them specced, all real.
+Seven of the eight are closed in the working tree by the 2026-09-07 review pass,
+written up in `phase-c-review-2026-09-07.md`. **None of it is compiled**, so the
+first local build still gates the lot.
 
-1. **The corridor stall edge case.** A zombie a short distance outside
-   `AttackRange` can sit at zero velocity while `UpdateStallRecovery`'s nudge
-   never fires. The 2026-09-07 run was mid-test when its bridge dropped, so there
-   is **no verdict either way**. Check the gate order in `UpdateStallRecovery`,
-   the ground-speed sample, and whether `StallTimer` resets before
-   `StallGraceSeconds` can accumulate.
-2. **`NavProjectionExtent` is too generous on Z** (500). It let
-   `ProjectPointToNavigation` "succeed" at world origin, which is precisely what
-   hid the Canary Wharf bug: the "not near the navmesh" warning never fired.
-   Tighten it, or warn when the projected point moves an implausible distance.
-3. **Arrival flashes the points HUD as a spend.** `RehydrateFromTravel` grants
-   the carry with `AddPoints(Carried - Current)`, and the HUD renders a negative
-   delta crimson, so arriving under the 500 seed reads as a purchase. The total
-   is right. Wants a `SetPoints(int32)` on `ULTPointsComponent` that assigns and
-   broadcasts a zero delta; C3 put that component out of scope.
-4. **A downed player still gets interaction prompts.** `Interact` is gated, but
-   `ULTInteractionComponent` keeps sweeping and broadcasting, so "Board train"
-   can sit on screen through the bleed-out with `E` inert. Wants a
-   `SetInteractionEnabled(bool)` on the component, called from `Down` and
-   `Revive`; E1 put that component out of scope, and disabling its tick from
-   outside would freeze the last prompt on screen instead of clearing it.
+1. **The corridor stall edge case: verdict reached, fixed.** It was a gate order
+   bug, and the gate was the repath in `Tick`, not `UpdateStallRecovery`.
+   `BeginStallRecovery` cancels the AI move on purpose, and nothing stopped the
+   next repath re-issuing it 0.35s later, handing velocity back to path following
+   and returning the zombie to the stall. Two more faults in the same path:
+   `StallTimer` was reset to zero by any single frame of jitter above
+   `StallSpeedThreshold`, so the grace never accumulated, and recovery ended on
+   one jittery frame without the zombie having gone anywhere. The repath is now
+   held back while recovering, the timer decays instead of resetting, exit needs
+   40 units of ground closed, and `StallRecoverySeconds` (1.5) caps a shove so a
+   zombie pressed into geometry hands control back and leads with the other
+   shoulder. Unverified in PIE.
+2. **`NavProjectionExtent` Z: fixed.** 500 to 150, plus a
+   `NavProjectionWarnDistance` (200) that logs which spawn point snapped and how
+   far. That is the warning the Canary Wharf points at world origin never fired.
+3. **Arrival flashing the points HUD as a spend: fixed.**
+   `ULTPointsComponent::SetPoints(int32)` assigns and broadcasts a zero delta,
+   and `RehydrateFromTravel` uses it.
+4. **Interaction prompts while downed: fixed.**
+   `ULTInteractionComponent::SetInteractionEnabled(bool)` stops the sweep and
+   clears the live prompt. `Down` and `Die` disable it, `Revive` re-enables it.
 5. **Solo death is unreachable on the shipped defaults.** Auto-revive at 8s
    against a 30s bleed-out, damage ignored while down, no cap on repeated downs.
    That is exactly what E1 specified, but Phase E's own gate ("a full survival
    session start to death is possible") cannot be met until a revive item, a
    per-run cap, or a cleared `bSoloAutoRevive` lands. Clearing the flag on
-   `BP_PlayerCharacter` is the one-click version.
-6. **`ALTGameState::SetStationName` has no callers.** Its comment says "set on
-   travel in", travel is now built, and nothing sets it, so a station label reads
-   blank. Either stamp it from an `EditDefaultsOnly` name on the game mode, or
-   delete the setter.
-7. **`ALTTrain`'s class comment still says travel is a later task.** C2 and C3
-   both forbid touching `LTTrain.{h,cpp}`, so it was left. One line.
-8. **`ALTPlayerCharacter::TakeDamage` subtracts the raw damage**, not the value
-   `Super::TakeDamage` returns, so a damage modifier is reported to the caller
-   and ignored for health. Pre-existing, unrelated to E1, still wrong.
+   `BP_PlayerCharacter` is the one-click version. **Still open**: it is a design
+   and editor call, not code.
+6. **`ALTGameState::SetStationName`: fixed.** `ALTGameMode` carries
+   `StationDisplayNames`, a map from map asset name to label keyed like
+   `StationRoutes`, plus a `StationDisplayName` fallback, stamped on `BeginPlay`.
+   **Editor follow-up**: fill two entries on `BP_GameMode` or the label stays
+   blank.
+7. **`ALTTrain`'s class comment: fixed.** One line.
+8. **`ALTPlayerCharacter::TakeDamage`: fixed.** It subtracts what
+   `Super::TakeDamage` returns, and a fully absorbed hit no longer restarts the
+   regeneration delay.
 
 ## Build, CI and toolchain
 
@@ -228,6 +237,9 @@ pack imports to a new folder, add it to `.gitignore` before committing.
 - `neostack.md` - every outstanding editor task, with the numbers.
 - `phase-*.md` - one bounded spec each, with its acceptance list. Every one is
   now implemented in code; the acceptance lists are what remain live.
+- `phase-c-review-2026-09-07.md` - the code-only review pass: the special rounds
+  diff against its spec, the open findings above, the corridor stall verdict and
+  the zombie stat block cross-check.
 - `drive-migration.md` - the pending engine move.
 - `editor-crash-endplaymap.md` - the PIE teardown crash and the rules that avoid
   it.

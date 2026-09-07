@@ -4,11 +4,16 @@
 three-way branch in `TrySpawnOne`, `IsSpecialRound` and `GetSpecialRoundTag` are
 all in `ALTRoundManager`. All five CI gates pass; nothing has been compiled.
 **Still open:** the roster wiring that makes it observable, per `neostack.md`.
-Two deliberate deviations from the body below, both because
-`docs/design/gameplay-canon.md` lines 218 to 223 say otherwise: the brute pair
+
+Reviewed against the body below on 2026-09-07:
+`docs/tasks/phase-c-review-2026-09-07.md`. One deviation stands: the brute pair
 lands at roughly 30 and 70 per cent through the round rather than as a group up
-front, and a round that is both (20, 30) is a sprinter round that also carries the
-pair, rather than the brute rule taking precedence. The special types are looked
+front, because `docs/design/gameplay-canon.md` section 6 says so. The other was
+reverted to this spec's precedence rule, because it went further than anyone had
+recorded: every brute round is divisible by 5, so round 10 was an all-sprinter
+round carrying two brutes. `bBruteRoundOverridesSprinterRound` now decides it,
+default set, which is the reading this spec's acceptance list and both other
+acceptance lists test. Clear it for a stacked round. The special types are looked
 up on the roster by type id rather than duplicated as `SprinterType` and
 `BruteType` properties, which is what this spec's own "reuse whatever
 phase-c-zombie-types.md uses" instruction asks for. Body below is the original
