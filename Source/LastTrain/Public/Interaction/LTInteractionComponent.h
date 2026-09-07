@@ -36,6 +36,16 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Interaction")
 	AActor* GetCurrentInteractable() const { return CurrentInteractable; }
 
+	/** Disabled, the component stops sweeping and clears whatever prompt is up.
+		A downed player would otherwise sit out the bleed-out looking at a live
+		"Board train" with an inert key under it. Disabling the tick from outside
+		would freeze that last prompt on screen instead of clearing it. */
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void SetInteractionEnabled(bool bEnabled);
+
+	UFUNCTION(BlueprintPure, Category = "Interaction")
+	bool IsInteractionEnabled() const { return bInteractionEnabled; }
+
 private:
 	/** Camera or eyes location and forward vector, or the actor's if there is no view. */
 	void GetViewPoint(FVector& OutLocation, FVector& OutDirection) const;
@@ -44,4 +54,5 @@ private:
 
 	FText CurrentPrompt;
 	bool bCurrentAvailable = false;
+	bool bInteractionEnabled = true;
 };

@@ -50,6 +50,19 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Run")
 	bool bAutoStart = true;
 
+	/** The station label for each map, by map asset name, stamped onto the game
+		state on BeginPlay. Keyed like StationRoutes and for the same reason: one
+		game mode Blueprint serves every station, so a lone name would label them
+		all the same. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Run")
+	TMap<FName, FText> StationDisplayNames;
+
+	/** Label for a map with no entry of its own, and the whole answer for a
+		project that gives each station its own game mode. Empty leaves the label
+		blank, which is what a station with no name set has always read as. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Run")
+	FText StationDisplayName;
+
 	/** Where boarding a train goes from each station: this map's asset name to the
 		destination's. Checked first, because one game mode Blueprint serves every
 		station and EditDefaultsOnly is a default on the whole game mode, so a lone
@@ -77,6 +90,10 @@ protected:
 private:
 	void SetState(ELTRunState NewState);
 	ALTRoundManager* FindRoundManager() const;
+
+	/** Puts this map's display name on the game state, so GetStationName has an
+		answer for the HUD and the departure board. */
+	void StampStationName();
 
 	/** Grants the carried points and weapon from a train arrival, then clears the
 		payload. Runs a tick after StartRun so the pawn's own components have had
