@@ -13,6 +13,13 @@
 #include "Weapons/LTWeaponComponent.h"
 #include "Weapons/LTWeaponData.h"
 
+namespace
+{
+	/** Ticks the game mode will wait for a player pawn before giving up on
+		delivering a travel payload. Ten frames is far longer than a possess takes. */
+	constexpr int32 MaximumRehydrateAttempts = 10;
+} // namespace
+
 ALTGameMode::ALTGameMode()
 {
 	GameStateClass = ALTGameState::StaticClass();
@@ -48,18 +55,22 @@ void ALTGameMode::StartRun()
 		LT_LOG(Warning, TEXT("Game mode found no round manager in the level. Rounds will not start."));
 	}
 
-	// A train arrival carries points and a weapon into this arena. The pawn's own
-	// components stamp their starting values in their BeginPlay, and that order
-	// against the game mode's is not guaranteed, so the carry lands next tick
-	// where it cannot be overwritten.
-	if (const ULTGameInstance* GameInstance = GetGameInstance<ULTGameInstance>())
+	if (ULTGameInstance* GameInstance = GetGameInstance<ULTGameInstance>())
 	{
 		if (GameInstance->IsTravelling())
 		{
-			if (const UWorld* World = GetWorld())
-			{
-				World->GetTimerManager().SetTimerForNextTick(this, &ALTGameMode::RehydrateFromTravel);
-			}
+			// A train arrival carries points and a weapon into this arena. The
+			// pawn's own components stamp their starting values in their BeginPlay,
+			// and that order against the game mode's is not guaranteed, so the carry
+			// lands next tick where it cannot be overwritten.
+			RehydrateAttempts = 0;
+			GetWorldTimerManager().SetTimerForNextTick(this, &ALTGameMode::RehydrateFromTravel);
+		}
+		else
+		{
+			// A cold start is a new run, so any station history from a previous run
+			// in this session goes.
+			GameInstance->ClearRunHistory();
 		}
 	}
 }
@@ -72,26 +83,44 @@ void ALTGameMode::RehydrateFromTravel()
 		return;
 	}
 
-	const FLTTravelPayload Payload = GameInstance->ConsumePayload();
-
-	if (APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0))
+	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!PlayerPawn)
 	{
-		if (ULTPointsComponent* Points = PlayerPawn->FindComponentByClass<ULTPointsComponent>())
+		// Do not consume a payload that cannot be delivered. The pawn is normally
+		// possessed well before now, but a late possess must not cost the player
+		// their carry, so try again for a few more ticks.
+		RehydrateAttempts += 1;
+
+		if (RehydrateAttempts <= MaximumRehydrateAttempts)
 		{
-			// Land on exactly the carried balance whatever the component seeded
-			// itself with, so the 500 opening float is not paid a second time.
-			Points->AddPoints(Payload.CarriedPoints - Points->GetPoints());
+			GetWorldTimerManager().SetTimerForNextTick(this, &ALTGameMode::RehydrateFromTravel);
+			return;
 		}
 
-		if (ULTWeaponComponent* Weapon = PlayerPawn->FindComponentByClass<ULTWeaponComponent>())
+		LT_LOG(Warning, TEXT("Arrived by train but no player pawn appeared. The carry stays pending."));
+		return;
+	}
+
+	const FLTTravelPayload Payload = GameInstance->ConsumePayload();
+
+	if (ULTPointsComponent* Points = PlayerPawn->FindComponentByClass<ULTPointsComponent>())
+	{
+		// Land on exactly the carried balance whatever the component seeded itself
+		// with, so the 500 opening float is not paid a second time. This does show
+		// on the HUD as a points delta, which reads as a spend when the carry is
+		// under the 500 seed: a SetPoints on ULTPointsComponent would fix it, and
+		// that component is out of scope for this task.
+		Points->AddPoints(Payload.CarriedPoints - Points->GetPoints());
+	}
+
+	if (ULTWeaponComponent* Weapon = PlayerPawn->FindComponentByClass<ULTWeaponComponent>())
+	{
+		if (Payload.CarriedWeapon)
 		{
-			if (Payload.CarriedWeapon)
-			{
-				// The reserve carries to full, not to the exact count the payload
-				// recorded: ULTWeaponComponent has no reserve setter, only
-				// RefillAmmunition. CarriedReserve is banked for when one lands.
-				Weapon->SetWeapon(Payload.CarriedWeapon, true);
-			}
+			// The reserve carries to full, not to the exact count the payload
+			// recorded: ULTWeaponComponent has no reserve setter, only
+			// RefillAmmunition. CarriedReserve is banked for when one lands.
+			Weapon->SetWeapon(Payload.CarriedWeapon, true);
 		}
 	}
 
@@ -157,6 +186,21 @@ void ALTGameMode::NotifyPlayerBoarded(AActor* Boarder)
 		Rounds->StopRounds();
 	}
 
+	// Snapshot the carry before the refill below, so CarriedReserve records what
+	// the player actually boarded with rather than a full magazine.
+	FLTTravelPayload Payload;
+
+	if (const ULTPointsComponent* Points = Boarder ? Boarder->FindComponentByClass<ULTPointsComponent>() : nullptr)
+	{
+		Payload.CarriedPoints = Points->GetPoints();
+	}
+
+	if (const ULTWeaponComponent* HeldWeapon = Boarder ? Boarder->FindComponentByClass<ULTWeaponComponent>() : nullptr)
+	{
+		Payload.CarriedWeapon = HeldWeapon->WeaponData;
+		Payload.CarriedReserve = HeldWeapon->GetReserve();
+	}
+
 	// Reserve back to full, magazine untouched, per RefillAmmunition. Belt and
 	// braces now that travel rehydrates the reserve on the far side: this is what
 	// the player gets if there is no game instance to travel with.
@@ -185,29 +229,74 @@ void ALTGameMode::NotifyPlayerBoarded(AActor* Boarder)
 		return;
 	}
 
-	if (NextStationMap.IsNone())
+	const FName Destination = ResolveDestinationMap();
+	if (Destination.IsNone())
 	{
-		LT_LOG(Warning, TEXT("NotifyPlayerBoarded: NextStationMap is unset, staying put."));
+		// The arena is now finished: rounds stopped, state Boarded, the train
+		// frozen. Nothing more happens here, so a station meant to be travelled
+		// from needs a route or a NextStationMap.
+		LT_LOG(
+			Warning,
+			TEXT(
+				"Player boarded but this station has no destination. Set StationRoutes or NextStationMap on the "
+				"game mode."));
 		return;
-	}
-
-	FLTTravelPayload Payload;
-
-	if (const ULTPointsComponent* Points = Boarder ? Boarder->FindComponentByClass<ULTPointsComponent>() : nullptr)
-	{
-		Payload.CarriedPoints = Points->GetPoints();
-	}
-
-	if (const ULTWeaponComponent* Weapon = Boarder ? Boarder->FindComponentByClass<ULTWeaponComponent>() : nullptr)
-	{
-		Payload.CarriedWeapon = Weapon->WeaponData;
-		Payload.CarriedReserve = Weapon->GetReserve();
 	}
 
 	Payload.VisitedStations = GameInstance->GetVisitedStations();
 	Payload.VisitedStations.Add(FName(*UGameplayStatics::GetCurrentLevelName(this, true)));
 
-	GameInstance->BeginStationTravel(Payload, NextStationMap);
+	PendingTravelPayload = Payload;
+	PendingTravelDestination = Destination;
+
+	// Let the train's boarding hooks and a fade have their frames. The run state is
+	// already Boarded, so rounds are stopped and the train is frozen for the wait.
+	if (TravelDelaySeconds > 0.f)
+	{
+		GetWorldTimerManager().SetTimer(TravelTimer, this, &ALTGameMode::BeginPendingTravel, TravelDelaySeconds, false);
+	}
+	else
+	{
+		BeginPendingTravel();
+	}
+}
+
+void ALTGameMode::BeginPendingTravel()
+{
+	if (PendingTravelDestination.IsNone())
+	{
+		return;
+	}
+
+	ULTGameInstance* GameInstance = GetGameInstance<ULTGameInstance>();
+	if (!GameInstance)
+	{
+		LT_LOG(Warning, TEXT("Travel timer fired with no ULTGameInstance. Staying put."));
+		return;
+	}
+
+	const FLTTravelPayload Payload = PendingTravelPayload;
+	const FName Destination = PendingTravelDestination;
+
+	PendingTravelPayload = FLTTravelPayload();
+	PendingTravelDestination = NAME_None;
+
+	GameInstance->BeginStationTravel(Payload, Destination);
+}
+
+FName ALTGameMode::ResolveDestinationMap() const
+{
+	const FName ThisMap(*UGameplayStatics::GetCurrentLevelName(this, true));
+
+	if (const FName* Routed = StationRoutes.Find(ThisMap))
+	{
+		if (!Routed->IsNone())
+		{
+			return *Routed;
+		}
+	}
+
+	return NextStationMap;
 }
 
 void ALTGameMode::SetState(const ELTRunState NewState)

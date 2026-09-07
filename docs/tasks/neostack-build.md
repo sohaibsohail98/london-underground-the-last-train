@@ -305,22 +305,129 @@ in PIE:
 
 ---
 
-# Phase C, editor assets, SPECS PENDING THE C++
+# Phase C, editor assets
 
-The Phase C C++ does not exist yet: no `LTTrain`, no per type zombie classes, no
-departure board actor, no station heat component. Do not attempt Phase C editor
-work from this file. When that C++ lands, a session fills in the sections below
-against the real class names and properties. Listed here so the shape is known:
+The Phase C C++ has landed: `ALTTrain`, `ALTDepartureBoard`, `ULTStationHeat`,
+`ULTZombieTypeData` with `ALTZombieCharacter::ApplyTypeData`, and the roster plus
+special-round layer on `ALTRoundManager`. None of it has been compiled yet (it was
+written with no engine to hand), so **build the editor target first and fix
+anything the compiler finds before starting any of this**.
 
-- **Five zombie type Blueprints.** Parented to whatever variant classes or a
-  single data driven `LTZombieCharacter` the C++ ends up using. Roster and
-  behaviour numbers come from `docs/brief-v2.md`.
-- **`BP_Train`** parented to the Phase C train actor. Arrival on a 100 s
-  interval, 25 s dwell, boarding volume, doors. Timings from `docs/brief-v2.md`.
-- **Departure board widget or actor.** The countdown and next arrival, in the
-  restrained style, palette only, no official line diagram.
-- **Station heat readout.** Only once the heat system exists behind it.
-- **`BP_RoundManager` roster wiring.** Point it at the five types with per round
-  weights once the types exist.
+There are no per-type Blueprints and no per-type classes. One mesh, one
+`BP_Zombie`, five data assets. The type is scale, tint, play rate and behaviour.
 
-Until then, Phase C is a C++ task, not a NeoStack task.
+## 1. Five `ULTZombieTypeData` assets
+
+Under `Content/LastTrain/Zombies/`, named `DA_Zombie_Walker`,
+`DA_Zombie_Sprinter`, `DA_Zombie_Brute`, `DA_Zombie_Crawler`,
+`DA_Zombie_Screamer`. Every value below is **provisional**: it settles in the
+Phase G balance pass. Put "provisional, Phase G to confirm" in each asset's
+description. Numbers are from `docs/design/gameplay-canon.md` section 6 and
+`docs/tasks/phase-c-zombie-types.md`.
+
+Speed and health are multipliers on the character's `BaseWalkSpeed` 130 and
+`BaseHealth` 150. Every field named `...Override` falls through to the
+character's own value when left at 0, so a walker asset of zeroes and ones is
+exactly today's coded default.
+
+| Field | Walker | Sprinter | Brute | Crawler | Screamer |
+|---|---|---|---|---|---|
+| `Type` | Walker | Sprinter | Brute | Crawler | Screamer |
+| `DisplayName` | Walker | Sprinter | Brute | Crawler | Screamer |
+| `Behaviour` | None | Sprint | ArmourPlate | LowProfile | Scream |
+| `HealthMultiplier` | 1.0 | 0.55 | 5.0 | 0.35 | 0.8 |
+| `WalkSpeedMultiplier` | 1.0 | 3.85 | 0.73 | 1.15 | 0.85 |
+| `AttackDamageOverride` | 0 | 18 | 45 | 20 | 10 |
+| `AttackCooldownOverride` | 0 | 1.0 | 2.2 | 1.1 | 1.5 |
+| `AttackRangeOverride` | 0 | 0 | 0 | 0 | 0 |
+| `MeshScale` | 1.0 | 0.95 | 1.5 | 0.5 | 1.0 |
+| `ColourTint` | white | sodium `#E0A030` | crimson `#B02030` | violet `#6C4C9C` | white |
+| `AnimPlayRate` | 1.0 | 1.35 | 0.8 | 1.0 | 1.0 |
+| `RepathIntervalOverride` | 0 | 0.2 | 0 | 0.4 | 0 |
+| `CapsuleHalfHeightOverride` | 0 | 0 | 130 | 45 | 0 |
+| `CapsuleRadiusOverride` | 0 | 0 | 0 | 0 | 0 |
+| `AvoidanceConsiderationRadiusOverride` | 0 | 0 | 70 | 0 | 0 |
+| `ContactRangeOverride` | 0 | 25 | 0 | 0 | 0 |
+| `SpawnWeightNormalRound` | 100 | 0 | 0 | 12 | 6 |
+| `FirstRoundAvailable` | 1 | 5 | 10 | 8 | 12 |
+| `HighHeatWeightMultiplier` | 1.0 | 2.0 | 1.0 | 2.0 | 2.0 |
+| `MaxAliveOfThisType` | 0 | 0 | 0 | 0 | 1 |
+| `SprintLungeImpulse` | 0 | 200 | 0 | 0 | 0 |
+| `ArmourBodyDamageToBreak` | 0 | 0 | 200 | 0 | 0 |
+| `ScreamLineOfSightSeconds` | - | - | - | - | 2.0 |
+| `ScreamSummonCount` | - | - | - | - | 4 |
+| `ScreamCancelWindowSeconds` | - | - | - | - | 0.5 |
+| `bRagdollOnDeath` | false | false | false | false | false |
+| `CorpseLifetimeOverride` | 0 | 0 | 10 | 0 | 0 |
+| `DeathScreenShakeRadius` | 0 | 0 | 600 | 0 | 0 |
+
+Two notes. `AnimPlayRate` for the sprinter and the brute are eye-tune values, not
+canon: set them so the feet do not skate at the new speed. Weight 0 means
+special-round only, which is why the sprinter and the brute never appear in a
+normal round's mix.
+
+## 2. The tintable zombie material
+
+`ColourTint` is deliberately **not** applied by C++. A 40 strong mixed crowd
+cannot afford a dynamic material instance per spawn, so:
+
+- One shared master material for the zombie body with a vector parameter named
+  `TintColour`.
+- Five `UMaterialInstance` assets off it, one per type, each with `TintColour` set
+  to the row above.
+- `BP_Zombie` picks the instance for its type on spawn, reading `GetZombieType()`,
+  and calls `SetMaterial` with it. No `CreateDynamicMaterialInstance`.
+
+## 3. `BP_Zombie` graph additions
+
+- `OnDeathPresentation`: read `bRagdollOnDeath` and `DeathScreenShakeRadius` off
+  the character (they are `BlueprintReadOnly`) rather than expecting parameters.
+  The event signature is unchanged.
+- `OnAttackWindUp`: the per-type attack tell. The sprinter's lunge impulse is
+  already applied in C++; this is animation and audio only.
+- `OnScream`: the screamer's animation and audio. The summon itself is C++.
+- `OnHitReaction`: branch on `GetArmourRemaining() > 0` for the brute's blocked
+  response versus a wounded one.
+- The anim Blueprint reads `GetAnimPlayRate()` and drives the locomotion play
+  rate from it.
+
+## 4. `BP_RoundManager` roster wiring
+
+Fill `Roster` with the five data assets, in `L_GreyboxTest` and
+`L_CanaryWharf_Greybox`. An empty roster keeps the old single-walker behaviour, so
+this is the switch that turns the whole system on. `SprinterRoundInterval` 5,
+`SprinterRoundCountFraction` 0.75, `BruteRoundInterval` 10,
+`BruteRoundBruteCount` 2 are the class defaults and need no change. Add a
+`ULTStationHeat` component to the placed round manager if it does not have one:
+the train, the round cap and the high-heat roster shift all read it.
+
+## 5. `BP_Train` and `BP_DepartureBoard`
+
+- **`BP_Train`** from `ALTTrain`: a box mesh child in the trackbed, placed at the
+  platform edge, `BoardingVolume` sized over the door aperture. The nine
+  presentation hooks are listed in `docs/tasks/phase-c1-train.md`, whose 12-point
+  acceptance list is the test.
+- **`BP_DepartureBoard`** from `ALTDepartureBoard`: a text render child driven by
+  `OnCountdownChanged(WholeSeconds, Phase)`, wording switched off
+  `OnPhaseChanged`. `HasTrain()` false is the blank or no-service state. Leave
+  `TrainOverride` empty on a one-train station. Palette only, no roundel, no
+  Johnston, no official line diagram.
+
+## 6. `BP_GameMode`, for travel
+
+Travel needs two things this asset does not have yet:
+
+- **Reparent `BP_GameMode` to `ALTGameMode`.** It is currently on plain
+  `GameModeBase`, so none of the run lifecycle, boarding or travel runs at all.
+- **Fill `StationRoutes`**, the map of this map's asset name to the destination's:
+  `L_GreyboxTest` to `L_CanaryWharf_Greybox`, and `L_CanaryWharf_Greybox` back to
+  `L_GreyboxTest`. One shared game mode Blueprint serves both stations, and
+  `StationRoutes` is what lets it: `NextStationMap` alone is a single class
+  default and would send both stations to the same place.
+- Confirm World Settings on both maps uses `BP_GameMode`.
+
+`TravelDelaySeconds` defaults to 1.5, which is the window `OnPlayerBoarded` has
+for a door chime and a fade before the level loads. A Blueprint fade on
+`ULTGameInstance::OnTravelStarted` additionally needs a `BP_GameInstance` and the
+`GameInstanceClass` line in `Config/DefaultEngine.ini` repointed at it; nothing
+needs that today.

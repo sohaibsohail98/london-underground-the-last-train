@@ -1,8 +1,10 @@
 #include "Zombies/LTZombieCharacter.h"
 
 #include "AIController.h"
+#include "Camera/PlayerCameraManager.h"
 #include "Components/CapsuleComponent.h"
 #include "Economy/LTPointsComponent.h"
+#include "Engine/World.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "LastTrain.h"
@@ -62,7 +64,11 @@ void ALTZombieCharacter::ApplyRoundScaling(const int32 Round)
 {
 	const int32 Effective = FMath::Max(1, Round);
 
-	Health = BaseHealth * FMath::Pow(HealthGrowthPerRound, static_cast<float>(Effective - 1));
+	AppliedRound = Effective;
+
+	// The type multipliers are 1 until a type asset is applied, so this is the
+	// unchanged Phase B curve for a zombie with no type.
+	Health = BaseHealth * FMath::Pow(HealthGrowthPerRound, static_cast<float>(Effective - 1)) * TypeHealthMultiplier;
 
 	int32 Steps = 0;
 	for (const int32 StepRound : SpeedStepRounds)
@@ -75,8 +81,134 @@ void ALTZombieCharacter::ApplyRoundScaling(const int32 Round)
 
 	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
 	{
-		Movement->MaxWalkSpeed = BaseWalkSpeed + SpeedPerStep * static_cast<float>(Steps);
+		// The type scales the base, then the round steps are added on top, so a
+		// sprinter does not have its steps multiplied as well.
+		Movement->MaxWalkSpeed = BaseWalkSpeed * TypeWalkSpeedMultiplier + SpeedPerStep * static_cast<float>(Steps);
 	}
+}
+
+void ALTZombieCharacter::ApplyTypeData(const ULTZombieTypeData* Data)
+{
+	if (!Data)
+	{
+		return;
+	}
+
+	ZombieType = Data->Type;
+	Behaviour = Data->Behaviour;
+
+	TypeHealthMultiplier = FMath::Max(0.01f, Data->HealthMultiplier);
+	TypeWalkSpeedMultiplier = FMath::Max(0.01f, Data->WalkSpeedMultiplier);
+
+	// Re-run the round curve rather than multiplying whatever health and speed
+	// happen to be set. Applying a type is then idempotent and does not care
+	// whether ApplyRoundScaling ran before or after it.
+	ApplyRoundScaling(AppliedRound);
+
+	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+	{
+		if (Data->AvoidanceConsiderationRadiusOverride > 0.f)
+		{
+			Movement->AvoidanceConsiderationRadius = Data->AvoidanceConsiderationRadiusOverride;
+		}
+	}
+
+	if (Data->AttackDamageOverride > 0.f)
+	{
+		AttackDamage = Data->AttackDamageOverride;
+	}
+	if (Data->AttackCooldownOverride > 0.f)
+	{
+		AttackCooldownSeconds = Data->AttackCooldownOverride;
+	}
+	if (Data->AttackRangeOverride > 0.f)
+	{
+		AttackRange = Data->AttackRangeOverride;
+	}
+	if (Data->RepathIntervalOverride > 0.f)
+	{
+		RepathIntervalSeconds = Data->RepathIntervalOverride;
+		RepathTimer = FMath::Min(RepathTimer, RepathIntervalSeconds);
+	}
+	if (Data->ContactRangeOverride > 0.f)
+	{
+		ContactRange = Data->ContactRangeOverride;
+	}
+
+	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+	{
+		const float OldRadius = Capsule->GetUnscaledCapsuleRadius();
+		const float OldHalfHeight = Capsule->GetUnscaledCapsuleHalfHeight();
+		const float NewRadius = Data->CapsuleRadiusOverride > 0.f ? Data->CapsuleRadiusOverride : OldRadius;
+		const float NewHalfHeight =
+			Data->CapsuleHalfHeightOverride > 0.f ? Data->CapsuleHalfHeightOverride : OldHalfHeight;
+
+		if (!FMath::IsNearlyEqual(NewRadius, OldRadius) || !FMath::IsNearlyEqual(NewHalfHeight, OldHalfHeight))
+		{
+			Capsule->SetCapsuleSize(NewRadius, NewHalfHeight);
+
+			// Keep the feet on the capsule base, the Character default relationship.
+			// Only Z moves, so a Blueprint's own mesh offset survives.
+			if (USkeletalMeshComponent* Mesh = GetMesh())
+			{
+				FVector MeshOffset = Mesh->GetRelativeLocation();
+				MeshOffset.Z = -NewHalfHeight;
+				Mesh->SetRelativeLocation(MeshOffset);
+			}
+
+			// The round manager lifts every spawn by one walker half height, so a
+			// taller capsule would arrive part sunk in the floor and a shorter one
+			// hovering. Shift the actor by the difference.
+			const float HalfHeightDelta = NewHalfHeight - OldHalfHeight;
+			if (!FMath::IsNearlyZero(HalfHeightDelta))
+			{
+				AddActorWorldOffset(FVector(0.f, 0.f, HalfHeightDelta));
+			}
+		}
+	}
+
+	// Silhouette is how a type reads at a glance. The tint is deliberately not
+	// applied here: it comes from a shared tintable material with one instance per
+	// type, picked by the spawn Blueprint, never a dynamic instance per spawn.
+	if (Data->MeshScale > 0.f)
+	{
+		if (USkeletalMeshComponent* Mesh = GetMesh())
+		{
+			Mesh->SetWorldScale3D(FVector(Data->MeshScale));
+		}
+	}
+
+	AnimPlayRate = Data->AnimPlayRate;
+	bRagdollOnDeath = Data->bRagdollOnDeath;
+	DeathScreenShakeRadius = Data->DeathScreenShakeRadius;
+	TypeCorpseLifetime = Data->CorpseLifetimeOverride;
+
+	switch (Behaviour)
+	{
+	case ELTZombieBehaviour::Sprint:
+		LungeImpulse = Data->SprintLungeImpulse;
+		break;
+	case ELTZombieBehaviour::ArmourPlate:
+		ArmourRemaining = Data->ArmourBodyDamageToBreak;
+		break;
+	case ELTZombieBehaviour::Scream:
+		ScreamSightSeconds = Data->ScreamLineOfSightSeconds;
+		ScreamWalkerCount = Data->ScreamSummonCount;
+		ScreamCancelSeconds = Data->ScreamCancelWindowSeconds;
+		ScreamSightTimer = 0.f;
+		bHasScreamed = false;
+		break;
+	case ELTZombieBehaviour::None:
+	case ELTZombieBehaviour::LowProfile:
+		// Nothing to seed. The low profile is entirely capsule and pose.
+		break;
+	}
+
+	const UCharacterMovementComponent* Movement = GetCharacterMovement();
+
+	LT_LOG(
+		Log, TEXT("Applied type %s: health %.0f, speed %.0f, scale %.2f."), *Data->DisplayName.ToString(), Health,
+		Movement ? Movement->MaxWalkSpeed : 0.f, Data->MeshScale);
 }
 
 void ALTZombieCharacter::Tick(const float DeltaSeconds)
@@ -106,6 +238,11 @@ void ALTZombieCharacter::Tick(const float DeltaSeconds)
 	}
 
 	UpdateStallRecovery(DeltaSeconds);
+
+	if (Behaviour == ELTZombieBehaviour::Scream)
+	{
+		UpdateScream(DeltaSeconds);
+	}
 
 	TryAttack();
 }
@@ -266,7 +403,89 @@ void ALTZombieCharacter::TryAttack()
 
 	AttackCooldown = AttackCooldownSeconds;
 
+	OnAttackWindUp();
+
+	// A short forward lunge, so a sprinter's swing closes the last of the gap
+	// rather than swiping at air the player has already left.
+	if (Behaviour == ELTZombieBehaviour::Sprint && LungeImpulse > 0.f)
+	{
+		if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+		{
+			Movement->AddImpulse(GetActorForwardVector() * LungeImpulse, true);
+		}
+	}
+
 	UGameplayStatics::ApplyDamage(CurrentTarget, AttackDamage, GetController(), this, nullptr);
+}
+
+void ALTZombieCharacter::UpdateScream(const float DeltaSeconds)
+{
+	if (bHasScreamed || ScreamSightSeconds <= 0.f)
+	{
+		return;
+	}
+
+	const UWorld* World = GetWorld();
+	const APlayerCameraManager* CameraManager = UGameplayStatics::GetPlayerCameraManager(this, 0);
+	if (!World || !CameraManager)
+	{
+		return;
+	}
+
+	// Geometry blocks the sight line. Other zombies do not: their capsules are on
+	// the Pawn profile and their meshes answer only the weapon channel, so
+	// ECC_Visibility passes straight through a crowd. Darkness is not occlusion.
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(LTZombieScreamSight), false, this);
+	if (CurrentTarget)
+	{
+		Params.AddIgnoredActor(CurrentTarget);
+	}
+
+	FHitResult Blocker;
+	const bool bBlocked = World->LineTraceSingleByChannel(
+		Blocker, GetHeadLocation(), CameraManager->GetCameraLocation(), ECC_Visibility, Params);
+
+	if (bBlocked)
+	{
+		ScreamSightTimer = 0.f;
+		return;
+	}
+
+	ScreamSightTimer += DeltaSeconds;
+	if (ScreamSightTimer < ScreamSightSeconds)
+	{
+		return;
+	}
+
+	bHasScreamed = true;
+	ScreamStartTime = World->GetTimeSeconds();
+
+	OnScream();
+
+	if (ScreamWalkerCount > 0)
+	{
+		OnZombieScreamed.Broadcast(this, ScreamWalkerCount);
+	}
+
+	LT_LOG(
+		Log, TEXT("%s screamed after %.1fs of sight. Calling %d walkers."), *GetName(), ScreamSightSeconds,
+		ScreamWalkerCount);
+}
+
+FVector ALTZombieCharacter::GetHeadLocation() const
+{
+	if (const USkeletalMeshComponent* Mesh = GetMesh())
+	{
+		for (const FName& BoneName : HeadBoneNames)
+		{
+			if (Mesh->DoesSocketExist(BoneName))
+			{
+				return Mesh->GetSocketLocation(BoneName);
+			}
+		}
+	}
+
+	return GetActorLocation() + FVector(0.f, 0.f, BaseEyeHeight);
 }
 
 bool ALTZombieCharacter::IsHeadBone(const FName BoneName) const
@@ -281,6 +500,22 @@ void ALTZombieCharacter::ReceiveShot(
 	if (bDead)
 	{
 		return;
+	}
+
+	// The plate is on the front only. A shot travelling roughly the way the brute
+	// is facing came from behind it, so it lands normally, as does a headshot.
+	if (ArmourRemaining > 0.f && !bHeadshot)
+	{
+		const bool bFrontHit = FVector::DotProduct(ShotDirection.GetSafeNormal(), GetActorForwardVector()) < 0.f;
+		if (bFrontHit)
+		{
+			ArmourRemaining = FMath::Max(0.f, ArmourRemaining - Damage);
+
+			// No health lost and no impulse. A hit reaction Blueprint reads
+			// GetArmourRemaining to play a blocked response rather than a wounded one.
+			OnHitReaction(Hit, bHeadshot);
+			return;
+		}
 	}
 
 	Health -= Damage;
@@ -333,8 +568,20 @@ void ALTZombieCharacter::Die(const bool bHeadshot, AActor* Killer)
 		}
 	}
 
+	// Killing a screamer quickly is the counterplay, so a death inside the cancel
+	// window drops the wave it called. Broadcast before OnZombieDied, which is
+	// what makes the round manager unbind from this zombie.
+	if (bHasScreamed && ScreamCancelSeconds > 0.f)
+	{
+		const UWorld* World = GetWorld();
+		if (World && World->GetTimeSeconds() - ScreamStartTime <= ScreamCancelSeconds)
+		{
+			OnZombieScreamed.Broadcast(this, 0);
+		}
+	}
+
 	OnDeathPresentation(bHeadshot);
 	OnZombieDied.Broadcast(this, bHeadshot);
 
-	SetLifeSpan(CorpseLifetime);
+	SetLifeSpan(TypeCorpseLifetime > 0.f ? TypeCorpseLifetime : CorpseLifetime);
 }

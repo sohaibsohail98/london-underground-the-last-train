@@ -1,6 +1,6 @@
 # NEXT - resume point for a fresh context window
 
-Last updated 2026-09-07 (C2 departure board, C3 travel and E1 downed/revive written). Update
+Last updated 2026-09-07 (every Phase C spec written as C++, plus E1 downed/revive). Update
 this whenever you finish a task so a cold session can pick up without re-reading the whole
 history.
 
@@ -15,20 +15,30 @@ in C++, and the B2 wall-buy flow has not been exercised in PIE. Phase C has
 started: **C1 `ALTTrain` has landed and compiles clean**, but its 12-point PIE
 acceptance list has not been run and no `BP_Train` exists yet.
 
-**Three more specs are now written as C++ but have never been compiled**: C2
-`ALTDepartureBoard`, C3 travel (`ULTGameInstance` plus the `ALTGameMode` payload
-and rehydrate path, plus the `GameInstanceClass` ini line) and E1 downed and
-revive in `ALTPlayerCharacter`. They were written in a remote Linux session with
-no Unreal engine and no Xcode, so all four `tools/ci/` gates and clang-format 20
+**Every remaining Phase C spec, plus E1, is now written as C++ and none of it has
+been compiled**: C2 `ALTDepartureBoard`, C3 travel (`ULTGameInstance`, the
+`ALTGameMode` payload and rehydrate path, the `GameInstanceClass` ini line), the
+five zombie types (`ULTZombieTypeData`, `ApplyTypeData`, the roster) and the
+special rounds (`FLTRoundPlan`), and E1 downed and revive in
+`ALTPlayerCharacter`. All of it was written in remote Linux sessions with no
+Unreal engine and no Xcode, so all four `tools/ci/` gates and clang-format 20
 pass but nothing has been through the compiler. **The first local editor build is
-the gate on all three.** The five zombie types and the special rounds that depend
-on them are still specced and waiting.
+the gate on the lot.**
+
+Phase C's C++ is therefore done and Phase C's editor work is now the whole
+remaining job: five data assets, a tintable material, `BP_Train`,
+`BP_DepartureBoard`, the roster wiring, and reparenting `BP_GameMode` to
+`ALTGameMode`. That is all specified, with the numbers, in
+`docs/tasks/neostack-build.md` under "Phase C, editor assets". Until it is done
+the editor still plays the Phase B grey box: an empty roster spawns plain
+walkers, and a game mode on `GameModeBase` runs no train and no travel.
 
 ## State of the tree
 
-- Branch `claude/docs-tasks-implementation-vd3wm7` carries the C2, C3 and E1
-  work on top of `main`. The last binary compiled clean was the 2026-09-06 fixes
-  (`bb0ec42`) plus C1; nothing since C1 has been compiled. If the editor is open,
+- Branch `claude/docs-tasks-implementation-vd3wm7` carries C2, C3, E1, the zombie
+  types and the special rounds on top of `main`. The last binary compiled clean
+  was the 2026-09-06 fixes (`bb0ec42`) plus C1; nothing since C1 has been
+  compiled. If the editor is open,
   confirm it is on the fresh binary by checking `LTZombieCharacter` reflects
   `StallSpeedThreshold`, `ContactRange` etc before trusting PIE behaviour.
 - `LastTrain.uproject` on `main` still carries the `NeoStackAI` plugin entry
@@ -58,27 +68,45 @@ on them are still specced and waiting.
    editor that Project Settings shows the game instance class as
    `LTGameInstance`, from
    `[/Script/EngineSettings.GameMapsSettings] GameInstanceClass=/Script/LastTrain.LTGameInstance`
-   in `Config/DefaultEngine.ini`.
+   in `Config/DefaultEngine.ini`. Three things about that ini line: an editor that
+   was already open when it landed reads the old value until it restarts, an
+   editor on the pre-C2 binary will log a load error for the missing class and
+   silently lose travel, and a packaged build will eventually need both maps in
+   the cook set, because `OpenLevel` by name is the first thing here that depends
+   on a map no asset references.
 
-2. **Set the travel destinations.** On the `L_GreyboxTest` game mode set
-   `NextStationMap` to `L_CanaryWharf_Greybox`, and on the Canary Wharf game mode
-   set it back to `L_GreyboxTest`. Unset means boarding ends the run where it
-   stands, which is the pre-C3 behaviour, so nothing breaks if this is skipped.
+2. **Reparent `BP_GameMode` to `ALTGameMode` and fill `StationRoutes`.** The one
+   game-mode asset is still parented to plain `GameModeBase`, so no run lifecycle,
+   no boarding and no travel runs at all: that is the single biggest gap between
+   the C++ and what the editor actually does. Then set `StationRoutes` to
+   `L_GreyboxTest` to `L_CanaryWharf_Greybox` and `L_CanaryWharf_Greybox` to
+   `L_GreyboxTest`, and confirm both maps use `BP_GameMode` in World Settings.
+   `StationRoutes` is keyed by map name precisely because one shared game mode
+   class cannot hold two different `NextStationMap` values. With no route and no
+   `NextStationMap`, boarding stops the run in a dead station with no way out, so
+   this is not optional once the train is placed.
 
-3. **Clear the round manager instance override.** In `L_GreyboxTest`, select
+3. **Work through the Phase C editor assets.** `docs/tasks/neostack-build.md`,
+   section "Phase C, editor assets", now carries the full brief with numbers: the
+   five `ULTZombieTypeData` assets, the tintable material and its five instances,
+   the `BP_Zombie` graph additions, the roster wiring, `BP_Train` and
+   `BP_DepartureBoard`. Nothing in Phase C is observable until at least the type
+   assets and the roster exist.
+
+4. **Clear the round manager instance override.** In `L_GreyboxTest`, select
    `GreyboxTest_RoundManager` in the World Outliner, find `Opening Round Counts`
    in Details, hit the yellow reset arrow so it inherits the class default. This
    must be done by hand in the Details panel: `OpeningRoundCounts` is
    `EditDefaultsOnly`, so no scripted write path and no CDO edit can reach the
    placed instance. For the crowd test, set index 0 to 30 on the instance.
 
-4. **Measure the Phase B gate.** PIE `L_GreyboxTest`, console `stat unit`, filter
+5. **Measure the Phase B gate.** PIE `L_GreyboxTest`, console `stat unit`, filter
    the Output Log for `LogLastTrain`. Confirm `Spawned zombie. Alive N ...`
    climbs past 6 toward the `MaximumAlive` cap of 24 (about 38s at the current
    spawn interval), and record the game thread ms with 24+ alive over 10s. Pass
    is the game thread holding near 16.6 ms. Then revert index 0 to 6 and save.
 
-5. **Fix the corridor stall edge case.** The 2026-09-06 run found a single zombie
+6. **Fix the corridor stall edge case.** The 2026-09-06 run found a single zombie
    a short distance outside `AttackRange` (about 19 units) can sit frozen at zero
    velocity for 20+ seconds while `UpdateStallRecovery`'s nudge never fires. Check
    the order of the gates in `UpdateStallRecovery`, the ground-speed sample it
@@ -86,28 +114,28 @@ on them are still specced and waiting.
    accumulate. Bounded C++ change to `LTZombieCharacter.cpp`, compile, re-verify
    in PIE with 6+ zombies queued.
 
-6. **Strip the diagnostic logs.** Remove the `// DIAGNOSTIC` `LT_LOG` lines from
+7. **Strip the diagnostic logs.** Remove the `// DIAGNOSTIC` `LT_LOG` lines from
    `TryAttack` and `TrySpawnOne` if they are still present. Keep the deliberate
    `LT_LOG(Verbose, "Spawned zombie. Alive %d ...")` in `TrySpawnOne` (it is kept
    for the intermittent-spawn investigation). Keep the `BlueprintReadOnly` field
    exposure on the zombie. Recompile.
 
-7. **B2 wall-buy PIE acceptance.** Needs an interactive pass (mouse plus WASD in a
+8. **B2 wall-buy PIE acceptance.** Needs an interactive pass (mouse plus WASD in a
    real PIE session; the NeoStack bridge cannot aim the first-person camera). Walk
    to the `GreyboxTest_WallBuy_SMG` plate: prompt fades in, `E` under 500 points
    no-ops, `E` with 500+ buys and swaps the weapon and flashes the points crimson,
    `E` again offers ammunition at 250. Then the vignette and regen checks from the
    B3 acceptance list.
 
-8. **Canary Wharf spawn fall-through.** In `L_CanaryWharf_Greybox`, rounds now
+9. **Canary Wharf spawn fall-through.** In `L_CanaryWharf_Greybox`, rounds now
    start but spawned zombies free-fall through the level. Check `RecastNavMesh-
    Default` coverage and floor collision under the `CW_SpawnPoint_*` actors,
    most likely the top clusters. Then re-run the horde smoke test.
 
-9. **Mark Phase B done** in `docs/tasks/README.md` and update this file once the
-   gate is measured and items 5 to 7 pass.
+10. **Mark Phase B done** in `docs/tasks/README.md` and update this file once the
+    gate is measured and items 6 to 8 pass.
 
-10. **C1 train PIE acceptance.** Editor work, no C++ needed. Make `BP_Train` from
+11. **C1 train PIE acceptance.** Editor work, no C++ needed. Make `BP_Train` from
     `ALTTrain`, give it a box mesh child in the trackbed, place it at the platform
     edge, size `BoardingVolume` over the door aperture, add a `ULTStationHeat`
     component to `GreyboxTest_RoundManager`, and put print or log nodes on the nine
@@ -159,11 +187,32 @@ All C++. Numbers from `docs/design/gameplay-canon.md` and `docs/brief-v2.md`.
   then set `NextStationMap` on both stations' game modes and board a train. A
   station-select picker for a third station onwards replaces the single
   `NextStationMap` name; a disk save game is a separate later task.
-- `ULTZombieTypeData` (`phase-c-zombie-types.md`): the data asset, `ApplyTypeData`
-  on the zombie, the roster on `ALTRoundManager` (keep `ZombieClass` as the
-  empty-roster fallback). Data entry of the five stat blocks is a separate
-  Sonnet task once the mechanism lands. **This is the next real code task**, and
-  `phase-c-special-rounds.md` stays blocked until it lands.
+- The five zombie types (`phase-c-zombie-types.md`): **C++ written, not
+  compiled.** `Zombies/LTZombieTypeData.h` is a header-only `UPrimaryDataAsset`
+  carrying `ELTZombieType`, `ELTZombieBehaviour` and one type's stats, capsule,
+  navigation, roster and behaviour numbers. `ALTZombieCharacter::ApplyTypeData`
+  applies it: health and speed multipliers, the attack and repath overrides, a
+  capsule resize that also re-seats the mesh and lifts the actor so a 130 half
+  height brute does not arrive sunk in the floor, the mesh scale, then the
+  behaviour seed. The specials are the brute's front armour plate in
+  `ReceiveShot` (headshots and rear hits always land), the sprinter's lunge on
+  the attack wind-up, and the screamer's `ECC_Visibility` sight line to the player
+  camera which broadcasts `OnZombieScreamed` for an extra wave and a cancel if it
+  dies inside 0.5s. `ALTRoundManager` gained the `Roster`, the weighted normal
+  round choice with `FirstRoundAvailable`, `MaxAliveOfThisType` and the heat-3
+  weight shift, and `HandleZombieScreamed`. `ZombieClass` is untouched and an
+  empty roster is byte-for-byte the old behaviour. **Outstanding**: compile, then
+  the five assets and the tintable material per `neostack-build.md`.
+- Special rounds (`phase-c-special-rounds.md`): **C++ written, not compiled.**
+  `FLTRoundPlan` is built once in `StartRound`; `TrySpawnOne` branches guaranteed
+  group, then forced single type, then the weighted mix. `GetSpecialRoundTag`
+  reads "Sprinters", "Brutes" or "SprintersAndBrutes" for a HUD banner. Two
+  deliberate deviations from that spec, both because
+  `docs/design/gameplay-canon.md` lines 218 to 223 say otherwise: the brute pair
+  lands at roughly 30 and 70 per cent through the round rather than as a group up
+  front, and a round that is both (20, 30) is a sprinter round that also carries
+  the pair, rather than the brute rule taking precedence. Both special types are
+  found by looking the type up on the roster, so there is nothing to wire twice.
 
 ## Phase E, what has landed
 
@@ -185,23 +234,41 @@ All C++. Numbers from `docs/design/gameplay-canon.md` and `docs/brief-v2.md`.
   stands them up at half health after 8s; then set `bSoloAutoRevive` false and
   check the run ends after 30s with `OnDied` and run state `Dead`.
 
-## Specs written and ready for a fresh session to pick up
+## Open findings, deliberately not fixed
 
-Each of these is a bounded, self-contained spec with its own build command,
-constraints, and acceptance list. They can be handed cold to a separate Claude
-session (no context from the session that wrote them needed). Rough order:
+Three review passes over the C2, C3 and E1 code found these. Each is left alone
+because fixing it needs a file the relevant spec put out of scope, so each wants
+a small bounded task of its own.
 
-1. `phase-c-zombie-types.md` - `ULTZombieTypeData`, `ApplyTypeData` on the
-   zombie, the roster on `ALTRoundManager`. **Ready now**, and the only thing
-   blocking special rounds.
-2. `phase-c-special-rounds.md` - sprinter round every 5th, brute pair every 10th,
-   as a small plan layer on `ALTRoundManager`. **BLOCKED on
-   `phase-c-zombie-types.md`** landing first - it hooks into the type-data path
-   that task establishes.
-
-`phase-c2-departure-board.md`, `phase-c3-travel.md` and
-`phase-e1-downed-revive.md` have all been executed as C++ and are waiting on a
-local compile plus their editor and PIE steps, described above.
+1. **Arrival flashes the points HUD as a spend.** `RehydrateFromTravel` grants the
+   carry with `AddPoints(Carried - Current)`, and the HUD renders that delta
+   crimson for a negative. Arrive with under the 500 seed and it reads as a
+   purchase. The total is correct. Fix: a `SetPoints(int32)` on
+   `ULTPointsComponent` that assigns and broadcasts a zero delta. C3 put that
+   component out of scope.
+2. **A downed player still gets interaction prompts.** `Interact` is gated on
+   `bDowned`, but `ULTInteractionComponent` keeps sweeping and keeps broadcasting,
+   so "Board train" can sit on screen through the whole bleed-out with `E` doing
+   nothing. Fix: a `SetInteractionEnabled(bool)` on the component, called from
+   `Down` and `Revive`. E1 put that component out of scope, and disabling the
+   component's tick from outside would freeze the last prompt on screen rather
+   than clearing it, which is worse.
+3. **Solo death is unreachable on the shipped defaults.** `bSoloAutoRevive` true
+   with an 8s delay against a 30s bleed-out, and damage while down is ignored, so
+   `Die`, `OnDied` and `ELTRunState::Dead` never happen in a solo run. That is
+   exactly what `phase-e1-downed-revive.md` asked for, but it means Phase E's own
+   gate ("a full survival session start to death is possible") cannot be met until
+   a revive item, a per-run cap on auto-revives, or a cleared `bSoloAutoRevive`
+   lands. Clearing the flag on `BP_PlayerCharacter` is the one-click version.
+4. **`ALTGameState::SetStationName` has no callers.** Its comment says "set on
+   travel in" and travel is now built, but nothing sets it, so a station label on
+   the HUD or a sign reads blank. Fix: an `EditDefaultsOnly` station name on the
+   game mode, stamped in `BeginPlay`, or delete the setter.
+5. **`ALTTrain`'s class comment still says travel is a later task.** C2 and C3
+   both forbid touching `LTTrain.{h,cpp}`, so it was left. One-line docs fix.
+6. **`ALTPlayerCharacter::TakeDamage` subtracts the raw damage, not the value
+   `Super::TakeDamage` returns**, so any damage modifier is reported to the caller
+   but ignored for health. Pre-existing, unrelated to E1, still wrong.
 
 ## Editor tooling notes
 

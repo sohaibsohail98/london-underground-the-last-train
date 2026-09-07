@@ -29,19 +29,26 @@ void ALTDepartureBoard::BeginPlay()
 	if (!Train)
 	{
 		LT_LOG(Warning, TEXT("Departure board found no train in the level."));
+
+		// Nothing to poll, so stop paying for the tick.
+		SetActorTickEnabled(false);
 		return;
 	}
 
 	Train->OnTrainPhaseChanged.AddDynamic(this, &ALTDepartureBoard::HandleTrainPhaseChanged);
 
+	// Deliberately no Refresh here. Actor BeginPlay order is not deterministic, so
+	// the train may not have set its opening phase timer yet and the board would
+	// push one wrong number at a sign that may animate it. The first Tick, which
+	// runs after every BeginPlay, seeds the display instead.
 	DisplayPhase = Train->GetPhase();
-	Refresh();
 }
 
 void ALTDepartureBoard::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	// Drop the delegate and the reference before teardown, so a PIE stop does not
-	// leave the board holding a train the editor is collecting.
+	// Drop the delegate and the runtime reference before teardown, so a PIE stop
+	// does not leave the board holding a train the editor is collecting. The
+	// hand-wired TrainOverride is level data and stays as the designer set it.
 	if (Train)
 	{
 		Train->OnTrainPhaseChanged.RemoveAll(this);

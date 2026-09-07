@@ -32,8 +32,8 @@ against. Notes on what to lift and what is off limits are in
 |---|---|---|
 | Player | `Player/LTPlayerCharacter` | FP pawn, camera, health with 4s delay regen, ADS FOV lerp, sprint cancels aim. Zero health downs rather than kills: bleed-out clock, solo auto-revive, `Revive()` as the item and co-op seam (E1). Enhanced Input actions are `EditDefaultsOnly` and null until a Blueprint assigns them. |
 | Weapons | `Weapons/LTWeaponComponent`, `Weapons/LTWeaponData` | Hitscan, hip and ADS spread, movement and recoil bloom, pellets, penetration, falloff, reload, refill. Traces on `ECC_GameTraceChannel1`. |
-| Zombies | `Zombies/LTZombieCharacter` | Health, `ApplyRoundScaling`, head bone hitbox, attack via `ApplyDamage`, death broadcast. Navigation is `AIController::MoveToActor` on a jittered repath cadence (B1), no behaviour tree, plus a stall-recovery nudge for queued attackers. |
-| Rounds | `Rounds/LTRoundManager`, `Rounds/LTSpawnPoint`, `Rounds/LTStationHeat` | Wave counts, `MaximumAlive` cap, breather, decaying spawn interval, weighted spawn point choice. Station heat widens the live cap and quickens spawns; the round manager reads it if present. |
+| Zombies | `Zombies/LTZombieCharacter`, `Zombies/LTZombieTypeData` | Health, `ApplyRoundScaling`, head bone hitbox, attack via `ApplyDamage`, death broadcast. Navigation is `AIController::MoveToActor` on a jittered repath cadence (B1), no behaviour tree, plus a stall-recovery nudge for queued attackers. `ULTZombieTypeData` carries one type's stats, capsule, navigation and behaviour; `ApplyTypeData` applies it on spawn. Five types off one mesh: the armour plate, the sprinter lunge and the screamer's summon are in C++, the tint and the play rate are the Blueprint's. |
+| Rounds | `Rounds/LTRoundManager`, `Rounds/LTSpawnPoint`, `Rounds/LTStationHeat` | Wave counts, `MaximumAlive` cap, breather, decaying spawn interval, weighted spawn point choice. Station heat widens the live cap and quickens spawns; the round manager reads it if present. A roster of `ULTZombieTypeData` drives the per-round mix, with heat 3 raising the special weights, and `FLTRoundPlan` layers the sprinter round on every 5th and the brute pair on every 10th. An empty roster is the old single-walker behaviour. |
 | Economy | `Economy/LTPointsComponent` | 500 start, 10 hit, 60 kill, 130 headshot kill. `TrySpend`, `CanAfford`. |
 | Interaction | `Interaction/LTInteractableInterface`, `Interaction/LTInteractionComponent`, `Interaction/LTWallBuy` | Interface, a tracing component that holds the current interactable and drives the prompt delegate, and `ALTWallBuy` as the first implementer (weapon then ammunition). |
 | Train | `Train/LTTrain`, `Train/LTDepartureBoard` | Arrive, dwell, depart, away on the 100s interval and 25s dwell, nine presentation hooks, the boarding interact (C1). The departure board polls the train's countdown getters and drives sign hooks (C2). |
@@ -42,11 +42,13 @@ against. Notes on what to lift and what is off limits are in
 
 `Content/LastTrain/` now holds the Phase A/B editor assets: the grey box maps
 (`L_GreyboxTest`, `L_CanaryWharf_Greybox`), the `BP_` Blueprints, the Enhanced
-Input assets, `DA_Weapon_SMG` and `WBP_HUD`. The C++ is otherwise still a chassis:
-the train, the departure board, travel between two stations and the downed state
-are in, but there are no zombie types and no perks, and the train, board and
-travel have no Blueprints yet. `web/` is the discarded Three.js build, tagged
-`phase-03`, not part of this work.
+Input assets, `DA_Weapon_SMG` and `WBP_HUD`. Every Phase C system is now in C++:
+the train, the departure board, travel between two stations, the five zombie
+types and the special rounds, plus the downed state from Phase E. None of it has
+Blueprints or data assets yet, so in the editor the game still plays as the Phase
+B grey box until `docs/tasks/neostack-build.md` section "Phase C, editor assets"
+is worked through. There are no perks. `web/` is the discarded Three.js build,
+tagged `phase-03`, not part of this work.
 
 ## Conventions, enforced by `tools/ci/`
 

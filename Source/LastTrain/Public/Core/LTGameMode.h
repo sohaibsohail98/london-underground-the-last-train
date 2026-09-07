@@ -1,7 +1,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Core/LTGameInstance.h"
 #include "Core/LTGameState.h"
+#include "Engine/TimerHandle.h"
 #include "GameFramework/GameModeBase.h"
 #include "LTGameMode.generated.h"
 
@@ -48,13 +50,26 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Run")
 	bool bAutoStart = true;
 
-	/** The map boarding a train travels to, as the asset name, for example
-		L_CanaryWharf_Greybox. v1 ships two stations, so there is exactly one other
-		and no destination to choose: a station-select picker for a third station
-		onwards would replace this single name with a per-station map. Unset means
-		boarding ends the run where it stands. */
+	/** Where boarding a train goes from each station: this map's asset name to the
+		destination's. Checked first, because one game mode Blueprint serves every
+		station and EditDefaultsOnly is a default on the whole game mode, so a lone
+		NextStationMap would send every station to the same place. v1 ships two
+		stations, so this is two entries pointing at each other. A station-select
+		picker for a third station onwards replaces the value with a choice. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Travel")
+	TMap<FName, FName> StationRoutes;
+
+	/** Fallback destination for a station with no route of its own, and the whole
+		answer for a project that gives each station its own game mode. Unset, with
+		no route either, means boarding ends the run where it stands. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Travel")
 	FName NextStationMap;
+
+	/** Seconds between a successful board and the level load, so the train's
+		boarding hooks and a fade have frames to play. The run state is already
+		Boarded, so the arena is frozen for the wait. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Travel")
+	float TravelDelaySeconds = 1.5f;
 
 protected:
 	virtual void BeginPlay() override;
@@ -68,9 +83,27 @@ private:
 		their BeginPlay and cannot stamp their starting values over the carry. */
 	void RehydrateFromTravel();
 
+	/** Hands the payload to the game instance and leaves this level. Deferred off
+		NotifyPlayerBoarded by TravelDelaySeconds. */
+	void BeginPendingTravel();
+
+	/** The route for this map, else NextStationMap, else None. */
+	FName ResolveDestinationMap() const;
+
 	/** The round manager's heat component if there is one, otherwise any heat
 		component in the level. Null on a heat-less test level. */
 	ULTStationHeat* FindStationHeat() const;
+
+	/** Snapshotted at the moment of boarding, spent when the travel timer fires. */
+	UPROPERTY()
+	FLTTravelPayload PendingTravelPayload;
+
+	FName PendingTravelDestination;
+
+	FTimerHandle TravelTimer;
+
+	/** Ticks spent waiting for a player pawn to rehydrate into. */
+	int32 RehydrateAttempts = 0;
 
 	bool bRunStarted = false;
 };

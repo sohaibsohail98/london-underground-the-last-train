@@ -5,8 +5,6 @@
 #include "Train/LTTrain.h"
 #include "LTDepartureBoard.generated.h"
 
-class ALTTrain;
-
 /** Reads the station train's countdown and phase and drives presentation hooks a
 	Blueprint uses to update a sign. Finds the train on BeginPlay; the visual is
 	the Blueprint's job. */
@@ -65,7 +63,9 @@ private:
 	UPROPERTY(VisibleInstanceOnly, Category = "Departure board")
 	TObjectPtr<ALTTrain> Train;
 
-	int32 DisplaySeconds = 0;
+	/** Starts off any real value, so the first Refresh always fires the hook, even
+		when the countdown genuinely reads zero. */
+	int32 DisplaySeconds = -1;
 
 	ELTTrainPhase DisplayPhase = ELTTrainPhase::Away;
 };

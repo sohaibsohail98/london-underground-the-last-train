@@ -40,6 +40,9 @@ class LASTTRAIN_API ULTGameInstance : public UGameInstance
 	GENERATED_BODY()
 
 public:
+	virtual void Init() override;
+	virtual void Shutdown() override;
+
 	/** Stores the payload and opens DestinationMap. The game mode calls this from
 		NotifyPlayerBoarded. Does nothing if DestinationMap is unset. */
 	UFUNCTION(BlueprintCallable, Category = "Travel")
@@ -58,6 +61,11 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Travel")
 	TArray<FName> GetVisitedStations() const { return VisitedStations; }
 
+	/** Forgets the visited-station list. A cold start at a station is a new run,
+		so the game mode calls this when it starts one that is not an arrival. */
+	UFUNCTION(BlueprintCallable, Category = "Travel")
+	void ClearRunHistory();
+
 protected:
 	/** Fired just before the level opens, so a Blueprint can fade the screen out.
 		The destination arena fades back in on its own BeginPlay. */
@@ -65,6 +73,11 @@ protected:
 	void OnTravelStarted();
 
 private:
+	/** A payload is good for the one map load it was made for. If the destination
+		never claims it, the next load drops it rather than letting a stale carry
+		reach an unrelated run. */
+	void HandlePostLoadMap(UWorld* LoadedWorld);
+
 	UPROPERTY()
 	FLTTravelPayload PendingPayload;
 
@@ -74,4 +87,9 @@ private:
 
 	UPROPERTY()
 	bool bTravelling = false;
+
+	/** True once the destination map has loaded with the payload still pending. */
+	bool bPayloadLoadSeen = false;
+
+	FDelegateHandle PostLoadMapHandle;
 };

@@ -2,11 +2,13 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Zombies/LTZombieTypeData.h"
 #include "LTZombieCharacter.generated.h"
 
 class ULTPointsComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnZombieDied, ALTZombieCharacter*, Zombie, bool, bHeadshot);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnZombieScreamed, ALTZombieCharacter*, Screamer, int32, WalkerCount);
 
 /** Health, damage, attack timing and death. Navigation belongs to the AI controller. */
 UCLASS()
@@ -21,6 +23,12 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Zombie")
 	FOnZombieDied OnZombieDied;
 
+	/** Fired when a screamer completes its scream, so the round manager queues the
+		extra wave. A second broadcast with WalkerCount zero means cancel: the
+		screamer died inside its cancel window. */
+	UPROPERTY(BlueprintAssignable, Category = "Zombie")
+	FOnZombieScreamed OnZombieScreamed;
+
 	virtual void Tick(float DeltaSeconds) override;
 
 	/** Applies a hit from the weapon component. */
@@ -31,6 +39,28 @@ public:
 	/** Scales health and speed for the given round. Called on spawn. */
 	UFUNCTION(BlueprintCallable, Category = "Zombie")
 	void ApplyRoundScaling(int32 Round);
+
+	/** Applies every property of the type asset: stats, scale, capsule, navigation
+		overrides and the behaviour hook. Called on spawn straight after
+		ApplyRoundScaling, so the round-scaled Health and MaxWalkSpeed are already
+		set and this multiplies or replaces them. Null is a no-op, leaving a plain
+		walker on the coded defaults. */
+	UFUNCTION(BlueprintCallable, Category = "Zombie")
+	void ApplyTypeData(const ULTZombieTypeData* Data);
+
+	UFUNCTION(BlueprintPure, Category = "Zombie")
+	ELTZombieType GetZombieType() const { return ZombieType; }
+
+	/** Anim play rate multiplier from the type asset. The anim Blueprint reads this
+		to speed or slow the single shared locomotion set. */
+	UFUNCTION(BlueprintPure, Category = "Zombie")
+	float GetAnimPlayRate() const { return AnimPlayRate; }
+
+	/** Front body damage the armour plate will still absorb. Zero on a type
+		without a plate, and zero once it is broken, so a hit reaction Blueprint can
+		read this to play a blocked rather than a wounded response. */
+	UFUNCTION(BlueprintPure, Category = "Zombie")
+	float GetArmourRemaining() const { return ArmourRemaining; }
 
 	UFUNCTION(BlueprintPure, Category = "Zombie")
 	bool IsDead() const { return bDead; }
@@ -118,9 +148,30 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Zombie")
 	void OnHitReaction(const FHitResult& Hit, bool bHeadshot);
 
-	/** Blueprint hook for the death montage and gore. */
+	/** Blueprint hook for the death montage and gore. Reads bRagdollOnDeath and
+		DeathScreenShakeRadius for the per-type treatment rather than taking them as
+		parameters, so the existing BP_Zombie event node keeps its signature. */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Zombie")
 	void OnDeathPresentation(bool bHeadshot);
+
+	/** Blueprint hook: the sprinter's short lunge, or any per-type attack tell. */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Zombie")
+	void OnAttackWindUp();
+
+	/** Blueprint hook: the screamer's animation and audio. Fired once, when the
+		line-of-sight timer completes. The summon request itself is done in C++. */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Zombie")
+	void OnScream();
+
+	/** From the type asset. The death Blueprint reads it: a walker or sprinter
+		snaps to a settled pose, a crawler is already prone. */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Zombie", Transient)
+	bool bRagdollOnDeath = false;
+
+	/** From the type asset. Above zero, the death Blueprint shakes the camera
+		within this radius. The brute falling. */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Zombie", Transient)
+	float DeathScreenShakeRadius = 0.f;
 
 	/** Read only so the attack state is inspectable in the editor and PIE. */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Combat", Transient)
@@ -133,6 +184,14 @@ protected:
 private:
 	void Die(bool bHeadshot, AActor* Killer);
 	void TryAttack();
+
+	/** Screamer only. Accumulates clear line of sight to the player camera and
+		fires the scream once it holds long enough. */
+	void UpdateScream(float DeltaSeconds);
+
+	/** Trace origin for the line-of-sight test: the first head bone the skeleton
+		actually has, or the eye height if it has none of them. */
+	FVector GetHeadLocation() const;
 
 	/** Issues the move request toward CurrentTarget, with a direct-push fallback
 		if the navmesh cannot path there, so the zombie never freezes. */
@@ -157,11 +216,56 @@ private:
 	float StallTimer = 0.f;
 	bool bStallRecovering = false;
 
+	/** Kept so ApplyRoundScaling re-applies the type's health and speed multipliers
+		on top of the round curve rather than losing them. Both are 1 until a type
+		asset is applied, so a zombie with no type behaves exactly as before. */
+	float TypeHealthMultiplier = 1.f;
+	float TypeWalkSpeedMultiplier = 1.f;
+
+	/** The round last passed to ApplyRoundScaling, so applying a type can re-run
+		the scaling rather than multiplying whatever is there. That keeps
+		ApplyTypeData idempotent and free of any ordering requirement. */
+	int32 AppliedRound = 1;
+
+	float AnimPlayRate = 1.f;
+
+	/** Above zero, replaces CorpseLifetime when this zombie dies. */
+	float TypeCorpseLifetime = 0.f;
+
+	/** Sprint behaviour: forward impulse on the attack wind-up. */
+	float LungeImpulse = 0.f;
+
+	/** ArmourPlate behaviour: front body damage still to absorb before the plate
+		breaks. Zero once broken, and zero on every other type. */
+	float ArmourRemaining = 0.f;
+
+	/** Scream behaviour, from the type asset. */
+	float ScreamSightSeconds = 0.f;
+	float ScreamCancelSeconds = 0.f;
+	int32 ScreamWalkerCount = 0;
+
+	/** Seconds of continuous clear line of sight accumulated. */
+	float ScreamSightTimer = 0.f;
+	bool bHasScreamed = false;
+
+	/** World time the scream fired, for the cancel window. */
+	float ScreamStartTime = 0.f;
+
 	/** Fixed +1 or -1 per instance, so a stalled zombie shoulders past on a
 		consistent side and the queue fans out. */
 	float StallLateralSign = 1.f;
 
 	bool bDead = false;
+
+	UPROPERTY(
+		VisibleInstanceOnly, BlueprintReadOnly, Category = "Zombie", Transient, meta = (AllowPrivateAccess = "true"))
+	ELTZombieType ZombieType = ELTZombieType::Walker;
+
+	/** Which special hook this zombie runs. Read from the type asset rather than
+		inferred from ZombieType, so a later type can reuse a behaviour. */
+	UPROPERTY(
+		VisibleInstanceOnly, BlueprintReadOnly, Category = "Zombie", Transient, meta = (AllowPrivateAccess = "true"))
+	ELTZombieBehaviour Behaviour = ELTZombieBehaviour::None;
 
 	UPROPERTY(
 		VisibleInstanceOnly, BlueprintReadOnly, Category = "Combat", Transient, meta = (AllowPrivateAccess = "true"))

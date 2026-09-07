@@ -3,6 +3,7 @@
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Core/LTGameMode.h"
+#include "Core/LTGameState.h"
 #include "Economy/LTPointsComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -230,10 +231,20 @@ void ALTPlayerCharacter::Tick(const float DeltaSeconds)
 		return;
 	}
 
+	// The aim blend keeps running even while down. The weapon component decays its
+	// own alpha when Down clears aiming, and if nothing applied it the camera would
+	// stay at the aimed field of view for the whole bleed-out.
+	if (Camera && Weapon)
+	{
+		const ULTWeaponData* Data = Weapon->WeaponData;
+		const float Target = Data ? Data->AimedFieldOfView : BaseFieldOfView;
+		Camera->SetFieldOfView(FMath::Lerp(BaseFieldOfView, Target, Weapon->GetAimAlpha()));
+	}
+
 	if (bDowned)
 	{
-		// Nothing else runs while down: no movement scaling, no aim blend and no
-		// regeneration. Only the two clocks.
+		// Nothing else runs while down: no movement scaling and no regeneration.
+		// Only the two clocks.
 		BleedOutRemaining -= DeltaSeconds;
 
 		if (BleedOutRemaining <= 0.f)
@@ -262,13 +273,6 @@ void ALTPlayerCharacter::Tick(const float DeltaSeconds)
 		const float Base = bSprinting ? SprintSpeed : WalkSpeed;
 		const float Scale = Weapon ? Weapon->GetMoveScale() : 1.f;
 		Movement->MaxWalkSpeed = Base * Scale;
-	}
-
-	if (Camera && Weapon)
-	{
-		const ULTWeaponData* Data = Weapon->WeaponData;
-		const float Target = Data ? Data->AimedFieldOfView : BaseFieldOfView;
-		Camera->SetFieldOfView(FMath::Lerp(BaseFieldOfView, Target, Weapon->GetAimAlpha()));
 	}
 
 	TimeSinceDamage += DeltaSeconds;
@@ -312,6 +316,21 @@ void ALTPlayerCharacter::Down()
 	if (bDowned || bDead)
 	{
 		return;
+	}
+
+	// A boarded or finished run is over. A parting hit on the platform must not
+	// flip the run state back to Downed: that would restart the train's cycle and
+	// leave a half-alive arena behind a departing player.
+	if (const UWorld* World = GetWorld())
+	{
+		if (const ALTGameState* State = World->GetGameState<ALTGameState>())
+		{
+			const ELTRunState RunState = State->GetRunState();
+			if (RunState == ELTRunState::Boarded || RunState == ELTRunState::Dead)
+			{
+				return;
+			}
+		}
 	}
 
 	bDowned = true;
@@ -362,7 +381,9 @@ void ALTPlayerCharacter::Revive()
 
 	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
 	{
-		Movement->SetMovementMode(MOVE_Walking);
+		// The component's own default rather than a forced Walking, so a player
+		// revived off the ground falls instead of standing on air.
+		Movement->SetDefaultMovementMode();
 	}
 
 	Health = FMath::Clamp(ReviveHealthFraction, 0.f, 1.f) * MaxHealth;
