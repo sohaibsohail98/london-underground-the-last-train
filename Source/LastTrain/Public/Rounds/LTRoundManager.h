@@ -126,6 +126,15 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Rounds")
 	int32 BruteRoundBruteCount = 2;
 
+	/** What a round divisible by both intervals is. gameplay-canon.md section 6
+		reads two ways: it lists the sprinter rounds as 5, 15, 25 and calls every
+		10th round a normal walker round plus the pair, then calls rounds 20 and 30
+		a sprinter round carrying the pair as well. Set, the brute round wins and
+		rounds 10, 20, 30 are a walker round plus the pair, which is what every
+		acceptance list tests for. Clear it to stack the two instead. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Rounds")
+	bool bBruteRoundOverridesSprinterRound = true;
+
 	/** Formula takes over past the end of this array. EditAnywhere so a placed
 		round manager can be tuned per map without a new Blueprint. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rounds")
@@ -152,10 +161,19 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Rounds")
 	float MinimumSpawnInterval = 0.35f;
 
-	/** Search box for snapping a spawn point onto the navmesh. Generous on Z so
-		a point placed a little above or below the floor still resolves. */
+	/** Search box for snapping a spawn point onto the navmesh. Wide enough that a
+		point placed a little off the floor still resolves, tight enough on Z that
+		one placed in the void does not quietly find a floor half a storey away and
+		report success. That is what hid the Canary Wharf spawn points at world
+		origin: at 500 the warning below never fired. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Rounds")
-	FVector NavProjectionExtent = FVector(200.f, 200.f, 500.f);
+	FVector NavProjectionExtent = FVector(200.f, 200.f, 150.f);
+
+	/** How far a projection may move a spawn point before it is worth a warning.
+		Inside the extent by construction, so this catches the point that resolved
+		to somewhere nobody placed it rather than one nudged onto the floor. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Rounds")
+	float NavProjectionWarnDistance = 200.f;
 
 	/** Added to the projected navmesh Z so the spawned capsule rests on the
 		floor rather than half sunk into it. Roughly a character half height. */
