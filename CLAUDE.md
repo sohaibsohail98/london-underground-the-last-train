@@ -30,20 +30,23 @@ against. Notes on what to lift and what is off limits are in
 
 | Area | Files | State |
 |---|---|---|
-| Player | `Player/LTPlayerCharacter` | FP pawn, camera, health with 4s delay regen, ADS FOV lerp, sprint cancels aim. Enhanced Input actions are `EditDefaultsOnly` and null until a Blueprint assigns them. |
+| Player | `Player/LTPlayerCharacter` | FP pawn, camera, health with 4s delay regen, ADS FOV lerp, sprint cancels aim. Zero health downs rather than kills: bleed-out clock, solo auto-revive, `Revive()` as the item and co-op seam (E1). Enhanced Input actions are `EditDefaultsOnly` and null until a Blueprint assigns them. |
 | Weapons | `Weapons/LTWeaponComponent`, `Weapons/LTWeaponData` | Hitscan, hip and ADS spread, movement and recoil bloom, pellets, penetration, falloff, reload, refill. Traces on `ECC_GameTraceChannel1`. |
 | Zombies | `Zombies/LTZombieCharacter` | Health, `ApplyRoundScaling`, head bone hitbox, attack via `ApplyDamage`, death broadcast. Navigation is `AIController::MoveToActor` on a jittered repath cadence (B1), no behaviour tree, plus a stall-recovery nudge for queued attackers. |
 | Rounds | `Rounds/LTRoundManager`, `Rounds/LTSpawnPoint`, `Rounds/LTStationHeat` | Wave counts, `MaximumAlive` cap, breather, decaying spawn interval, weighted spawn point choice. Station heat widens the live cap and quickens spawns; the round manager reads it if present. |
 | Economy | `Economy/LTPointsComponent` | 500 start, 10 hit, 60 kill, 130 headshot kill. `TrySpend`, `CanAfford`. |
 | Interaction | `Interaction/LTInteractableInterface`, `Interaction/LTInteractionComponent`, `Interaction/LTWallBuy` | Interface, a tracing component that holds the current interactable and drives the prompt delegate, and `ALTWallBuy` as the first implementer (weapon then ammunition). |
-| Core | `Core/LTGameMode`, `Core/LTGameState` | Run lifecycle for one station arena. `ELTRunState` (PreGame, Active, Downed, Dead, Boarded); the game mode flips it and starts the round manager. Travel and boarding are Phase C. |
+| Train | `Train/LTTrain`, `Train/LTDepartureBoard` | Arrive, dwell, depart, away on the 100s interval and 25s dwell, nine presentation hooks, the boarding interact (C1). The departure board polls the train's countdown getters and drives sign hooks (C2). |
+| Core | `Core/LTGameMode`, `Core/LTGameState`, `Core/LTGameInstance` | Run lifecycle for one station arena. `ELTRunState` (PreGame, Active, Downed, Dead, Boarded); the game mode flips it and starts the round manager. Boarding builds an `FLTTravelPayload` and the game instance carries points and weapon across an `OpenLevel` to `NextStationMap` (C3). |
 | Module | `LastTrain.h/.cpp` in `Private/`, NOT the module root. `LT_LOG` macro lives here. |
 
 `Content/LastTrain/` now holds the Phase A/B editor assets: the grey box maps
 (`L_GreyboxTest`, `L_CanaryWharf_Greybox`), the `BP_` Blueprints, the Enhanced
 Input assets, `DA_Weapon_SMG` and `WBP_HUD`. The C++ is otherwise still a chassis:
-no train, no zombie types, no perks, no travel. `web/` is the discarded Three.js
-build, tagged `phase-03`, not part of this work.
+the train, the departure board, travel between two stations and the downed state
+are in, but there are no zombie types and no perks, and the train, board and
+travel have no Blueprints yet. `web/` is the discarded Three.js build, tagged
+`phase-03`, not part of this work.
 
 ## Conventions, enforced by `tools/ci/`
 

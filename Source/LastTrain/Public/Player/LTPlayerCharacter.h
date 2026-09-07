@@ -15,7 +15,8 @@ struct FInputActionValue;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHealthChanged, float, HealthFraction);
 
-/** First person player. Sprinting forces hip fire. */
+/** First person player. Sprinting forces hip fire. Zero health goes down rather
+	than dead: bleed-out runs, and a revive brings the run back. */
 UCLASS()
 class LASTTRAIN_API ALTPlayerCharacter : public ACharacter
 {
@@ -45,6 +46,20 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Health")
 	float GetHealthFraction() const { return MaxHealth > 0.f ? Health / MaxHealth : 0.f; }
 
+	/** True while the player is down but not yet dead. Rounds carry on around
+		them: the run only ends when bleed-out expires. */
+	UFUNCTION(BlueprintPure, Category = "Downed")
+	bool IsDowned() const { return bDowned; }
+
+	/** Seconds left before bleed-out kills the player. 0 when not downed. */
+	UFUNCTION(BlueprintPure, Category = "Downed")
+	float GetBleedOutRemaining() const { return bDowned ? BleedOutRemaining : 0.f; }
+
+	/** Brings the player back up at ReviveHealthFraction health. No-op if not
+		downed. The seam for a self-revive item or a co-op revive. */
+	UFUNCTION(BlueprintCallable, Category = "Downed")
+	void Revive();
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Health")
 	float MaxHealth = 100.f;
 
@@ -54,6 +69,24 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Health")
 	float RegenerationPerSecond = 20.f;
+
+	/** Seconds a downed player has before the run ends. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Downed")
+	float BleedOutSeconds = 30.f;
+
+	/** Health a revive returns, as a fraction of MaxHealth. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Downed")
+	float ReviveHealthFraction = 0.5f;
+
+	/** A solo run has nobody to revive it, so v1 gets up on its own. Clear this
+		once a self-revive item or a second player can call Revive. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Downed")
+	bool bSoloAutoRevive = true;
+
+	/** Seconds down before the solo auto-revive fires. Shorter than
+		BleedOutSeconds or it never gets the chance. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Downed")
+	float SoloReviveDelaySeconds = 8.f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement")
 	float WalkSpeed = 420.f;
@@ -85,6 +118,19 @@ protected:
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Health")
 	void OnDied();
+
+	/** The player has gone down. For the downed screen treatment, the get-up
+		prompt and a last-stand view model swap. */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Downed")
+	void OnDowned();
+
+	/** The player is back up. Undoes whatever OnDowned dressed. */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Downed")
+	void OnRevived();
+
+	/** Bleed-out ran out. Fired immediately before the death path. */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Downed")
+	void OnBleedOutExpired();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	TObjectPtr<UCameraComponent> Camera;
@@ -129,8 +175,18 @@ protected:
 	TObjectPtr<UInputAction> InteractAction;
 
 private:
+	/** Zero health goes here, not straight to Die. Immobile, no weapon, bleeding
+		out. No-op if already downed or dead. */
+	void Down();
+
+	/** Ends the run. Reached from bleed-out expiry, never from damage directly. */
+	void Die();
+
 	float Health = 0.f;
 	float TimeSinceDamage = 0.f;
+	float BleedOutRemaining = 0.f;
+	float SoloReviveRemaining = 0.f;
 	bool bSprinting = false;
+	bool bDowned = false;
 	bool bDead = false;
 };

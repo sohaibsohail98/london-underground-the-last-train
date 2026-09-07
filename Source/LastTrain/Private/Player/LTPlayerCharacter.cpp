@@ -133,7 +133,7 @@ void ALTPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 
 void ALTPlayerCharacter::Move(const FInputActionValue& Value)
 {
-	if (bDead)
+	if (bDead || bDowned)
 	{
 		return;
 	}
@@ -154,6 +154,11 @@ void ALTPlayerCharacter::Look(const FInputActionValue& Value)
 
 void ALTPlayerCharacter::StartSprint()
 {
+	if (bDead || bDowned)
+	{
+		return;
+	}
+
 	bSprinting = true;
 
 	// Cancel rather than block, so the player is never left in a half state.
@@ -170,7 +175,7 @@ void ALTPlayerCharacter::StopSprint()
 
 void ALTPlayerCharacter::StartFire()
 {
-	if (!bDead && Weapon)
+	if (!bDead && !bDowned && Weapon)
 	{
 		Weapon->StartFiring();
 	}
@@ -186,7 +191,7 @@ void ALTPlayerCharacter::StopFire()
 
 void ALTPlayerCharacter::StartAim()
 {
-	if (!bDead && Weapon && !bSprinting)
+	if (!bDead && !bDowned && Weapon && !bSprinting)
 	{
 		Weapon->SetAiming(true);
 	}
@@ -202,7 +207,7 @@ void ALTPlayerCharacter::StopAim()
 
 void ALTPlayerCharacter::Reload()
 {
-	if (!bDead && Weapon)
+	if (!bDead && !bDowned && Weapon)
 	{
 		Weapon->StartReload();
 	}
@@ -210,7 +215,7 @@ void ALTPlayerCharacter::Reload()
 
 void ALTPlayerCharacter::Interact()
 {
-	if (!bDead && Interaction)
+	if (!bDead && !bDowned && Interaction)
 	{
 		Interaction->TryInteract();
 	}
@@ -222,6 +227,33 @@ void ALTPlayerCharacter::Tick(const float DeltaSeconds)
 
 	if (bDead)
 	{
+		return;
+	}
+
+	if (bDowned)
+	{
+		// Nothing else runs while down: no movement scaling, no aim blend and no
+		// regeneration. Only the two clocks.
+		BleedOutRemaining -= DeltaSeconds;
+
+		if (BleedOutRemaining <= 0.f)
+		{
+			BleedOutRemaining = 0.f;
+			OnBleedOutExpired();
+			Die();
+			return;
+		}
+
+		if (bSoloAutoRevive)
+		{
+			SoloReviveRemaining -= DeltaSeconds;
+
+			if (SoloReviveRemaining <= 0.f)
+			{
+				Revive();
+			}
+		}
+
 		return;
 	}
 
@@ -251,7 +283,9 @@ void ALTPlayerCharacter::Tick(const float DeltaSeconds)
 float ALTPlayerCharacter::TakeDamage(
 	const float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	if (bDead || Damage <= 0.f)
+	// A downed player is already at zero and on the bleed-out clock. Further hits
+	// cannot take them lower and must not shorten it.
+	if (bDead || bDowned || Damage <= 0.f)
 	{
 		return 0.f;
 	}
@@ -266,21 +300,117 @@ float ALTPlayerCharacter::TakeDamage(
 
 	if (Health <= 0.f)
 	{
-		bDead = true;
-		if (Weapon)
-		{
-			Weapon->StopFiring();
-		}
-		OnDied();
-
-		if (const UWorld* World = GetWorld())
-		{
-			if (ALTGameMode* GameMode = World->GetAuthGameMode<ALTGameMode>())
-			{
-				GameMode->NotifyPlayerDied();
-			}
-		}
+		// Zero health is a down, never a death. Only bleed-out reaches Die.
+		Down();
 	}
 
 	return Applied;
+}
+
+void ALTPlayerCharacter::Down()
+{
+	if (bDowned || bDead)
+	{
+		return;
+	}
+
+	bDowned = true;
+	Health = 0.f;
+	BleedOutRemaining = BleedOutSeconds;
+	SoloReviveRemaining = SoloReviveDelaySeconds;
+
+	// Immobile, but the camera stays free so the player can watch the room. The
+	// regeneration in Tick is frozen by the downed branch, so there is no timer to
+	// cancel.
+	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+	{
+		Movement->StopMovementImmediately();
+		Movement->DisableMovement();
+	}
+
+	bSprinting = false;
+
+	if (Weapon)
+	{
+		Weapon->StopFiring();
+		Weapon->SetAiming(false);
+	}
+
+	if (const UWorld* World = GetWorld())
+	{
+		if (ALTGameMode* GameMode = World->GetAuthGameMode<ALTGameMode>())
+		{
+			GameMode->NotifyPlayerDowned();
+		}
+	}
+
+	OnDowned();
+
+	LT_LOG(Log, TEXT("Player downed. Bleed-out in %.0fs."), BleedOutSeconds);
+}
+
+void ALTPlayerCharacter::Revive()
+{
+	if (!bDowned || bDead)
+	{
+		return;
+	}
+
+	bDowned = false;
+	BleedOutRemaining = 0.f;
+	SoloReviveRemaining = 0.f;
+
+	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+	{
+		Movement->SetMovementMode(MOVE_Walking);
+	}
+
+	Health = FMath::Clamp(ReviveHealthFraction, 0.f, 1.f) * MaxHealth;
+
+	// Regeneration waits the usual delay from the moment of the revive.
+	TimeSinceDamage = 0.f;
+
+	OnHealthChanged.Broadcast(GetHealthFraction());
+
+	if (const UWorld* World = GetWorld())
+	{
+		if (ALTGameMode* GameMode = World->GetAuthGameMode<ALTGameMode>())
+		{
+			GameMode->NotifyPlayerRevived();
+		}
+	}
+
+	OnRevived();
+
+	LT_LOG(Log, TEXT("Player revived at %.0f%% health."), FMath::Clamp(ReviveHealthFraction, 0.f, 1.f) * 100.f);
+}
+
+void ALTPlayerCharacter::Die()
+{
+	if (bDead)
+	{
+		return;
+	}
+
+	bDead = true;
+	bDowned = false;
+	Health = 0.f;
+
+	if (Weapon)
+	{
+		Weapon->StopFiring();
+	}
+
+	OnHealthChanged.Broadcast(GetHealthFraction());
+	OnDied();
+
+	if (const UWorld* World = GetWorld())
+	{
+		if (ALTGameMode* GameMode = World->GetAuthGameMode<ALTGameMode>())
+		{
+			GameMode->NotifyPlayerDied();
+		}
+	}
+
+	LT_LOG(Log, TEXT("Player bled out. Run over."));
 }

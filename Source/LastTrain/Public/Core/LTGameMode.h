@@ -9,8 +9,9 @@ class ALTRoundManager;
 class ULTStationHeat;
 
 /** Owns the run lifecycle for one station arena. Thin: it flips ALTGameState
-	between run states and starts the round manager. Travel between stations,
-	boarding, and the menu flow are not here yet, they are Phase C decisions. */
+	between run states and starts the round manager. Boarding a train ends the run
+	here and hands a travel payload to ULTGameInstance, which opens the next
+	station; the menu flow is not here yet. */
 UCLASS()
 class LASTTRAIN_API ALTGameMode : public AGameModeBase
 {
@@ -37,8 +38,8 @@ public:
 
 	/** Called by ALTTrain when the player boards during the dwell. In this arena it
 		ends the run: stops rounds, banks points, refills the reserve, resets heat,
-		and flips the run state to Boarded. Travel to the next station is a later
-		task that hooks in here. */
+		and flips the run state to Boarded. It then builds the travel payload and
+		asks the game instance to open NextStationMap. */
 	UFUNCTION(BlueprintCallable, Category = "Run")
 	void NotifyPlayerBoarded(AActor* Boarder);
 
@@ -47,12 +48,25 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Run")
 	bool bAutoStart = true;
 
+	/** The map boarding a train travels to, as the asset name, for example
+		L_CanaryWharf_Greybox. v1 ships two stations, so there is exactly one other
+		and no destination to choose: a station-select picker for a third station
+		onwards would replace this single name with a per-station map. Unset means
+		boarding ends the run where it stands. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Travel")
+	FName NextStationMap;
+
 protected:
 	virtual void BeginPlay() override;
 
 private:
 	void SetState(ELTRunState NewState);
 	ALTRoundManager* FindRoundManager() const;
+
+	/** Grants the carried points and weapon from a train arrival, then clears the
+		payload. Runs a tick after StartRun so the pawn's own components have had
+		their BeginPlay and cannot stamp their starting values over the carry. */
+	void RehydrateFromTravel();
 
 	/** The round manager's heat component if there is one, otherwise any heat
 		component in the level. Null on a heat-less test level. */
