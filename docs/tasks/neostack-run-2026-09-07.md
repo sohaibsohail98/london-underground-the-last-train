@@ -685,3 +685,122 @@ PIE stopped. `OpeningRoundCounts` reverted from the test `(4,4,4,4,4)` to
 from the test 2.0 to 10.0 on `BP_RoundManager` and confirmed; it is
 `EditDefaultsOnly` so it could only be changed on the class, not the instance.
 `BP_Zombie`, `BP_RoundManager` and both levels saved.
+
+## Milestone 5, station travel end to end: PASS
+
+### Routes
+
+`StationRoutes` on the shared `BP_GameMode` holds both directions:
+
+```
+L_GreyboxTest        -> L_CanaryWharf_Greybox
+L_CanaryWharf_Greybox -> L_GreyboxTest
+```
+
+One shared game mode covers both stations, which is what `StationRoutes` was
+added for. `NextStationMap` was left None. The map had to be written through the
+class default object in Python; the Blueprint handle in this toolset has no
+`map_set` method.
+
+### Canary Wharf preparation
+
+The level had no train and no heat component. Both were added:
+
+- `CW_Train` at (5550, 5100, 0), yaw 0. The carriage lands at Y 5350, clear of
+  the platform lip at Y 4725 to 5025, and the boarding volume at Y 5180.
+- `ULTStationHeat` added to `CW_RoundManager`.
+
+Navmesh confirmed good, as this milestone requires: the boarding volume projects
+onto navmesh directly beneath itself, a synchronous path from `CW_PlayerStart` to
+it succeeds at 4048 units over four waypoints, and spawn points 1, 5 and 8 all
+still project cleanly.
+
+An earlier placement attempt put the carriage at Y 4730, sitting on the platform
+lip rather than beyond it, because a yaw of 180 negates the component offsets.
+Corrected to yaw 0.
+
+### Travel out
+
+Boarded in `L_GreyboxTest` carrying 1280 points, earned from six headshot kills
+from a 500 start, and reserve 240.
+
+```
+Travelling to L_CanaryWharf_Greybox. Carrying 1280 points, weapon DA_Weapon_SMG, reserve 240.
+Arrived by train. Carried 1280 points and weapon DA_Weapon_SMG, reserve refilled to full. Rounds from 1, heat 0.
+```
+
+Verified live in the new level: world `L_CanaryWharf_Greybox`, run state Active,
+points 1280, reserve 240, round 1, heat 0.
+
+### Travel back
+
+Killed to 2060 points in Canary Wharf, boarded `CW_Train`:
+
+```
+Travelling to L_GreyboxTest. Carrying 2060 points, weapon DA_Weapon_SMG, reserve 240.
+Arrived by train. Carried 2060 points and weapon DA_Weapon_SMG, reserve refilled to full. Rounds from 1, heat 0.
+```
+
+Verified live: world `L_GreyboxTest`, points 2060, reserve 240.
+
+| Check | Result |
+|---|---|
+| Travel works | PASS |
+| Points carried | PASS, 1280 out and 2060 back, exact |
+| Weapon carried, reserve full | PASS, DA_Weapon_SMG, reserve 240 both ways |
+| Heat 0 and rounds from 1 on arrival | PASS |
+| Both directions | PASS |
+
+### Clean up
+
+PIE stopped. `BP_Train` timings restored to the class defaults
+(30, 100, 25, 4, 4, 1, 3, 15) and confirmed by read-back. All levels saved.
+
+## Final summary, evening pass
+
+| Milestone | Result |
+|---|---|
+| 1, reparent BP_GameMode | PASS |
+| 2, five type assets, material, five instances | PASS |
+| 3, boarding without the override, departure board | PASS |
+| 4, roster, types, special rounds | MOSTLY PASS, screamer unverified |
+| 5, station travel both directions | PASS |
+
+### What is now playable end to end
+
+A full run loop across two stations. Rounds start from the game mode; a weighted
+mix of walkers and crawlers spawns from a five type roster with per-type health,
+speed, damage, capsule, scale, anim rate and colour tint applied from data;
+round 5 is an all-sprinter round and round 10 adds two armour-plated brutes whose
+front plate absorbs exactly 200 damage of body fire. A train arrives on a timer,
+a departure board counts it down and changes wording by phase, and the doors open
+a boarding window. Leaving without boarding raises station heat, which widens the
+live cap and quickens spawns. Boarding stops the rounds, refills the reserve,
+resets heat and travels to the other station carrying points and weapon, in
+either direction. Dying now downs the player with a bleed-out clock and a solo
+auto-revive at half health instead of ending the run.
+
+The keystone was the `BP_GameMode` reparent. Everything above except the type
+assets was already written and compiled, but silently inert, because the game
+mode was not an `ALTGameMode`.
+
+### The single most important thing still unverified
+
+**The screamer never screams.** Its data applies correctly, `Behaviour` reads
+`SCREAM` and its speed is exactly right, but with clear line of sight at 600 and
+700 units, frozen and walking, for eight to ten seconds against a two second
+threshold, `ScreamLineOfSightSeconds` never fires. No `screamed after` log line,
+so the summon and the cancel window are both untested.
+
+That was tested on a retyped walker rather than a natural round 12 spawn, and the
+trigger lives in `ALTZombieCharacter::TickScream` under `Source/`, so this run
+stopped rather than working around it. Next session should force it by
+temporarily setting the screamer's `FirstRoundAvailable` to 1 and letting the
+roster spawn one properly; that distinguishes a retyping artefact from a real
+defect in the sight trace.
+
+Also still open from the morning pass: the Phase B crowd frame rate gate remains
+unmeasured, because the editor pins its tick to 3 fps while its window is
+unfocused. It needs a focused editor or a packaged build.
+
+Nothing was committed. One `git pull` was run in Step 0, as instructed.
