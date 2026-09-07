@@ -10,6 +10,19 @@ building. It is a Phase F art target, not something to measure the grey box
 against. Notes on what to lift and what is off limits are in
 `docs/reference/reference-frame-notes.md`.
 
+## Start here, every session
+
+Read **`docs/tasks/handover.md`** before doing anything else. It is the resume
+point: the current state, the ordered next actions, what has landed per phase,
+and every open item. `docs/tasks/neostack.md` is its companion, holding every
+outstanding editor task.
+
+The one thing to know cold: **all of Phase C plus E1 exists in C++, and none of
+it after C1 has ever been compiled**, because it was written in remote sessions
+with no Unreal engine. `./tools/ci/compile.sh` on a Mac with the external Xcode
+drive mounted is the gate on the lot, and nothing in the editor reflects the new
+systems until it passes and the data assets exist.
+
 ## Engine and build
 
 - **Unreal Engine 5.8.** `LastTrain.uproject` `EngineAssociation` is `5.8`.

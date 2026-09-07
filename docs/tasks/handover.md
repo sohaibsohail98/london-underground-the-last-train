@@ -15,6 +15,17 @@ gate on the lot. Once it compiles, the remaining work is almost entirely editor
 work: five data assets, a material, three Blueprints, a reparent, and ten spawn
 points to move. That brief is `neostack.md`.
 
+## Where the work is
+
+Everything described here landed on the branch
+`claude/docs-tasks-implementation-vd3wm7`, in three commits: `64535f6` (departure
+board, travel, downed and revive), `b1424bf` (the five zombie types, the roster
+and the special rounds) and `ace4b14` (this doc consolidation, the compile gate
+and the CI reflection check). All five CI gates pass on it.
+
+**If a fresh clone of `main` does not show the files this file describes, that
+branch has not been merged yet.** Check it out, or merge it, before starting.
+
 ## The gate: compile first
 
 ```
