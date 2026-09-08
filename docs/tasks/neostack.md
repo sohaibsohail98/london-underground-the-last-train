@@ -65,7 +65,12 @@ to set.
   task needs another channel, stop and ask.
 - **Other Project Settings pages that are bespoke UI** rather than a plain
   settings object. If a config write silently no ops, do not hand edit the
-  `.ini` and do not touch C++ constants. Flag it.
+  `.ini` and do not touch C++ constants. Flag it. **Exception, the packaging map
+  list:** `Project Settings > Packaging > List of maps to include in a packaged
+  build` IS a plain `ProjectPackagingSettings` object and its `MapsToCook` array
+  can be set by writing `Config/DefaultGame.ini` directly. S8 did this on
+  2026-09-08: `[/Script/UnrealEd.ProjectPackagingSettings]` with a `+MapsToCook`
+  line per map. Committed in `f635ece`.
 - **The level Blueprint EventGraph.** Not reachable through the bridge.
 - **Editor restarts.** If you were reconnected after an editor restart and
   `execute_script` is missing from your tool list, a human has to start a fresh
@@ -290,22 +295,35 @@ and a sane weight, and `CW_RoundManager` has the right `ZombieClass`.
 
 Small, and all of them editor or PIE work rather than asset building.
 
-1. **Measure the crowd frame gate.** PIE `L_GreyboxTest`, console `stat unit`,
-   filter the Output Log for `LogLastTrain` at Verbose. Set the placed
-   `GreyboxTest_RoundManager`'s `OpeningRoundCounts` index 0 to 30, confirm
-   `Spawned zombie. Alive N` climbs toward the cap of 24, and record the game
-   thread ms with 24 or more alive over 10 seconds. Pass is the game thread
-   holding near 16.6 ms. Then set index 0 back to 6 and save. This is the last
-   thing standing between Phase B and being signed off.
-2. **Wall buy PIE acceptance.** `phase-b2-interaction.md` steps 3 to 7. Needs a
-   human at the keyboard: the bridge cannot aim a first-person camera at the
-   plate. Walk to `GreyboxTest_WallBuy_SMG`, check the prompt fades in, `E` under
-   500 points no-ops, `E` with 500 or more buys and swaps the weapon and flashes
-   the points crimson, and `E` again offers ammunition at 250.
-3. **HUD polish review.** The hit marker, the crosshair spread response and the
-   prompt anchor have never been reviewed. Acceptance list in
-   `phase-b3-feedback-widgets.md`; the layout, palette and element spec that
-   built `WBP_HUD` is in that file too.
+1. **Measure the crowd frame gate.** Editor reading DONE 2026-09-09 (S6): PIE
+   `L_GreyboxTest`, `OpeningRoundCounts[0]` 6 -> 30 (reverted after), **30
+   BP_Zombie alive**, whole frame **~40 fps / ~24 ms held flat over 6x120-frame
+   batches**. `profile("frame_stats")` shows `delta_time_ms` == `gpu_frame_time_ms`
+   with `idle_time_ms` 0, so it is **GPU-bound, not game-thread-bound** - the
+   game+draw threads had ~8 ms headroom on the frame where the GPU fit inside
+   the budget. `stat unit` overlay is NOT captured by `playtest_observe`; use
+   `profile("frame_stats")` for the Frame/Game/GPU split. **Still open:** the
+   same reading in a **packaged Development build** at a fixed resolution, which
+   is the honest number for the B3 60 fps gate. The editor number is
+   render-limited by the S9 zombie material + Lumen on this Mac's GPU, not by
+   the crowd logic.
+2. **Wall buy PIE acceptance.** `phase-b2-interaction.md` steps 3 to 7. The buy
+   itself PASSED via property read-back (`WeaponCost` 500 spent, `AmmunitionCost`
+   250 on the second interact). Still needs a human at the keyboard for the
+   walk-up: the bridge cannot aim a first-person camera at the plate. Walk to
+   `GreyboxTest_WallBuy_SMG`, check the prompt fades in, `E` under 500 points
+   no-ops, `E` with 500 or more buys and swaps the weapon and flashes the points
+   crimson, and `E` again offers ammunition at 250.
+3. **HUD polish review.** DONE 2026-09-09 (S7). `WBP_HUD` matches
+   `phase-b3-feedback-widgets.md` element-for-element and the graph wiring is
+   healthy (5 delegates bound, crosshair spread on `GetCurrentSpreadDegrees` +
+   `GetAimAlpha`, 8 `PlayAnimation` calls at the spec durations). **Follow-up
+   fixes, none blocking:** delete the 2 leftover `PrintString` debug nodes in
+   the EventGraph; migrate the fonts from engine stock `DroidSansMono` / `Roboto`
+   to the OFL project faces the S9 haul imported (Overpass / Barlow) and record
+   the choice in `docs/art-direction.md` as B3 asks; default `PointsDelta`, the
+   4 `HitMark*` and `DamageVignette` to Collapsed/Hidden and let their
+   animations reveal them, rather than sitting `Visible` at rest.
 
 ---
 
