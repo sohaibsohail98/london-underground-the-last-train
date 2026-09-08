@@ -33,6 +33,8 @@ Plugins/NeoStackAI/
 /Content/GameAnimationSample/
 /Content/NiagaraExamples/
 /Content/Subway/
+/Content/SubwayTrain/
+/Content/UrbanSubway/
 /Content/Audio/Sonniss/
 
 # One File Per Actor data for template maps we do not commit. Our own map's

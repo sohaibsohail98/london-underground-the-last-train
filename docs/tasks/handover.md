@@ -4,6 +4,41 @@ Last updated 2026-09-07 evening. One place for where the project stands and what
 is left. **Update it whenever a task finishes**, so a cold session can pick up
 without re-reading the history.
 
+## ACTIVE SESSION LOG - MVP build + build out L_GreyboxTest (2026-09-07 night)
+
+Session goal: work the "Exact next actions" list, build out `L_GreyboxTest` to
+match Canary Wharf so both ends of the line are real arenas, and dress both maps
+with free assets. Iterative. This block is updated as each step lands so a crash
+mid-way loses nothing.
+
+| Step | State |
+|---|---|
+| S0 Editor MCP connected, both maps inspected | DONE. `L_GreyboxTest` is a bare 27-actor box; `L_CanaryWharf_Greybox` is a full 235-actor greybox. |
+| S1 Fill `StationDisplayNames` on `BP_GameMode` (handover action 3) | DONE. `L_GreyboxTest` -> "Greybox Test", `L_CanaryWharf_Greybox` -> "Canary Wharf". Compiled, saved, read back from a fresh script. |
+| S2 Build out `L_GreyboxTest` geometry to arena standard | DONE. 33 greybox pieces added under folder `GreyboxTest/Station`: dark ceiling, platform lip + safety line, track bed under the train, west/east tunnel mouths (outer wall + lintel each), a row of 6 columns down the platform centre, a 6-piece ticket-barrier line at x=0 with two gaps, a south mezzanine deck + rail + cube ramp, 8 cover crates, 2 benches by the player start. Grid material `MI_PrototypeGrid_Gray` on most, `MI_PrototypeGrid_TopDark` on ceiling/tunnels/trackbed. All original gameplay actors (train, board, wall buy, round manager, 5 spawn points, player start) untouched and confirmed present. Map Check: 1 error ("Maps need lighting rebuilt" - stock dynamic-lighting message, Canary Wharf has it too), 0 warnings. Saved. Not yet play-tested in PIE. |
+| S3 Fab packs | RESEARCHED. Exact current Fab listings found (verified 2026-09-07): **Game Animation Sample** (Epic, free, Fab Standard, has a "UE 5.8 GASP update" 2026-08-17) https://www.fab.com/listings/880e319a-a59e-4ed2-b268-b32dac7fa016 ; **City Sample Crowds** (Epic, free, UE-Only) https://www.fab.com/listings/903037e9-e1ac-4f41-96e8-1683c6fa7ad4 . **Epic's old "Subway" pack is GONE from Fab** - only accessible if already claimed to a pre-shutdown Vault. Plain "Subway" search top hit is SilverTm's paid $49.99 pack - do NOT get that. Free subway substitutes: **Metro Maintenance Station Pack** (Nimikko, free, Fab Standard) https://www.fab.com/listings/5d13e67d-dabc-4809-a731-f5c1cab099fb ; **Urban Series - Subway Section: Station Platform** (Spazio Silvestre, free, CC-BY - tiled walls/columns/platform edge, best single fit) https://www.fab.com/listings/daab241b-8c42-4259-b12d-c34d3045e99b ; also its companions "Subway Section: Train Tunnel" and "Street Entrance". Still BLOCKED on the user acquiring these via the Fab tab in the Epic Launcher then Add-to-Project. |
+| S4 Dress both maps with imported / CC0 assets | pending (needs S3 for the good stuff) |
+| S5 Screamer scream verify (action 1) | **DONE - PASS.** Ran in Canary Wharf PIE. Temp values: `DA_Zombie_Screamer` FirstRoundAvailable 12->1, SpawnWeightNormalRound 6->40, MaxAliveOfThisType 1->2; `CW_RoundManager` OpeningRoundCounts ->(3,3,3,3,3). Round 1 spawned 2 screamers. Log: `BP_Zombie_C_1 screamed after 2.0s of sight. Calling 4 walkers.` and `Screamer called 4 extra walkers. Pending now 4.` So `UpdateScream` + the 2.0s LoS gate + `OnScream` + `OnZombieScreamed.Broadcast(this,4)` + `ALTRoundManager::HandleZombieScreamed` summon path all work end to end. `ScreamSummonCount` 4 respected, `MaxAliveOfThisType` 2 respected. **Cancel window (0.5s) NOT exercised** - too tight to hit by driving PIE from a script; the branch is a 3-line time guard on the proven path (`Broadcast(this,0)` -> `HandleZombieScreamed` drops `PendingScreamSpawns`), read and judged low-risk. PIE stopped cleanly. ALL temp values reverted and confirmed by fresh read-back (FRA=12, W=6, Max=1, counts=(6,8,10,12,14)). |
+| S6 Frame-rate reading (action 2) | pending - needs a focused editor window or a packaged build, both hands-on. Not attempted this session. |
+| S7 Open acceptance: wall buy, HUD polish (action 3) | ATTEMPTED, not completed. `L_GreyboxTest` PIE confirms the rebuilt map loads and plays (Round 1 starts, zombies spawn and path across the new geometry, HUD shows points 500 / weapon 30/90). The wall-buy prompt+purchase needs precise walk-up-and-look which scripted PIE input (`Move` mapping) would not drive reliably - hand this to a human at the keyboard. HUD polish never reviewed. |
+| S8 Add both maps to packaging map list | pending - `Project Settings > Packaging > List of maps to include` is bespoke UI; per neostack.md "cannot be scripted" list, hand to a human. Needed before a packaged build so `L_CanaryWharf_Greybox` (referenced only by name in an OpenLevel) actually cooks. |
+| S9 Zombie appearance | NOT STARTED. `BP_Zombie` renders the stock UE5 Mannequin ("Manny" grey dummy). No zombie art exists in the project. `MI_Zombie_*` material instances are missing their SkeletalMesh usage flag (PIE log warns, default material used). This is the visible gap behind "why doesn't the zombie look like a zombie". Fix needs S3 (a character/anim pack) OR a minimal pass: desaturated skin MI with the usage flag set + a shuffle anim + wound decals on the existing mannequin. |
+
+Notes / anything done differently from spec will be appended here as it happens.
+
+### S10 Damage feedback (player-hit indicator) - added on user request, DONE (Blueprint only, no C++)
+
+User asked for a "getting hit" screen effect like Call of Duty. Added to `WBP_HUD`, no `Source/` change:
+
+- New widget `DamageVignette`: full-screen `Image`, crimson `ColorAndOpacity` `(R=0.72,G=0.06,B=0.10,A=0.62)`, `HitTestInvisible`, ZOrder 1 (above the world layer, below the HUD text), `RenderOpacity` 0 at rest. Confirmed it renders in PIE (temporarily set to 0.85 -> full crimson wash, HUD readable on top, then reverted).
+- New animation `DamageFlash`: keys on `DamageVignette.RenderOpacity` 0.0->1.0 (t=0.04) ->0.55 (t=0.16) ->0.0 (t=0.5). A ~half-second crimson screen pulse.
+- New animation `LowHealthPulse` (authored, NOT yet wired - needs a tick/timer to breathe; left for later).
+- New float var `PrevHealthFraction` (default 1.0).
+- `WBP_HUD` EventGraph: extended `HandleHealthChanged` (which is bound to the player's `OnHealthChanged`). Was: `then -> HealthBar.SetPercent`. Now: `then -> Branch`; condition = `HealthFraction < PrevHealthFraction` (a `float <` node fed by the event's `Health Fraction` out and a `Get PrevHealthFraction`); `Branch.True -> PlayAnimation(DamageFlash, self, 1 loop) -> Set PrevHealthFraction`; `Branch.False -> Set PrevHealthFraction`; `Set PrevHealthFraction.then -> HealthBar.SetPercent` (bar still updates exactly as before). So any hit that lowers health plays the pulse; regen ticks (health rising) do not.
+- Compiles clean (0 errors, 0 warnings). Verified graph topology by read-back.
+- **Not captured on camera mid-hit**: the 0.5s pulse during a live zombie hit. Scripted PIE can't time a screenshot burst to the exact contact frame, and on `L_GreyboxTest` the player is swarmed and downed within ~6s (6 walkers, 10 dmg, 1.5s cooldown vs 100 HP + 50% auto-revive) so there is no clean single-hit window. The three things that prove it work were each verified independently: widget renders in PIE, `OnHealthChanged` fires on every damage/revive transition (health fraction 1->0->0.5->0 seen in logs), graph wired correctly. A human at the keyboard on Canary Wharf (more room) will see the pulse on the first zombie tag.
+- Follow-ups worth doing: (a) wire `LowHealthPulse` to a repeating timer when health < ~0.3 for a sustained "critical" state; (b) if a *directional* indicator is wanted (wedge pointing at the attacker), that needs a small C++ change to pass `DamageCauser`/hit direction through the `OnDamageTaken` delegate - write it as a spec, do not edit C++ in an editor pass.
+
 ## The one line
 
 Phase A is done. Phase B is one measurement from signable. **Phase C is code
