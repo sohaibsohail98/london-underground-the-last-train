@@ -71,3 +71,6 @@ coverage/
 android/
 ios/
 .claude/
+
+# Subagent asset research staging - triage into Content/ or delete, never commit raw
+/_incoming_assets/
