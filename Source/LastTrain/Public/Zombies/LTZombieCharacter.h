@@ -139,9 +139,11 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	float StallRecoverySeconds = 1.5f;
 
-	/** Ground the shove has to close on the target before the zombie counts as
-		freed. Velocity alone is not enough: one pinned against a capsule twitches
-		over StallSpeedThreshold without going anywhere. */
+	/** Ground the shove has to cover before the zombie counts as freed. Its own
+		displacement, not the distance to the target, so a zombie that shoulders
+		clear while the player runs still counts as free. Velocity alone is not
+		enough: one pinned against a capsule twitches over StallSpeedThreshold
+		without going anywhere. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	float StallRecoveryProgress = 40.f;
 
@@ -215,9 +217,9 @@ private:
 	void UpdateStallRecovery(float DeltaSeconds);
 
 	/** Cancels the AI move request and drops RVO so AddMovementInput can push
-		the zombie clear of whatever is pinning it. DistanceToTarget is banked as
-		the mark the shove has to beat to count as having worked. */
-	void BeginStallRecovery(float DistanceToTarget);
+		the zombie clear of whatever is pinning it. Banks where the shove started,
+		which is the mark it has to beat to count as having worked. */
+	void BeginStallRecovery();
 
 	/** Restores RVO and forces a repath. Safe to call when not recovering. */
 	void EndStallRecovery();
@@ -232,8 +234,8 @@ private:
 	/** Seconds the current shove has run, against StallRecoverySeconds. */
 	float StallRecoveryElapsed = 0.f;
 
-	/** Distance to the target when the shove began, against StallRecoveryProgress. */
-	float StallRecoveryStartDistance = 0.f;
+	/** Where the shove began, against StallRecoveryProgress. */
+	FVector StallRecoveryStartLocation = FVector::ZeroVector;
 
 	/** Kept so ApplyRoundScaling re-applies the type's health and speed multipliers
 		on top of the round curve rather than losing them. Both are 1 until a type

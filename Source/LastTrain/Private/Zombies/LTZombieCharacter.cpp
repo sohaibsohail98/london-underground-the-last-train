@@ -306,12 +306,15 @@ void ALTZombieCharacter::UpdateStallRecovery(const float DeltaSeconds)
 	{
 		StallRecoveryElapsed += DeltaSeconds;
 
-		// Freed only once the shove has actually closed ground. A zombie pressed
-		// into the capsule in front twitches over the speed threshold every few
-		// frames without going anywhere, and ending the shove on one of those put
-		// it straight back into the stall it had just left.
-		const bool bClosedGround = (StallRecoveryStartDistance - Distance) >= StallRecoveryProgress;
-		if (!bBarelyMoving && bClosedGround)
+		// Freed only once the shove has actually carried the zombie somewhere. A
+		// zombie pressed into the capsule in front twitches over the speed
+		// threshold every few frames without going anywhere, and ending the shove
+		// on one of those put it straight back into the stall it had just left.
+		// Its own displacement rather than ground closed on the target, so a
+		// zombie that shoulders clear while the player runs still counts as free.
+		const bool bBrokenFree =
+			FVector::Dist2D(GetActorLocation(), StallRecoveryStartLocation) >= StallRecoveryProgress;
+		if (!bBarelyMoving && bBrokenFree)
 		{
 			EndStallRecovery();
 			return;
@@ -345,16 +348,16 @@ void ALTZombieCharacter::UpdateStallRecovery(const float DeltaSeconds)
 
 	if (StallTimer >= StallGraceSeconds)
 	{
-		BeginStallRecovery(Distance);
+		BeginStallRecovery();
 		DriveStallNudge();
 	}
 }
 
-void ALTZombieCharacter::BeginStallRecovery(const float DistanceToTarget)
+void ALTZombieCharacter::BeginStallRecovery()
 {
 	bStallRecovering = true;
 	StallRecoveryElapsed = 0.f;
-	StallRecoveryStartDistance = DistanceToTarget;
+	StallRecoveryStartLocation = GetActorLocation();
 
 	// The path following component sets velocity every frame while a MoveTo is
 	// active, which clobbers AddMovementInput. Cancel the request so the

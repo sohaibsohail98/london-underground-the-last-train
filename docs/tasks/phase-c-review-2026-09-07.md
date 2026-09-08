@@ -99,7 +99,7 @@ code, and is untouched.
 
 | # | Finding | Done |
 |---|---|---|
-| 2 | `NavProjectionExtent` Z of 500 let a spawn point in the void "succeed" | Z tightened to 150, and a new `NavProjectionWarnDistance` (200) logs a warning naming the point and how far it snapped. That is the warning that never fired on the Canary Wharf points at world origin. |
+| 2 | `NavProjectionExtent` Z of 500 let a spawn point in the void "succeed" | A new `NavProjectionWarnDistance` (200) logs a warning naming the point and how far it snapped. That is the warning that never fired on the Canary Wharf points at world origin. The extent itself is left generous on purpose: section 5 below argues the tightening back out again. |
 | 3 | Arrival flashed the points HUD as a spend | `ULTPointsComponent::SetPoints(int32)` assigns the total and broadcasts a **zero** delta. `RehydrateFromTravel` uses it instead of `AddPoints(Carried - Current)`. |
 | 4 | A downed player still got interaction prompts | `ULTInteractionComponent::SetInteractionEnabled(bool)` stops the sweep and clears the live prompt on the way down, rather than freezing it on screen. `Down()` and `Die()` disable it, `Revive()` re-enables it, and `TryInteract` respects it too. |
 | 6 | `ALTGameState::SetStationName` had no callers | `ALTGameMode` now carries `StationDisplayNames` (a map from map asset name to label, keyed like `StationRoutes` because one game mode Blueprint serves every station) plus a `StationDisplayName` fallback, stamped onto the game state in `BeginPlay`. With neither filled the label reads blank, as it always did, and says so once in the log. |
@@ -135,8 +135,8 @@ Two further faults in the same path, both able to hide the nudge on their own:
   the timer time rather than wiping it.
 - **Recovery ended on one jittery frame.** The exit test was velocity alone, so
   the same twitch that reset the timer also ended the shove, straight back into
-  the stall. Exit now needs the zombie to be moving **and** to have closed
-  `StallRecoveryProgress` (40 units) of ground since the shove began.
+  the stall. Exit now needs the zombie to be moving **and** to have carried
+  itself `StallRecoveryProgress` (40 units) from where the shove began.
 
 Fixes, all in `ALTZombieCharacter`:
 
@@ -146,7 +146,8 @@ Fixes, all in `ALTZombieCharacter`:
   repath would leave a zombie pressed into geometry shoving for ever with RVO off.
   On a timeout it hands control back to path following, which can route around,
   and flips `StallLateralSign` so it leads with the other shoulder next time.
-- `BeginStallRecovery` banks the distance to beat; `EndStallRecovery` clears it.
+- `BeginStallRecovery` banks where the shove started; `EndStallRecovery` clears
+  the clock.
 
 What to watch in PIE, since none of this is compiled: a corridor queue should
 visibly fan out rather than freeze, no zombie should sit still outside
@@ -161,9 +162,10 @@ being too weak against RVO neighbours that still have avoidance on.
 
 Read-only check of the `neostack.md` table against `gameplay-canon.md` section 6,
 `phase-c-zombie-types.md` "Resolved values", and the actual `ULTZombieTypeData`
-class. Verdict: **enter it as written**. All 27 field names in the table exist on
-the class with exactly those names and types, and every value traces to canon or
-to a resolved value in the spec. No drift found. Five notes:
+class. Verdict: **enter it as written**. All 28 field names in the table exist on
+the class with exactly those names and types, one row per editable property with
+none of the class's own left out, and every value traces to canon or to a
+resolved value in the spec. No drift found. Five notes:
 
 1. **Speeds are held as 2dp multipliers of `BaseWalkSpeed` 130**, so they land
    near, not on, canon's numbers: sprinter 3.85 gives 500.5, crawler 1.15 gives
@@ -190,6 +192,32 @@ to a resolved value in the spec. No drift found. Five notes:
    Canon bars crawlers and screamers from the sprinter round specifically, and
    round 10 is a walker round in every acceptance list, so this reads correct. It
    is a visible change from `b1424bf`, where round 10 was all sprinters.
+
+## 5. Review of the above, same session, fresh pass
+
+Three findings against this pass's own work, all fixed in place.
+
+- **The stall exit test was the wrong measurement.** It asked whether the zombie
+  had closed 40 units on the target. A zombie that shoulders clear of the queue
+  while the player runs away closes nothing, so it would have kept shoving for the
+  full 1.5s with RVO off and the repath suppressed, then timed out and flipped its
+  shoulder for no reason. It now measures the zombie's own displacement from where
+  the shove began, which is what "broken free" actually means and is no less
+  immune to jitter.
+- **Tightening `NavProjectionExtent` on Z was a regression risk with no payoff.**
+  At Z 150 a spawn point sitting 300 units above the floor stops resolving, and a
+  failed projection spawns the zombie at the raw point with nothing under it: a
+  point that used to work would start dropping zombies into the void. The finding
+  it was meant to close was the **silence**, not the reach, and
+  `NavProjectionWarnDistance` closes that on its own. The extent is back at 500.
+- **The stat block count was wrong**: 28 fields and 28 rows, not 27. Corrected in
+  section 4.
+
+One thing to watch in PIE rather than change now: in a permanently jammed crowd a
+zombie can cycle shove (up to 1.5s, RVO off) then path (0.5s grace) indefinitely,
+so a large stuck crowd could sit with avoidance off most of the time and
+interpenetrate visibly. That is the intended trade for breaking a pin, but if the
+crowd reads as merging rather than queueing, `StallRecoverySeconds` is the dial.
 
 ## What this pass did not do
 

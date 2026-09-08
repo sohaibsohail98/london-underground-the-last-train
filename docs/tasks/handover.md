@@ -160,12 +160,15 @@ first local build still gates the lot.
    `StallSpeedThreshold`, so the grace never accumulated, and recovery ended on
    one jittery frame without the zombie having gone anywhere. The repath is now
    held back while recovering, the timer decays instead of resetting, exit needs
-   40 units of ground closed, and `StallRecoverySeconds` (1.5) caps a shove so a
+   40 units of the zombie's own displacement, and `StallRecoverySeconds` (1.5)
+   caps a shove so a
    zombie pressed into geometry hands control back and leads with the other
    shoulder. Unverified in PIE.
-2. **`NavProjectionExtent` Z: fixed.** 500 to 150, plus a
-   `NavProjectionWarnDistance` (200) that logs which spawn point snapped and how
-   far. That is the warning the Canary Wharf points at world origin never fired.
+2. **`NavProjectionExtent` Z: fixed.** A `NavProjectionWarnDistance` (200) logs
+   which spawn point snapped and how far. That is the warning the Canary Wharf
+   points at world origin never fired. The extent stays generous: tightening it
+   would turn a point that used to snap into one that drops a zombie into the
+   void, and the silence was the bug.
 3. **Arrival flashing the points HUD as a spend: fixed.**
    `ULTPointsComponent::SetPoints(int32)` assigns and broadcasts a zero delta,
    and `RehydrateFromTravel` uses it.

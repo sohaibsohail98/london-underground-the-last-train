@@ -161,17 +161,18 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Rounds")
 	float MinimumSpawnInterval = 0.35f;
 
-	/** Search box for snapping a spawn point onto the navmesh. Wide enough that a
-		point placed a little off the floor still resolves, tight enough on Z that
-		one placed in the void does not quietly find a floor half a storey away and
-		report success. That is what hid the Canary Wharf spawn points at world
-		origin: at 500 the warning below never fired. */
+	/** Search box for snapping a spawn point onto the navmesh. Generous on Z so
+		a point placed a little above or below the floor still resolves. Left
+		generous on purpose: tightening it would turn a point that used to snap
+		into one that spawns a zombie into the void, and it is the silence that
+		hid the Canary Wharf points at world origin, not the reach. The warning
+		below is what breaks that silence. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Rounds")
-	FVector NavProjectionExtent = FVector(200.f, 200.f, 150.f);
+	FVector NavProjectionExtent = FVector(200.f, 200.f, 500.f);
 
 	/** How far a projection may move a spawn point before it is worth a warning.
-		Inside the extent by construction, so this catches the point that resolved
-		to somewhere nobody placed it rather than one nudged onto the floor. */
+		A point nudged onto the floor moves a few units; one resolving to a floor
+		nobody placed it near moves hundreds. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Rounds")
 	float NavProjectionWarnDistance = 200.f;
 
