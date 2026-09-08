@@ -1,0 +1,33 @@
+ISO 7010 pictograms, Wikimedia Commons.
+ISO 7010 symbols are an international safety standard, not TfL intellectual property.
+No roundel, no Johnston, no operator identity is present in any of these.
+
+assembly-point-info.svg  <-  ISO 7010 E009.svg  [Public domain]  https://commons.wikimedia.org/wiki/File:ISO_7010_E009.svg
+fire-hose-reel.svg  <-  ISO 7010 F002.svg  [Public domain]  https://commons.wikimedia.org/wiki/File:ISO_7010_F002.svg
+fire-extinguisher.svg  <-  ISO 7010 F001.svg  [Public domain]  https://commons.wikimedia.org/wiki/File:ISO_7010_F001.svg
+fire-alarm-call-point.svg  <-  ISO 7010 F005.svg  [Public domain]  https://commons.wikimedia.org/wiki/File:ISO_7010_F005.svg
+emergency-exit-arrow.svg  <-  ISO 7010 E002 + arrow 1.svg
+first-aid.svg  <-  ISO 7010 E003 - First aid sign.svg
+general-prohibition.svg  <-  ISO 7010 P001.svg
+no-smoking.svg  <-  ISO 7010 P002.svg
+not-drinking-water.svg  <-  ISO 7010 P005.svg
+general-warning.svg  <-  ISO 7010 W001.svg
+electricity-warning.svg  <-  ISO 7010 W012.svg
+toxic-warning.svg  <-  ISO 7010 W016.svg
+emergency-exit-left.svg <- ISO 7010 E001.svg
+emergency-exit-right.svg <- ISO 7010 E002.svg
+emergency-window-escape.svg <- ISO 7010 E016.svg
+escape-ladder.svg <- ISO 7010 E017.svg
+no-access-unauthorised.svg <- ISO 7010 P004.svg
+do-not-touch.svg <- ISO 7010 P010.svg
+do-not-reach-in.svg <- ISO 7010 P015.svg
+no-entry-blocked.svg <- ISO 7010 P023.svg
+general-warning-w001.svg <- ISO 7010 W001.svg
+electric-shock-warning.svg <- ISO 7010 W008.svg
+slippery-floor-warning.svg <- ISO 7010 W011.svg
+electricity-warning.svg <- ISO 7010 W012.svg
+toxic-warning.svg <- ISO 7010 W016.svg
+hot-surface-warning.svg <- ISO 7010 W017.svg
+crushing-hands-warning.svg <- ISO 7010 W024.svg
+counter-rotating-rollers.svg <- ISO 7010 W025.svg
+battery-charging-warning.svg <- ISO 7010 W026.svg

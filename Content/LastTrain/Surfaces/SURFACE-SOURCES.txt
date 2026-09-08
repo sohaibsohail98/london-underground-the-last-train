@@ -1,0 +1,11 @@
+PBR surface sets in this folder are from ambientCG (https://ambientcg.com),
+licensed CC0 1.0 Universal (public domain dedication). No attribution required.
+Downloaded 2026-09-08 at 2K JPG. Sets: Asphalt025C, Concrete031/036/046/048,
+Metal009/032, MetalPlates001, PaintedPlaster017, Plaster007, Rubber004,
+TactilePaving004/005, Tiles107/133A/140/141, plus decal source textures
+Rust001 and SurfaceImperfections001/011/013 (imported as textures only, no MI:
+they are opacity-masked stains and need a decal/translucent parent material).
+
+M_LT_PBRSurface is the shared master (BaseColor/Normal/Roughness/AO/Metalness +
+Tiling, Tint, Desaturation, RoughnessMin/Max, MetalScale params). One MI_<Set>
+per tiling set is parented to it.
