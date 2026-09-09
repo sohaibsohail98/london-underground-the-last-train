@@ -1,0 +1,48 @@
+LAST TRAIN station kit (Phase F1)
+=================================
+
+Original in-house geometry. There is no CC0 modular station kit (see
+docs/reference/asset-sources-phase-f.md), so the shell, platform edge, tunnel
+portal, pillars and furniture are modelled here. Surfacing is CC0 ambientCG,
+credited in ../Surfaces/SURFACE-SOURCES.txt.
+
+Authored in-engine through NeoStack geometry scripting: box and cylinder
+primitives combined with booleans, then welded, normals and UVs recomputed,
+Nanite enabled and built. Every piece is one closed mesh with UV channel 0.
+
+Module contract
+---------------
+Base grid          100 uu
+Kit module         400 uu
+Wall thickness     150 uu
+Room height        360 uu
+Tile line          220 uu (wainscot below, painted concrete above, proud trim)
+
+Pivots. Wall, pillar, portal and stair pieces stand on Z=0 with the pivot
+centred in X and Y, so an actor placed at a floor coordinate needs no Z offset.
+The platform edge is the exception: its deck top is Z=0 and the fall runs to
+Z=-130, so it is placed at the platform surface height.
+
+Pieces
+------
+SM_Kit_WallPanel_400            400x150x360  tiled wainscot, trim, concrete
+SM_Kit_WallPanel_400_Recess     as above with a service-box recess in +Y
+SM_Kit_FloorPanel_400           400x400x20   platform floor slab
+SM_Kit_FloorPanel_400_Tactile   as above with a proud tactile strip on +Y
+SM_Kit_CeilingPanel_400         400x400x40   coffered, two service channels
+SM_Kit_Pillar                   150x150x360  clad base, steel collar at 220
+SM_Kit_PlatformEdge_400         400 long     lip, nosing, fall to track
+SM_Kit_TunnelPortal             660x150x400  arched opening 330 wide
+SM_Kit_StairRun                 400x540x360  12 steps, rise 30, going 45
+SM_Kit_Bench                    360x90x56
+SM_Kit_Bin                      58 dia x 72
+SM_Kit_Handrail_400             400x10x105
+
+Materials are assigned per actor as an OverrideMaterial, not baked into the
+mesh: the geometry-scripted meshes carry no material slot of their own. This
+matches how the Phase B greybox already drove MI_<Set> onto its cubes.
+
+Legal. Original design language throughout. No roundel, no Johnston or New
+Johnston, no operator livery. Panel proportions, mounting heights, tactile
+paving patterns and tunnel ring spacing are factual station architecture and
+are fair game per docs/reference/reference-frame-notes.md section 3.

@@ -1,11 +1,18 @@
 PBR surface sets in this folder are from ambientCG (https://ambientcg.com),
 licensed CC0 1.0 Universal (public domain dedication). No attribution required.
-Downloaded 2026-09-08 at 2K JPG. Sets: Asphalt025C, Concrete031/036/046/048,
+Downloaded 2026-09-08 at 2K JPG, plus Tiles036 and Tiles133B added 2026-09-09
+for the F1 kit. Sets: Asphalt025C, Concrete031/036/046/048,
 Metal009/032, MetalPlates001, PaintedPlaster017, Plaster007, Rubber004,
-TactilePaving004/005, Tiles107/133A/140/141, plus decal source textures
+TactilePaving004/005, Tiles036/107/133A/133B/140/141, plus decal source textures
 Rust001 and SurfaceImperfections001/011/013 (imported as textures only, no MI:
 they are opacity-masked stains and need a decal/translucent parent material).
 
 M_LT_PBRSurface is the shared master (BaseColor/Normal/Roughness/AO/Metalness +
 Tiling, Tint, Desaturation, RoughnessMin/Max, MetalScale params). One MI_<Set>
 per tiling set is parented to it.
+
+F1 hero tile pair (added 2026-09-09): Tiles036 is the clean white subway tile
+and Tiles133B is the dirty half of the same white family, so the two blend
+without a hue shift. Both are the pair named in
+docs/reference/asset-sources-phase-f.md. Tiles036 ships no AO map, so
+MI_Tiles036 leaves the AO parameter at the master default.
