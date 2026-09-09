@@ -2,9 +2,10 @@
 
 The layout sketch for the Phase D grey box blockout of Canary Wharf. This is a
 sketch to block out geometry against, not an authoring format for a generator.
-It follows the same tile legend the discarded web build used
-(`web/src/data/legend.ts`) so the vocabulary is shared and the debug yard grid
-(`web/src/data/stations/debug-yard.ts`) reads as a sibling.
+It follows the same tile legend the discarded web build used, so the vocabulary
+is shared. That build's source is at the `phase-03` tag (`legend.ts` and
+`stations/debug-yard.ts`); nothing here depends on reading it, because the
+legend and every constant are restated in full below.
 
 Station facts, from `docs/brief-v2.md`: Canary Wharf, tier 4, mechanics `flood`
 and `interchange`. The reference frame `docs/reference/reference-frame.png` and

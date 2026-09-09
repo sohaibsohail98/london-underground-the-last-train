@@ -19,12 +19,13 @@ Content/                Unreal assets, Git LFS, see Content/README.md
 Config/                 Engine and project configuration
 docs/                   Briefs, plan, design canon, art direction, setup
 tools/ci/               Static checks run by CI
-web/                    Discarded Three.js build, tagged phase-03, not part of this work
+tools/asset-fetch/      Stages the Phase F asset list into _incoming_assets/
 ```
 
-The Unreal target is the project. `web/` is the earlier browser build, kept on
-`main` under the `phase-03` tag as a historical reference and a last-resort
-fallback, and is not developed.
+The Unreal target is the project. An earlier Three.js browser build was removed
+from the tree on 2026-09-09; it is preserved at the `phase-03` tag as a
+historical reference and is not developed. Note that a fresh clone may not fetch
+tags: check with `git ls-remote --tags origin`, not `git tag -l`.
 
 ## Running the Unreal target
 

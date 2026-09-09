@@ -52,8 +52,8 @@ the train, the departure board, travel between two stations, the five zombie
 types and the special rounds, plus the downed state from Phase E. None of it has
 Blueprints or data assets yet, so in the editor the game still plays as the Phase
 B grey box until `docs/tasks/neostack.md` section "Phase C, editor assets"
-is worked through. There are no perks. `web/` is the discarded Three.js build,
-tagged `phase-03`, not part of this work.
+is worked through. There are no perks. The discarded Three.js build was removed
+from the tree on 2026-09-09 and lives at the `phase-03` tag.
 
 ## Conventions, enforced by `tools/ci/`
 

@@ -8,8 +8,8 @@ Status of the earlier documents:
 - `brief-v2.md` - superseded for engine, renderer and camera. Still
   authoritative for the round loop, the train mechanic, station tiering, the
   mechanic library, the economy and the legal constraints.
-- `phase-1-plan.md`. Removed. It described a Three.js render graph and the
-  `web/` tree is the record of that build.
+- `phase-1-plan.md`. Removed. It described a Three.js render graph, and that
+  build's source is at the `phase-03` tag.
 - The `00` to `08` series in Project Knowledge. These were external Project
   Knowledge uploads and were never committed to this repo. They always assumed
   UE5 and first person, so their gameplay, art and testing guidance still

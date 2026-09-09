@@ -132,23 +132,20 @@ Both are stated in `docs/tasks/phase-g2-hud.md`:
 
 ## 3. Repo hygiene
 
-### 3.1 `web/` is a discarded build still in the tree
+### 3.1 The discarded web build was removed
 
-66 tracked files, 568K, the Three.js build that preceded the Unreal one.
-`CLAUDE.md` and `README.md` both describe it as discarded and "not part of this
-work", and `tools/ci/check_docs.py` explicitly skips it.
+Done 2026-09-09. The Three.js tree that preceded the Unreal build, 66 files and
+568K, is out of the working tree and preserved at the `phase-03` tag
+(`de99ed9`).
 
-**It is recoverable if removed:** the `phase-03` tag exists on the remote
-(`de99ed9`), verified. Note that a fresh clone may not fetch tags by default, so
-confirm with `git ls-remote --tags origin` rather than `git tag -l`.
+**Recovering it:** `git ls-remote --tags origin`, not `git tag -l`. A fresh
+clone may not fetch tags, which made the tag look missing during the survey.
 
-**One live dependency before it goes.** `docs/reference/canary-wharf-grid.md`
-lines 6 and 7 point at `web/src/data/legend.ts` and
-`web/src/data/stations/debug-yard.ts` for the shared grid vocabulary. Either
-inline what that doc needs, or reword the reference to point at the `phase-03`
-tag, before deleting the tree.
-
-Decision open. Not urgent: 568K of text costs nothing.
+`docs/reference/canary-wharf-grid.md` cited two files in that tree as the
+provenance of its tile legend. It restates the legend and every constant in full
+itself, so the citation was repointed at the tag and nothing was lost. `README.md`,
+`CLAUDE.md`, `docs/brief-v3-unreal.md` and the now-dead skip in
+`tools/ci/check_docs.py` were updated with it.
 
 ### 3.2 Dead references to retired task specs
 

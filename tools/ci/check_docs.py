@@ -7,8 +7,8 @@ cross references between files that go stale silently. This catches all of
 that without a human reading every diff.
 
 Scope: tracked .md and .json files under docs/, plus the top level CLAUDE.md
-and README.md. The discarded web/ tree and any vendored tool skills are out
-of scope. Only tracked files are checked, so this matches what CI sees.
+and README.md. Any vendored tool skill is out of scope. Only tracked files are
+checked, so this matches what CI sees.
 """
 
 from __future__ import annotations
@@ -19,8 +19,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-# Only our own documentation. Not web/ (discarded Three.js build), not any
-# vendored skill or agent directory.
+# Only our own documentation. Not any vendored skill or agent directory.
 INCLUDE_PREFIXES = ("docs/",)
 INCLUDE_EXACT = {"CLAUDE.md", "README.md", "Content/README.md", "Content/ATTRIBUTION.md"}
 
@@ -65,8 +64,6 @@ def tracked_files(suffix: str) -> list[str]:
     ).stdout.splitlines()
     kept = []
     for rel in out:
-        if rel.startswith("web/"):
-            continue
         if rel.startswith(INCLUDE_PREFIXES) or rel in INCLUDE_EXACT:
             kept.append(rel)
     return sorted(kept)
