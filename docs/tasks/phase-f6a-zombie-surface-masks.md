@@ -3,8 +3,11 @@
 Lane: Opus in the editor (CC-in-Unreal). No `Source/` change. Depends on: nothing.
 UE 5.8.
 
-Two bounded steps. **Step 1 is the task. Stop after it and look at the result
-before starting step 2.** Step 2 is a separate request.
+Two steps, with a **verification gate** between them rather than a session
+break. Both can be done in one sitting. What must not be skipped is the check at
+the end of 1.3: this subsystem has failed silently twice, in S9 and again in F2,
+and both times it looked like success until somebody read a specific number. Do
+not build step 2 on an uncompiled material.
 
 Read `tools/zombie-surfaces/README.md` first, in particular the "Unreal import
 settings" and the trap at the end of it. Read `docs/known-issues.md` 2.7 before
@@ -121,7 +124,8 @@ manifest records it per entry:
 | `MI_Zombie_Screamer` | `T_ZombieSurface_drenched_02` |
 
 That gives five distinct looks with no Blueprint work, which is enough to prove
-the whole path end to end. Per instance variation inside a type is step 2.
+the whole path end to end. Getting the other three masks in play, so two walkers
+differ, is step 2.
 
 ## Rules
 
@@ -149,22 +153,33 @@ the whole path end to end. Per instance variation inside a type is step 2.
 - Map Check 0 errors, 0 warnings, ignoring the stock "Maps need lighting rebuilt".
 - Note the frame cost with 24 to 40 alive for F7, if it is measurable.
 
-## Step 2, a separate request: per instance variation
+## Step 2: variation inside a type
 
-Only once step 1 looks right. Currently every walker shares one mask because the
-mask lives on a shared material instance. To vary within a type:
+Only once the material statistic in 1.3 is non zero. After step 1 every walker
+still shares one mask, because the mask lives on a material instance shared by
+all walkers.
 
-1. Add to `BP_Zombie` an array of soft texture references per type, or one array
-   with a type tag, filled from the manifest's `types` field.
-2. On spawn, after the existing type material swap, call
-   `CreateDynamicMaterialInstance` on the mesh and
-   `SetTextureParameterValue("SurfaceMask", <picked texture>)`.
+**Do this with more static material instances, not with a dynamic one.**
+`ALTZombieCharacter` already swaps a material per type on spawn, so picking from
+a wider set of pre made instances is the same single `SetMaterial` you already
+pay for: no allocation per zombie, no `CreateDynamicMaterialInstance`, no new
+runtime cost at all. A dynamic material instance per zombie would buy nothing
+here and cost an allocation on every spawn.
+
+1. Author three more instances of `M_Zombie_Tintable` so all eight masks are in
+   play, each carrying its own `SurfaceMask` and inheriting the tint of the type
+   it serves: `MI_Zombie_Walker_B` (`worn_02`), `MI_Zombie_Walker_C`
+   (`soaked_01`), `MI_Zombie_Crawler_B` (`filthy_02`). Walker and crawler get
+   the extra coverage because the walker is most of the horde and the crawler is
+   the other type with two masks assigned to it in the data.
+2. In `BP_Zombie`, hold a small array of instances per type and pick one on
+   spawn, after the existing type swap so it is not overwritten.
 3. Pick deterministically from the actor's own identity rather than from a raw
    random, so a replay looks the same.
 
-Cost to check in F7: a dynamic material instance per zombie is not free at 40
-alive. If it profiles badly, the fallback is 3 static instances per type instead
-of one, which needs no Blueprint change at all.
+Nothing here needs profiling, which is the other reason to prefer it: F7 has no
+frame rate baseline at all (`known-issues.md` 2.8), so a change with a runtime
+cost could not be measured against anything even if you wanted to.
 
 The 4 wound decals are not wired by either step. `M_LT_ZombieWound` exists,
 compiles, and is attached to nothing. Hand placed wound decals are their own
