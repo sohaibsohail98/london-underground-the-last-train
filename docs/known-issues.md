@@ -72,9 +72,11 @@ run, and graceful failure against the blocked proxy** and nothing else.
 
 Specifically unproven:
 
-- The ambientCG zip URL shape `https://ambientcg.com/get?file=<ID>_2K-JPG.zip`.
-  There is a fallback through the documented v2 CSV API, and that is unproven
-  too.
+- ~~The ambientCG zip URL shape `https://ambientcg.com/get?file=<ID>_2K-JPG.zip`.~~
+  **Confirmed working 2026-09-09 during F1.** `Tiles036` and `Tiles133B` were
+  both fetched from the live host with exactly that URL shape, HTTP 200 and
+  about 14 MB each. The v2 CSV API fallback is still unproven, and has not been
+  needed.
 - Whether all 36 ambientCG asset IDs resolve. `TactilePaving003`, `004` and
   `005` were **inferred from the family naming pattern**, not seen.
 - The Poly Haven API response shape the script parses, and whether all 22 slugs
@@ -105,7 +107,29 @@ attached to the Class 345 drawings, which nobody has read.
 
 None is likely to be a problem. All four need eyes before the file is staged.
 
-### 2.4 `docs/art-direction.md` section 7 is stale
+### 2.4 Two NeoStack geometry-scripting traps, found in F1
+
+Both were hit, diagnosed and worked around during F1 on 2026-09-09. They are
+recorded here because they are properties of the tooling, not of this map, and
+the next kit or prop task will hit them again.
+
+- **`geometry_uvs(mode="recompute")` destroys usable UVs.** It returns success
+  and the built asset still reports `uv_channels = 1`, but every surface
+  renders flat and untextured. `geometry_create` already emits good UVs, so the
+  fix is simply not to call it. Proved by A/B test: a raw `geometry_create` box
+  and an `/Engine/BasicShapes/Cube` both textured correctly under the same
+  material instance while the recomputed kit panel did not.
+- **Geometry-scripted static meshes ship with zero collision shapes.** With the
+  default `SimpleAndComplex` trace flag that makes them invisible to navmesh
+  generation, so a map built from them is entirely unwalkable and no spawn
+  point can path anywhere. Add simple box collision per piece, or set
+  `CTF_UseComplexAsSimple` where a bounding box would seal an opening (the
+  tunnel portal) or flatten a walkable profile (the stair run, the platform
+  edge).
+
+Neither is a NeoStack bug report yet: no minimal reproduction has been filed.
+
+### 2.5 `docs/art-direction.md` section 7 is stale
 
 It says Overpass "is not present in the project or the engine". The OFL faces
 were imported in the S9 haul and are in `Content/LastTrain/UI/Fonts/`
@@ -115,7 +139,7 @@ were imported in the S9 haul and are in `Content/LastTrain/UI/Fonts/`
 Fixing it is in the accept list of `docs/tasks/phase-g2-hud.md`, so it closes
 with G2. Flagged here in case anything reads section 7 before then.
 
-### 2.5 Two owner decisions are blocking nothing yet, but will
+### 2.6 Two owner decisions are blocking nothing yet, but will
 
 Both are stated in `docs/tasks/phase-g2-hud.md`:
 

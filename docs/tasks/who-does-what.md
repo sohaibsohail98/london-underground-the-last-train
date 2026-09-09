@@ -87,9 +87,9 @@ Web search still works, so the research is real. The lane is therefore:
 | 1 | S13 main menu | CC-in-Unreal | in flight |
 | 2 | F5 fix S11 signage (readable, sodium, cookable) | CC-in-Unreal | queued |
 | 3 | asset research for F1/F3/menu | Remote | **done 2026-09-09.** Result is `docs/reference/asset-sources-phase-f.md` plus `tools/asset-fetch/fetch-phase-f.sh`. Nothing downloaded: the remote container cannot reach any asset host, and `_incoming_assets/` would not survive it anyway. Run the script here. |
-| 4 | F1 modular kit | CC-in-Unreal | queued, needs nothing |
-| 5 | F2 lighting + atmosphere | CC-in-Unreal (Fable guidance) | needs F1 |
-| 6 | F3 train exterior | CC-in-Unreal | needs F1 |
+| 4 | F1 modular kit | CC-in-Unreal | **done for Canary Wharf 2026-09-09** (`a0fcdba`, `47f4bac`). 12 kit meshes, the shell rebuilt, navmesh and a PIE round verified. `L_GreyboxTest` still on Phase B cubes. |
+| 5 | F2 lighting + atmosphere | CC-in-Unreal (Fable guidance) | **unblocked.** F1 left the hall badly blown out against the new near-white tile, so exposure and the sodium balance are the first job. `r.Shadow.Virtual.Enable` is already on. |
+| 6 | F3 train exterior | CC-in-Unreal | **unblocked.** The train is currently two scaled kit panels standing in. |
 | 7 | F4 train interior | CC-in-Unreal | needs F3 |
 | 8 | F6 zombie bodies | CC-in-Unreal | do after F1 |
 | 9 | F7 perf pass | CC-in-Unreal (Fable guidance) | needs F1 to F6 |
