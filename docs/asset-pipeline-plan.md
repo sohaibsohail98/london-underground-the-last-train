@@ -300,7 +300,8 @@ is the gap and not the list.
 | Base zombie body | SOURCEABLE | City Sample Crowds is local and gitignored; MetaHuman is the fallback. F6's spec already chooses this |
 | Garments and wardrobe | SOURCEABLE | Buying beats scripting, decisively |
 | Body variation, the seeded wardrobe combination | AUTHORABLE **only once a wardrobe exists** | Gated on a purchase or download, so it cannot be a first track |
-| The five type reads, armour plate, brute bulk, screamer silhouette | HANDMADE | Silhouette judgement, and the C++ already carries the mechanics |
+| The armour type's visible plate | AUTHORABLE | **Corrected 2026-09-09.** This row originally filed the plate as HANDMADE with the other two type reads. That was wrong: a strapped chest plate is industrial hard surface geometry, which is scriptable, and F6 records that the armour type has no plate at all today. It needs Quinn's proportions measured in the editor before it can be fitted, so it is gated on one measurement rather than on a purchase |
+| The brute's bulk and the screamer's silhouette | HANDMADE | Body shape changes, so silhouette judgement. The C++ already carries the mechanics |
 | Shamble and lunge animation set | SOURCEABLE then HANDMADE | `ULTZombieTypeData::AnimPlayRate` is plumbed in C++ and the stock ABP does not read it. That is an animation blueprint job |
 | Player hands and view model | SOURCEABLE | |
 
@@ -315,7 +316,7 @@ ours, and those are a data decision, not an asset.
 
 | Asset | Class | Note |
 |---|---|---|
-| Grime, water staining, scuffs, salt bloom, rust runs as greyscale masks | AUTHORABLE | Cheap to generate, tedious to source consistently, and they carry the wet lived-in look the art direction asks for |
+| Grime, water staining, scuffs, salt bloom, rust runs as greyscale masks | AUTHORABLE | Cheap to generate, tedious to source consistently, and they carry the wet lived-in look the art direction asks for. The zombie facing half of this is **built**: see `tools/zombie-surfaces/` |
 | Blood pools and drips | AUTHORABLE | A fluid boundary is a solvable procedural problem |
 | Hero gore spatter | HANDMADE | Directional spatter that reads as an impact is a judgement call, and `art-direction.md` section 6 asks for restraint and high-value moments, which is the opposite of a generated set |
 | Chewing gum discs, tyre marks, painted floor markings | AUTHORABLE | The floor markings are typography, so they come from the identity system |
@@ -461,7 +462,16 @@ lore lives.
 newspaper faces. Same machinery as track 3 with different templates, so it is
 **small** once track 3 exists and should reuse its renderer rather than fork it.
 
-**Track 5: decal masks.** Emits greyscale and packed masks for grime, water
+**Track 5: decal masks. Partly built.** The zombie facing subset shipped on
+2026-09-09 as `tools/zombie-surfaces/`: three tiling body masks packed one per
+channel, four wound decals, a manifest carrying the UE 5.8 import settings, a
+contact sheet, 33 assertions and a CI job. It was built ahead of the
+recommended first track at the owner's request. What it proved is in section 8.
+The environment facing masks, the ones for platform surfaces rather than
+bodies, are still to do and should reuse its `noise` module rather than fork
+it.
+
+Emits greyscale and packed masks for grime, water
 staining, scuffs, rust runs, gum, blood pools. Reads a generator parameter data
 file per mask family. Validated by asserting histogram properties, mean and
 variance inside a declared band, tileability where declared (the wrap seam
@@ -803,3 +813,44 @@ I did not verify that UE 5.8's Interchange glTF importer handles a `bpy` 5.0
 export with the collision and Nanite settings this plan assumes. That needs the
 editor, so it is a CC-in-Unreal check, and it should happen before track 7
 rather than before track 2.
+
+---
+
+## 8. What the first built track proved
+
+`tools/zombie-surfaces/` was built on 2026-09-09, out of the recommended order,
+to test whether any of this is real before more of it is planned. Six findings
+worth carrying into every later track.
+
+1. **The contact sheet is not a nicety, it is the only quality gate.** Two
+   defects passed every numeric assertion and were caught only by looking:
+   blood masks that were nearly empty, and grime masks that read as bubble
+   wrap. Both needed a generator rewrite, not a parameter tweak. Any track
+   without a review image is a track whose output nobody has judged.
+2. **Coverage must be set by parameters and clipped, never rescaled.** Two
+   separate bugs had the same root cause: a field was normalised or remapped
+   into a fixed band, which made its level depend on whatever the brightest
+   pixel happened to be, collapsed it to near zero, and made the coverage
+   assertion meaningless because it measured a rescaled field.
+3. **The obvious tileability test does not work.** Comparing the mean seam step
+   to the mean interior step fails on sparse masks: the interior mean is
+   diluted by empty area, so a perfectly tiling blood mask scored 3.1 while a
+   genuinely non tiling crop scored 2.9. Comparing the seam against the two
+   steps immediately either side of it cancels content density and separates
+   real from broken by a wide margin. The reasoning is in
+   `tools/zombie-surfaces/tests/assertions.py`.
+4. **An assertion suite has to include a test that the assertions bite.** The
+   seam suite deliberately feeds itself a field that cannot tile and requires
+   it to fail. Without that, a bug making everything trivially pass would look
+   like success.
+5. **Determinism needs an integer hash, not a seeded generator.** numpy's PCG64
+   stream is stable in practice but is not a documented file format. Arithmetic
+   cannot drift. Related: the manifest carries no timestamp, because the
+   manifest is the file most worth checking for reproducibility.
+6. **The output cannot be committed yet, and that is a real blocker rather than
+   a preference.** The remote container has no `git-lfs` binary, so a committed
+   PNG would go into the pack as a raw blob. Combined with section 1.5, that
+   makes owner decision 3 a prerequisite for any track that ships images, not a
+   tidy up. Until it is settled, a track delivers the generator and the output
+   is regenerated where it is needed, which is safe because the output is
+   deterministic.
