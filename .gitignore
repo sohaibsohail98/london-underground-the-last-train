@@ -3,6 +3,10 @@ Binaries/
 DerivedDataCache/
 Intermediate/
 Saved/
+# UAT BuildCookRun scaffolding (PackageVersionCounter, FileOpenOrder logs,
+# entitlements and Info.plist templates it copies from the engine). Regenerated
+# every packaged build; nothing hand authored lives here.
+Build/
 
 # Third party editor plugin, fetched from Fab, not ours to redistribute
 Plugins/NeoStackAI/
