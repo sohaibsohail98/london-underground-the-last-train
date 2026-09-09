@@ -174,11 +174,16 @@ the graph looks like.
 `execute_script` payload that builds the graph. Build, save, then compile in a
 separate call, and verify the statistic before wiring the material to anything.
 
-The broken asset is still on disk at
-`Content/LastTrain/Materials/Dressing/M_LT_PlatformWet.uasset`, **untracked and
-deliberately not committed**. `delete_asset` refuses it because it is held in
-memory (see the same trap in the F5 row of `handover.md`). Delete it from disk
-after an editor restart.
+**Closed 2026-09-09 by F3.** The broken asset was deleted from disk as F3's
+first editor action on a fresh editor start, exactly as prescribed, and the
+working tree was clean afterwards. The trap itself stands: `delete_asset`
+refuses an asset held in memory, so a dead material still has to be removed
+from disk after an editor restart.
+
+F3 authored one new master, `M_LT_TrainEmissive`, to this procedure and it
+reports **96** pixel-shader instructions. Its eight sibling livery materials
+avoided the risk entirely by instancing the already-proven `M_LT_PBRSurface`
+(379), which is the cheaper move whenever an existing master will do.
 
 ### 2.8 No frame-rate baseline exists for Phase F
 
@@ -197,6 +202,33 @@ screenshot path, so the overlay cannot be read back either.
 **Owner: F7.** Measure with the editor focused, from the reference camera, with
 a round running. Until then Phase F has no perf number and nothing should claim
 one.
+
+
+### 2.9 Three geometry-scripting traps F3 hit
+
+Found in F3 on 2026-09-09, building the train exterior. All three cost real time
+and none is obvious from `help()`.
+
+**Primitive origin and cumulative transforms.** `geometry_create` boxes are
+centred in x and y but sit **on** z=0, base at the origin, not centred. And
+`geometry_transform` translate is **relative and cumulative**, so applying an
+absolute-looking offset to an already-placed mesh moves it again. Getting both
+wrong at once silently put a body section 168 uu too high.
+
+**A recessed opening shows nothing behind it.** The first train body recessed
+the window band 10 uu into the skin instead of cutting through, so the lit
+interior behind it was invisible and the cause was not obvious from any query:
+the mesh reported closed, 1 component, correct bounds. If something must be seen
+through, the cut tool has to be **thicker than the wall**. When it is, the
+collision then has to be **two side-wall boxes rather than one body box**, or
+the aperture is sealed to the player even though it renders as open.
+
+**A geometry rebuild drops the material slot.** Re-saving a mesh through
+`geometry_boolean` leaves it with zero material slots, and
+`configure("material", 0, ...)` then fails with "index out of range". The slot
+has to be created by writing `static_materials` through Python first; only then
+does the Lua `configure` path work. This is the same family as the F1 finding
+that geometry-scripted meshes ship with **zero collision shapes**.
 
 ---
 
