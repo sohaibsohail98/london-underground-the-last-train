@@ -46,3 +46,23 @@ Legal. Original design language throughout. No roundel, no Johnston or New
 Johnston, no operator livery. Panel proportions, mounting heights, tactile
 paving patterns and tunnel ring spacing are factual station architecture and
 are fair game per docs/reference/reference-frame-notes.md section 3.
+
+Two authoring traps, both hit and fixed during F1
+-------------------------------------------------
+1. Do NOT call geometry_uvs(mode="recompute") on these meshes. geometry_create
+   already produces usable UVs; the recompute reports success, leaves
+   uv_channels at 1, and yet renders every surface flat and untextured. It was
+   proved by an A/B test: a raw geometry_create box and an engine cube both
+   textured correctly with the same material instance while the recomputed kit
+   panel did not. Every piece here is built without that call.
+
+2. Geometry-scripted meshes ship with ZERO collision shapes, so they are
+   invisible to navmesh generation. Left unfixed the whole station is
+   unwalkable and no spawn point can path anywhere. Each piece therefore gets
+   simple box collision, except the tunnel portal, the stair run and the
+   platform edge, which use CTF_UseComplexAsSimple so the arch stays open, the
+   treads stay climbable and the fall to track level is real.
+
+Verified after both fixes: all 10 Canary Wharf spawn points return a complete,
+non-partial navmesh path to the player start, and a PIE round shows a zombie
+crossing the platform and reaching the player.
