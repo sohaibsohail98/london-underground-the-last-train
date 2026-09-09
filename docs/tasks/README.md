@@ -12,6 +12,9 @@ fictional line is a fictionalised Crossrail-scale line (main-line loading
 gauge, modelled on the Elizabeth line, NOT a deep-level tube); the train is a
 Class 345 "Aventra" silhouette. See `docs/brief-v3-unreal.md` Part 1.
 
+**Open problems:** `../known-issues.md`. Environment limits, unverified work,
+the open legal flags on the Phase F assets, and repo hygiene.
+
 **Who runs what:** `who-does-what.md`. Three sessions (terminal, CC-in-Unreal,
 remote), only CC-in-Unreal can drive the editor.
 

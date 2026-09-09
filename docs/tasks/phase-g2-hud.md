@@ -272,6 +272,9 @@ repo's rule is that C++ is compiled before it is trusted and the remote session
 cannot compile, so it is proposed here rather than written. Take it or leave it
 when G3 touches the weapon numbers.
 
+The two owner decisions above are tracked as item 2.5 in
+`docs/known-issues.md`.
+
 ## Accept
 
 - Play a full run in `L_CanaryWharf_Greybox` reading only the HUD: you can tell

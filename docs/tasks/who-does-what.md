@@ -16,6 +16,9 @@ MCP connection at a time. Everything editor-shaped funnels through it.
 
 ## Hard rules (all sessions)
 
+- **Read `docs/known-issues.md` first.** It carries what each lane cannot do,
+  what is committed but unverified, and the open legal flags. Update it when
+  an issue opens or closes.
 - **British spelling** everywhere. **No em or en dashes** in source or docs.
 - Palette is fixed: `#16161C` `#6C4C9C` `#E0A030` `#B02030`.
 - Legal constraints in `CLAUDE.md` are non negotiable: no roundel, no Johnston,

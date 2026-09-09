@@ -99,6 +99,9 @@ original work. Palette: `#16161C` charcoal, `#6C4C9C` violet, `#E0A030` sodium,
   the 167-item open-questions sweep, which is in git history at commit `0b7e35f`.
 - `docs/art-direction.md` - palette, composition, trademark substitutions.
 - `docs/unreal-setup.md` - the editor steps the C++ cannot do for itself.
+- `docs/known-issues.md` - open problems, what the remote session cannot do,
+  unverified work and repo hygiene. Read it before trusting anything marked
+  unverified, and update it whenever an issue opens or closes.
 - `docs/tasks/` - one bounded task spec per file. Point a fresh session at the
   relevant one rather than re typing the spec. `docs/tasks/handover.md` is the
   resume point and `docs/tasks/neostack.md` is every outstanding editor task.

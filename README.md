@@ -31,8 +31,10 @@ fallback, and is not developed.
 Unreal Engine 5.8, macOS. The `LastTrain` C++ module compiles with the batch
 build in `CLAUDE.md` (external Xcode on `/Volumes/DriveSohaib` must be mounted).
 The editor assets for the first playable grey box are built; follow
-`docs/unreal-setup.md` and `docs/tasks/phase-a4-editor-setup.md` for how they
-were made and `docs/tasks/handover.md` for where the work stands.
+`docs/unreal-setup.md` for how they were made and `docs/tasks/handover.md` for
+where the work stands. The task spec that drove that build,
+`phase-a4-editor-setup.md`, was retired once it was done and is in git history at
+commit `bcd947a`.
 
 ## Checks
 
@@ -99,6 +101,7 @@ session is `docs/tasks/handover.md`.
 - `docs/art-direction.md` - palette, composition, and the trademark substitutions
 - `docs/unreal-setup.md` - editor steps the source cannot do for you
 - `docs/reference/` - the reference frame, its notes, and the Canary Wharf research
+- `docs/known-issues.md` - open problems, unverified work, and what the remote session cannot do
 - `Content/ATTRIBUTION.md` - provenance and licence for every imported asset
 
 ## Licence

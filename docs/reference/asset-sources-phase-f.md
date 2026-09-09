@@ -744,6 +744,9 @@ Two licence positions to decide rather than inspect:
 
 ## 7. What this research could not settle
 
+Tracked as items 2.1 to 2.3 in `docs/known-issues.md`, which is the register to
+update as these close.
+
 Beyond the per-item flags above:
 
 - **Every download URL is unverified**, because nothing could be fetched. Both
