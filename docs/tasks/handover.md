@@ -514,6 +514,36 @@ design call.
   crimson. No roundel, no Johnston, no official line diagram, no operator livery,
   no Call of Duty names.
 
+## Free assets: first haul landed, 2026-09-09
+
+The first third party art actually in the tree, rather than on a shopping list.
+
+- `SourceArt/ThirdParty/SStock/` holds a CC-BY-4.0 sub-surface stock carriage,
+  579,544 triangles, one 7.92 second sliding door animation on six nodes. It was
+  de-branded before commit: the operator station mark and a door warning panel
+  set in the corporate typeface were stripped, and the two materials that used
+  them reset to flat grey placeholders.
+- **It is not the F3 vehicle.** F3 and `rolling-stock.md` settled on a Class 345
+  Aventra silhouette, and this is a shorter, wider, differently fronted train.
+  Treat it as proportion reference, a kitbash base and a platform blockout. The
+  README in that folder has the measured numbers against the F3 target.
+- The nearest thing to immediate value is the door clip. `ALTTrain` has dwell
+  presentation hooks with nothing attached; splitting that clip into open and
+  shut sections gives them something to drive, and the wiring survives whatever
+  mesh eventually replaces the blockout.
+- `tools/asset-fetch/clean-sstock.py` reproduces the de-branding from a fresh
+  Sketchfab download, deterministically.
+- `docs/reference/tfl-dimensional-reference.md` is new: panel sizes, cap
+  heights, corner radii, mounting heights, materials and the legibility rule,
+  extracted from published operator standards for the F5 signage work. The
+  source PDFs are deliberately not committed.
+- `docs/reference/rejected-assets.md` is new: what was inspected and kept out. A
+  Johnston revival font was rejected there, verified from the diamond tittle in
+  its own outlines. Read it before adding a typeface.
+
+Open, for the machine with `git-lfs`: `SourceArt/` is committed raw, see
+`known-issues.md` 3.5.
+
 ## The docs a fresh session needs
 
 - **This file** - the resume point.
@@ -525,3 +555,7 @@ design call.
 - `docs/design/gameplay-canon.md` - the settled design, coded values marked
   authoritative.
 - `CLAUDE.md` - conventions, module layout, legal constraints, the model split.
+- `docs/reference/free-assets.md` - what may be committed and what must be
+  fetched, plus what has actually landed.
+- `docs/reference/rejected-assets.md` - what was inspected and kept out, and the
+  three questions every incoming asset has to answer.

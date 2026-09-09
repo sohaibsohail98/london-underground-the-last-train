@@ -29,6 +29,13 @@ Web search still works. So the remote lane can **research** assets and cannot
 **Consequence for task specs:** never ask the remote session to fetch, stage or
 download a file. Ask it for a manifest, and run the fetch here.
 
+**One route around this, proven 2026-09-09.** Files attached to the session
+prompt arrive inside the container without touching the network. The S Stock
+carriage at `SourceArt/ThirdParty/SStock/` got in that way: downloaded on the
+human's machine, attached to the request, processed and committed remotely. So
+for anything small enough to attach and permissively enough licensed to commit,
+the remote lane can do the whole job. It still cannot go and get it.
+
 ### 1.2 Nothing staged in the remote container can reach this machine
 
 `_incoming_assets/` is gitignored (`.gitignore` line 80), committing assets is
@@ -37,6 +44,12 @@ remote session downloads has no route out **even if 1.1 were fixed.**
 
 This is the more fundamental of the two, and it applies to any gitignored
 output, not just assets.
+
+**Unless the asset can be committed**, which is the exception the S Stock proved.
+CC0, CC-BY and MIT assets go in `SourceArt/` and travel out on the branch like
+any other file. The blocked case is specifically UE-Only and Fab Standard
+content, which cannot be committed at all, and anything too large to be worth
+carrying in git.
 
 ### 1.3 No compile
 
@@ -191,3 +204,18 @@ referenced by nothing, was removed 2026-09-09.
 Worth deciding, low priority: move `*.png` onto the LFS filter like `*.tga` and
 `*.exr`, or accept the 2.3 MB. Moving it rewrites nothing already committed, so
 the existing blob stays in history either way.
+
+### 3.5 SourceArt is committed raw, not through LFS
+
+`SourceArt/ThirdParty/SStock/scene.bin` is 24.7 MB and goes into the pack as a
+raw blob, as does the 271 KB PNG beside it. Neither `*.bin` nor `*.gltf` is on
+an LFS filter, and `*.png` is not either, per 3.4.
+
+It compresses to about 8 MB in the object store, so it is tolerable for one
+hero asset and was committed rather than blocked on tooling: the remote
+container has no `git-lfs` binary, so a session there cannot add a path to the
+LFS filter and then commit through it without writing a broken pointer.
+
+Worth doing on the machine that has `git-lfs`, before `SourceArt/` grows: put
+`*.bin` and `*.gltf` under the LFS filter and migrate what is there. Low
+priority at one asset, rising with each one added.

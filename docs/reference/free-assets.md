@@ -31,6 +31,35 @@ that folder to `.gitignore` before committing anything.
 Our own assets stay under `Content/LastTrain/` and are committed via Git LFS as
 `.gitattributes` already sets up.
 
+## What is actually committed, as of 2026-09-09
+
+The two filters above turn most of this list into a fetch instruction rather
+than a file. A few things pass both, and those live in `SourceArt/`, which is
+pre-import art in its original format with the licence beside it. Read
+`../../SourceArt/README.md` for what may and may not go there.
+
+| Asset | Where | Licence | State |
+|---|---|---|---|
+| S Stock carriage, 579,544 triangles, animated doors | `SourceArt/ThirdParty/SStock/` | CC-BY-4.0, credit required | De-branded and committed. Not yet imported. **Not the F3 vehicle:** it is sub surface stock, not the Class 345 silhouette the design settled on. Proportion reference, kitbash base and platform blockout. |
+
+Two companion documents came out of the same pass:
+
+- `tfl-dimensional-reference.md`, the measurements half of station signage:
+  panel sizes, cap heights, corner radii, mounting heights, materials, and the
+  legibility rule that sets minimum text size from viewing distance. Extracted
+  from published operator standards, which are not themselves committed.
+- `rejected-assets.md`, what was inspected and kept out, and why. Read it before
+  adding a font.
+
+## Also read
+
+- `free-asset-sourcing-guide.md`, outside research handed to the project on
+  2026-09-09. Stronger than this file on specific named items, weaker on
+  licensing, and it does not apply either of the two filters above. Leads, not
+  verdicts.
+- `asset-sources-phase-f.md`, the per task Phase F sweep with download URL
+  patterns for the fetch script.
+
 ## If you only fetch five things
 
 | # | Asset | Source | Licence | For |

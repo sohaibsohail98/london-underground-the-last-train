@@ -21,7 +21,10 @@ from pathlib import Path
 
 # Only our own documentation. Not any vendored skill or agent directory.
 INCLUDE_PREFIXES = ("docs/",)
-INCLUDE_EXACT = {"CLAUDE.md", "README.md", "Content/README.md", "Content/ATTRIBUTION.md"}
+INCLUDE_EXACT = {
+    "CLAUDE.md", "README.md", "Content/README.md", "Content/ATTRIBUTION.md",
+    "SourceArt/README.md", "SourceArt/ThirdParty/SStock/README.md",
+}
 
 US_SPELLING = re.compile(
     r"(?<![A-Za-z])("

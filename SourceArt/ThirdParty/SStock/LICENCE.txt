@@ -1,0 +1,54 @@
+Bombardier S Stock London Underground
+=====================================
+
+Source model
+------------
+
+Title:   Bombardier S Stock London Underground
+Author:  timblewee (https://sketchfab.com/timblewee)
+Source:  https://sketchfab.com/3d-models/bombardier-s-stock-london-underground-a6718eff2dc843c48fd54376b4c70b06
+Licence: CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+
+Required credit, reproduced verbatim from the download
+------------------------------------------------------
+
+This work is based on "Bombardier S Stock London Underground"
+(https://sketchfab.com/3d-models/bombardier-s-stock-london-underground-a6718eff2dc843c48fd54376b4c70b06)
+by timblewee (https://sketchfab.com/timblewee) licensed under CC-BY-4.0
+(http://creativecommons.org/licenses/by/4.0/)
+
+This credit must appear in the game credits and anywhere the model or a
+derivative of it is shared. Commercial use is permitted by the licence.
+
+Changes made to the source, as CC-BY-4.0 requires be stated
+------------------------------------------------------------
+
+What sits in this folder is NOT the untouched Sketchfab download. It was
+processed by tools/asset-fetch/clean-sstock.py, which removed three texture
+files that this project's hard constraints forbid it from carrying:
+
+  textures/Underground_Logo_baseColor.png          removed
+  textures/Underground_Logo_metallicRoughness.png  removed
+  textures/Material.001_baseColor.png              removed
+
+The first two are the operator's registered station mark. The third is a door
+warning panel set in the operator's corporate typeface. Neither the mark nor
+that typeface may appear in this project in any form. See CLAUDE.md and
+docs/art-direction.md.
+
+The two materials that used them were emptied of every texture reference, set
+to flat neutral painted metal, and renamed:
+
+  Underground_Logo  ->  Station_Mark_Placeholder    (144 triangles)
+  Material.001      ->  Door_Warning_Placeholder    (24 triangles)
+
+No geometry was removed. The triangle count is unchanged at 579,544. The
+orphaned texture and sampler entries were dropped and all remaining indices
+remapped.
+
+textures/Electric_Warning_baseColor.png was kept. It is the generic electrical
+hazard triangle of BS EN ISO 7010 W012, carries no lettering and no mark, and
+belongs to no operator.
+
+Nothing else was altered. Re-running the script against a fresh download from
+the Sketchfab URL above reproduces this folder exactly.
