@@ -152,6 +152,52 @@ Both are stated in `docs/tasks/phase-g2-hud.md`:
   v1 ships two stations, and built as diegetic platform signage in F5 instead,
   where it also does the legal job of replacing the official line diagram.
 
+### 2.7 A material can be fully wired, save, and still not compile
+
+Found in F2 on 2026-09-09. `M_LT_PlatformWet` was authored through
+`MaterialEditingLibrary` with all four outputs connected and 31 nodes present,
+and `read_graph` plus `get_material_property_input_node` both reported it
+healthy. It rendered as an untextured default anyway.
+
+The cause: a `recompile_material` call **hit the NeoStack 60 second
+`execute_script` timeout mid-build** and left the material compiling to **0
+pixel-shader instructions**. The symptom that identified it was setting a
+deliberately near-black tint on the instance and seeing **no change at all** in
+the render.
+
+**The check:** `unreal.MaterialEditingLibrary.get_statistics(mat)` and read
+`num_pixel_shader_instructions`. A healthy comparable material,
+`M_LT_PBRSurface`, reports 379. Zero means the shader does not exist, whatever
+the graph looks like.
+
+**Consequence for authoring:** do not call `recompile_material` in the same
+`execute_script` payload that builds the graph. Build, save, then compile in a
+separate call, and verify the statistic before wiring the material to anything.
+
+The broken asset is still on disk at
+`Content/LastTrain/Materials/Dressing/M_LT_PlatformWet.uasset`, **untracked and
+deliberately not committed**. `delete_asset` refuses it because it is held in
+memory (see the same trap in the F5 row of `handover.md`). Delete it from disk
+after an editor restart.
+
+### 2.8 No frame-rate baseline exists for Phase F
+
+F2 was asked for a rough fps figure at the reference camera and **could not
+produce a trustworthy one, so none is recorded.** Guessing was not an option and
+a wrong baseline is worse than none.
+
+In PIE driven over the MCP bridge the world delta reported to Blueprint pins to
+a dead-flat `0.33333 s`, which is exactly 3 fps. Neither `t.MaxFPS 0` nor
+`r.Editor.ThrottleCPUWhenNotForeground 0` shifts it. But game real-time advances
+`8.001 s` over an `8.0 s` wall-clock wait, so **the game clock is running at true
+speed and it is the smoothed delta that is capped**, not the renderer. `stat
+unit` and `stat fps` do not render into either the level-viewport or the PIE
+screenshot path, so the overlay cannot be read back either.
+
+**Owner: F7.** Measure with the editor focused, from the reference camera, with
+a round running. Until then Phase F has no perf number and nothing should claim
+one.
+
 ---
 
 ## 3. Repo hygiene
