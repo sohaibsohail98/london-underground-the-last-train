@@ -78,3 +78,6 @@ ios/
 
 # Subagent asset research staging - triage into Content/ or delete, never commit raw
 /_incoming_assets/
+
+# ego-browser skill install lockfile (local asset-research tool, not game code)
+skills-lock.json
