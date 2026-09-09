@@ -51,7 +51,8 @@ reference frame". Phase G makes it a finished thing.
 | `phase-f5-signage-wayfinding.md` | Finish and fix S11: readable name boards, wayfinding, the hanging departure board face | CC-in-Unreal | F1 |
 | `phase-f6-zombie-bodies.md` | Varied clothed bodies (City Sample Crowds), keep the five-type split | CC-in-Unreal | do after F1 |
 | `phase-f7-perf-pass.md` | Profile the finished art with a horde, claw back the 60 fps gate | CC-in-Unreal, Fable guidance | F1 to F6 |
-| `asset-research-phase-f.md` | Research subagents: kit reference, trim sheets, train reference, menu assets | Remote | - |
+| `asset-research-phase-f.md` | Research subagents: kit reference, trim sheets, train reference, menu assets | Remote | **done 2026-09-09** |
+| `../reference/asset-sources-phase-f.md` | The result: sources, licences, legal flags. `tools/asset-fetch/fetch-phase-f.sh` stages it | reference | - |
 
 ### Phase G
 

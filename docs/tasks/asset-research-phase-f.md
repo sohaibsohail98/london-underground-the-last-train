@@ -74,3 +74,27 @@ a real gap.
 - Append a section to `_incoming_assets/ASSET-RESEARCH.md` listing what was added,
   the licence of each, and which Phase F task it feeds.
 - Do not import anything into the project. The editor session does the triage.
+
+## Done, with one change of shape (2026-09-09)
+
+The research ran. The **downloading could not**, and would not have helped if it
+had: the remote container's egress proxy refuses every asset host, and
+`_incoming_assets/` is gitignored and dies with the container, so a file staged
+there has no route to this machine.
+
+So the output landed as the half that survives, which is the research itself:
+
+- **`docs/reference/asset-sources-phase-f.md`** is the shopping list. Sources,
+  asset IDs, licences, what each feeds, what to inspect before staging, and what
+  the research could not settle. Every entry rests on search evidence only: no
+  page was opened and no file was looked at.
+- **`tools/asset-fetch/fetch-phase-f.sh`** turns it back into
+  `_incoming_assets/<category>/` with `SOURCES.txt` per category, on a machine
+  that can reach the hosts. It fetches the ambientCG and Poly Haven sets through
+  their keyless APIs and prints a manual checklist for everything needing a
+  human click. It imports nothing and runs no git.
+
+**The finding that changes Phase F planning: there is no CC0 modular station
+kit.** The shell, platform edge, escalator, gate line and tunnel portal are
+in-house modelling. What the CC0 world gives free is surfacing, small props and
+proportion reference. F1's budget should assume that.
