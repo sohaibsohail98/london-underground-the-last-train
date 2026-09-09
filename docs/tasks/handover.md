@@ -41,6 +41,18 @@ font name, not from a file path; that is a change outside the repo and can be
 undone by deleting those three files. Wayfinding panels and the network schematic
 from the F5 spec are still outstanding.
 
+**2026-09-09 (merge + review):** merged the remote Opus branch
+(`claude/prompt-following-feth2d`): the G2 HUD spec, the Phase F asset manifest +
+`fetch-phase-f.sh`, `known-issues.md`, and the removal of the `web/` Three.js
+tree (66 files, preserved at the new `web-threejs-final` tag; the merge's own
+claim that it lives at `phase-03` was wrong and was corrected across five docs).
+A Sonnet review of the merged work found nothing to fix: both CI gates pass, no
+legal issues, `fetch-phase-f.sh` is safe (writes only under `_incoming_assets/`,
+no git, no code execution), every C++ symbol the G2 spec relies on exists and is
+Blueprint-visible. Open owner decision carried in the S14 row: whether the
+station schematic belongs in the HUD at all (G2 spec recommends not, while v1
+ships two stations; the brief still says it does).
+
 **2026-09-09 (S13 main menu):** added `L_MainMenu` as the launch map with
 `BP_MenuGameMode` + `WBP_MainMenu` (see the S13 row). The player now lands on a
 menu at launch and START RUN opens `L_CanaryWharf_Greybox` with the run going
