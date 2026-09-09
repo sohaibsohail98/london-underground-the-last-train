@@ -230,6 +230,40 @@ has to be created by writing `static_materials` through Python first; only then
 does the Lua `configure` path work. This is the same family as the F1 finding
 that geometry-scripted meshes ship with **zero collision shapes**.
 
+### 2.10 Two Blueprint traps that cost F3 its door animation
+
+Found in F3c on 2026-09-10, finishing the train doors. F3 shipped the doors
+inert because of the first of these; the second was only found in PIE.
+
+**A Static mesh component silently ignores `Set Actor Location`.** The 24 door
+leaves were placed as ordinary `StaticMeshActor`s, so their mesh components
+defaulted to **`Static` mobility**. At runtime a Static component cannot be
+moved: the call is dropped with **no error, no warning, and no log line**. The
+Blueprint compiled 0/0, the timeline ran to completion, the arrays held correct
+values, and the leaves did not move. Set the component to `Movable` for anything
+that has to move in play. This is the same family as the F2 Static-mobility
+ceiling-fitting note, and it is worth checking mobility **first** whenever a
+transform write appears to do nothing.
+
+**The plain float add is only reachable through `|Utilities|Operators`.**
+`find_nodes` returns **0 results** for `Add_FloatFloat`, `Add_DoubleDouble`,
+`float + float` and `Adds two floating point`. The node that works is result
+**1** of `find_nodes("Add")`, in category `|Utilities|Operators`, reported
+against `TimeManagementBlueprintLibrary` and spawning with the title
+**"FrameNumber + Int"** and three **wildcard** pins. It is the promotable
+operator: connect a `real` pin to `A` and the node retitles itself
+**`float + float`** with every pin resolved to `real`. F3 recorded this lookup
+as a blocker; it is not, but the entry is easy to read past.
+
+**Diagnosing a silent Blueprint failure: use probe variables, not the log.**
+`playtest_log_contains` returned `found=false` even for the string "PIE", so
+`PrintString` output could not be used as evidence of anything. What worked was
+adding temporary Blueprint variables and reading them back with
+`playtest_read_state`: an int set on the C++ hook proved the hook fires, and a
+real set from the timeline's `Update` proved the timeline runs. That narrowed a
+five-link chain to the one failing link in two PIE rounds. Remove the probes and
+recompile once the cause is found.
+
 ---
 
 ## 3. Repo hygiene
