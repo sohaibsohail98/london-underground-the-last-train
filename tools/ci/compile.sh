@@ -8,7 +8,7 @@
 # so local and CI cannot drift.
 #
 # Overridable by environment:
-#   LASTTRAIN_ENGINE_ROOT   default /Users/Shared/Epic Games/UE_5.8
+#   LASTTRAIN_ENGINE_ROOT   default "/Volumes/DriveSohaib/Epic Games/UE_5.8"
 #   LASTTRAIN_TARGET        default LastTrainEditor
 #   LASTTRAIN_PLATFORM      default Mac
 #   LASTTRAIN_CONFIGURATION default Development
@@ -16,7 +16,7 @@
 
 set -euo pipefail
 
-ENGINE_ROOT="${LASTTRAIN_ENGINE_ROOT:-/Users/Shared/Epic Games/UE_5.8}"
+ENGINE_ROOT="${LASTTRAIN_ENGINE_ROOT:-/Volumes/DriveSohaib/Epic Games/UE_5.8}"
 TARGET="${LASTTRAIN_TARGET:-LastTrainEditor}"
 PLATFORM="${LASTTRAIN_PLATFORM:-Mac}"
 CONFIGURATION="${LASTTRAIN_CONFIGURATION:-Development}"

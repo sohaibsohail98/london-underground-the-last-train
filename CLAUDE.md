@@ -21,7 +21,7 @@ against. Notes on what to lift and what is off limits are in
   (`xcodebuild -downloadComponent MetalToolchain`).
 - Build the editor target with `./tools/ci/compile.sh`. It checks the external
   Xcode mount and then runs the engine's batch file, which is
-  `"/Users/Shared/Epic Games/UE_5.8"/Engine/Build/BatchFiles/Mac/Build.sh LastTrainEditor Mac Development -Project="$PWD/LastTrain.uproject"`.
+  `"/Volumes/DriveSohaib/Epic Games/UE_5.8"/Engine/Build/BatchFiles/Mac/Build.sh LastTrainEditor Mac Development -Project="$PWD/LastTrain.uproject"`.
   Override the engine path with `LASTTRAIN_ENGINE_ROOT`.
 - **There is no hosted CI compile.** Unreal cannot be installed on a GitHub
   runner. The workflow carries an opt-in `compile` job that runs the same script
