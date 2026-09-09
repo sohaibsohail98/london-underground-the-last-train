@@ -131,7 +131,7 @@ If a plan proposes new C++ for feedback, it has not read the headers.
 | Zombie hooks | `OnHitReaction`, `OnDeathPresentation`, `OnAttackWindUp`, `OnScream` | `ALTZombieCharacter` |
 | Train phase | `OnTrainPhaseChanged(NewPhase, OldPhase)`, `GetPhase()`, `AreDoorsOpen()` | `ALTTrain` |
 | Train countdown | `GetSecondsUntilArrival()`, `GetSecondsUntilDeparture()` | `ALTTrain` |
-| Train presentation | nine `BlueprintImplementableEvent` hooks, listed in `phase-c1-train.md` | `ALTTrain` |
+| Train presentation | nine `BlueprintImplementableEvent` hooks, listed on `ALTTrain` itself | `ALTTrain` |
 | Board countdown | `OnCountdownChanged(WholeSeconds, Phase)`, `OnPhaseChanged` | `ALTDepartureBoard` |
 
 ---
@@ -158,7 +158,8 @@ Under `Content/LastTrain/Zombies/`, named `DA_Zombie_Walker`,
 `DA_Zombie_Screamer`. Every value below is **provisional**: it settles in the
 Phase G balance pass. Put "provisional, Phase G to confirm" in each asset's
 description. Numbers are from `docs/design/gameplay-canon.md` section 6 and
-`docs/tasks/phase-c-zombie-types.md`.
+`ULTZombieTypeData` and `ALTZombieCharacter` in `Source/`. The spec that drove
+them was retired at commit `bcd947a`.
 
 Speed and health are multipliers on the character's `BaseWalkSpeed` 130 and
 `BaseHealth` 150. Every field named `...Override` falls through to the
@@ -240,7 +241,7 @@ the train, the round cap and the high-heat roster shift all read it.
 
 - **`BP_Train`** from `ALTTrain`: a box mesh child in the trackbed, placed at the
   platform edge, `BoardingVolume` sized over the door aperture. The nine
-  presentation hooks are listed in `docs/tasks/phase-c1-train.md`, whose 12-point
+  presentation hooks are listed on `ALTTrain` in `Source/`, whose 12-point
   acceptance list is the test.
 - **`BP_DepartureBoard`** from `ALTDepartureBoard`: a text render child driven by
   `OnCountdownChanged(WholeSeconds, Phase)`, wording switched off
@@ -307,7 +308,8 @@ Small, and all of them editor or PIE work rather than asset building.
    is the honest number for the B3 60 fps gate. The editor number is
    render-limited by the S9 zombie material + Lumen on this Mac's GPU, not by
    the crowd logic.
-2. **Wall buy PIE acceptance.** `phase-b2-interaction.md` steps 3 to 7. The buy
+2. **Wall buy PIE acceptance.** Per the retired `phase-b2-interaction.md`
+   (commit `bcd947a`) steps 3 to 7. The buy
    itself PASSED via property read-back (`WeaponCost` 500 spent, `AmmunitionCost`
    250 on the second interact). Still needs a human at the keyboard for the
    walk-up: the bridge cannot aim a first-person camera at the plate. Walk to
@@ -315,7 +317,8 @@ Small, and all of them editor or PIE work rather than asset building.
    no-ops, `E` with 500 or more buys and swaps the weapon and flashes the points
    crimson, and `E` again offers ammunition at 250.
 3. **HUD polish review.** DONE 2026-09-09 (S7). `WBP_HUD` matches
-   `phase-b3-feedback-widgets.md` element-for-element and the graph wiring is
+   the retired `phase-b3-feedback-widgets.md` (commit `bcd947a`)
+   element-for-element and the graph wiring is
    healthy (5 delegates bound, crosshair spread on `GetCurrentSpreadDegrees` +
    `GetAimAlpha`, 8 `PlayAnimation` calls at the spec durations). **Follow-up
    fixes, none blocking:** delete the 2 leftover `PrintString` debug nodes in
@@ -330,5 +333,6 @@ Small, and all of them editor or PIE work rather than asset building.
 # Records
 
 The original A4 grey box asset spec and the full B3 HUD layout spec are kept in
-`phase-a4-editor-setup.md` and `phase-b3-feedback-widgets.md`. Both are built;
+the retired `phase-a4-editor-setup.md` and
+`phase-b3-feedback-widgets.md` (commit `bcd947a`). Both are built;
 those files are the record of how, and B3's acceptance list is still live.

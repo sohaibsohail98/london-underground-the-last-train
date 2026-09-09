@@ -12,6 +12,9 @@ fictional line is a fictionalised Crossrail-scale line (main-line loading
 gauge, modelled on the Elizabeth line, NOT a deep-level tube); the train is a
 Class 345 "Aventra" silhouette. See `docs/brief-v3-unreal.md` Part 1.
 
+**Open problems:** `../known-issues.md`. Environment limits, unverified work,
+the open legal flags on the Phase F assets, and repo hygiene.
+
 **Who runs what:** `who-does-what.md`. Three sessions (terminal, CC-in-Unreal,
 remote), only CC-in-Unreal can drive the editor.
 
@@ -51,13 +54,15 @@ reference frame". Phase G makes it a finished thing.
 | `phase-f5-signage-wayfinding.md` | Finish and fix S11: readable name boards, wayfinding, the hanging departure board face | CC-in-Unreal | F1 |
 | `phase-f6-zombie-bodies.md` | Varied clothed bodies (City Sample Crowds), keep the five-type split | CC-in-Unreal | do after F1 |
 | `phase-f7-perf-pass.md` | Profile the finished art with a horde, claw back the 60 fps gate | CC-in-Unreal, Fable guidance | F1 to F6 |
-| `asset-research-phase-f.md` | Research subagents: kit reference, trim sheets, train reference, menu assets | Remote | - |
+| `asset-research-phase-f.md` | Research subagents: kit reference, trim sheets, train reference, menu assets | Remote | **done 2026-09-09** |
+| `../reference/asset-sources-phase-f.md` | The result: sources, licences, legal flags. `tools/asset-fetch/fetch-phase-f.sh` stages it | reference | - |
 
 ### Phase G
 
 | File | Task | Session |
 |---|---|---|
 | `phase-g-audio-hud-balance.md` | The Phase G plan: G1 audio, G2 restrained HUD, G3 balance | mixed |
+| `phase-g2-hud.md` | G2 in full: binding table, layout, downed and run-over states, the 5 open S7 findings | CC-in-Unreal |
 
 ### Still-relevant references
 

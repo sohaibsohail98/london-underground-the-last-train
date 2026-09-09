@@ -19,20 +19,23 @@ Content/                Unreal assets, Git LFS, see Content/README.md
 Config/                 Engine and project configuration
 docs/                   Briefs, plan, design canon, art direction, setup
 tools/ci/               Static checks run by CI
-web/                    Discarded Three.js build, tagged phase-03, not part of this work
+tools/asset-fetch/      Stages the Phase F asset list into _incoming_assets/
 ```
 
-The Unreal target is the project. `web/` is the earlier browser build, kept on
-`main` under the `phase-03` tag as a historical reference and a last-resort
-fallback, and is not developed.
+The Unreal target is the project. An earlier Three.js browser build was removed
+from the tree on 2026-09-09; it is preserved at the `web-threejs-final` tag as a
+historical reference and is not developed. Note that a fresh clone may not fetch
+tags: check with `git ls-remote --tags origin`, not `git tag -l`.
 
 ## Running the Unreal target
 
 Unreal Engine 5.8, macOS. The `LastTrain` C++ module compiles with the batch
 build in `CLAUDE.md` (external Xcode on `/Volumes/DriveSohaib` must be mounted).
 The editor assets for the first playable grey box are built; follow
-`docs/unreal-setup.md` and `docs/tasks/phase-a4-editor-setup.md` for how they
-were made and `docs/tasks/handover.md` for where the work stands.
+`docs/unreal-setup.md` for how they were made and `docs/tasks/handover.md` for
+where the work stands. The task spec that drove that build,
+`phase-a4-editor-setup.md`, was retired once it was done and is in git history at
+commit `bcd947a`.
 
 ## Checks
 
@@ -99,6 +102,7 @@ session is `docs/tasks/handover.md`.
 - `docs/art-direction.md` - palette, composition, and the trademark substitutions
 - `docs/unreal-setup.md` - editor steps the source cannot do for you
 - `docs/reference/` - the reference frame, its notes, and the Canary Wharf research
+- `docs/known-issues.md` - open problems, unverified work, and what the remote session cannot do
 - `Content/ATTRIBUTION.md` - provenance and licence for every imported asset
 
 ## Licence

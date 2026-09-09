@@ -17,7 +17,7 @@ chimes.
 
 **Accept:** you can tell what is happening behind you with your eyes closed.
 
-## G2: the restrained HUD (`phase-g2-hud.md` when written)
+## G2: the restrained HUD (spec written: `phase-g2-hud.md`)
 
 Per the style guide summarised in `reference-frame-notes.md`: round, points,
 health, perks, weapon, magazine, reserve, equipment, minimal prompts. The
@@ -30,6 +30,15 @@ not a HUD target.
 The current `WBP_HUD` has 5 minor findings from the S7 review still open (2
 debug nodes to remove, stock fonts to swap to the imported OFL families, widgets
 Visible at rest). Fold those into this task.
+
+`phase-g2-hud.md` now carries the full spec: the binding table (every value the
+HUD needs already exists and is Blueprint-visible, so G2 needs no `Source/`
+change), the layout, per-element behaviour, the two new states (downed overlay,
+run-over card), all 5 S7 findings, and the cut list. Two owner decisions are
+flagged in it: the typeface split between the menu and the HUD, and whether the
+station schematic belongs in the HUD at all (the spec recommends moving it to
+F5 as diegetic platform signage, since v1's two stations give nothing to
+navigate).
 
 The train countdown stays diegetic (on the departure board, F5), NOT in the HUD.
 

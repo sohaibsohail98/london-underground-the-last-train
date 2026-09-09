@@ -8,8 +8,8 @@ Status of the earlier documents:
 - `brief-v2.md` - superseded for engine, renderer and camera. Still
   authoritative for the round loop, the train mechanic, station tiering, the
   mechanic library, the economy and the legal constraints.
-- `phase-1-plan.md`. Removed. It described a Three.js render graph and the
-  `web/` tree is the record of that build.
+- `phase-1-plan.md`. Removed. It described a Three.js render graph, and that
+  build's source is at the `web-threejs-final` tag.
 - The `00` to `08` series in Project Knowledge. These were external Project
   Knowledge uploads and were never committed to this repo. They always assumed
   UE5 and first person, so their gameplay, art and testing guidance still
@@ -54,8 +54,8 @@ All of it is design, none of it is code:
 
 The entire `src/` tree: renderer, post chain, procedural generator, crowd
 system, collision, aim model. Around 12,000 lines. It is kept on `main` under
-the `phase-03` tag rather than deleted, so it remains available if the browser
-target is ever revisited.
+the `web-threejs-final` tag rather than deleted, so it remains available if the
+browser target is ever revisited.
 
 ### The honest ceiling, restated
 
@@ -317,6 +317,6 @@ ask for a phase in one prompt.
    expansion path, not a launch requirement. Two good stations beats forty
    grey ones. **v1 commits to exactly 2 stations.** Any "41 stations" reference
    anywhere in the docs is an aspirational expansion list, not a plan.
-5. **The discarded build.** If UE proves too heavy, `phase-03` on `main` is a
-   working, typechecked, browser-deployable fallback. That is worth remembering
+5. **The discarded build.** If UE proves too heavy, the `web-threejs-final` tag
+   is a working, typechecked, browser-deployable fallback. That is worth remembering
    rather than resenting.

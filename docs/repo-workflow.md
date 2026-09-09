@@ -66,7 +66,7 @@ Simplest thing that still protects you:
 - Merge to `main` only after you have approved that phase's gate.
 - Tag each merge: `git tag gate-b && git push --tags`.
 
-If a gate looks wrong and you fall back to the tagged `phase-03` browser build,
+If a gate looks wrong and you fall back to the tagged `web-threejs-final` browser build,
 you want a clean tagged point to branch from rather than an unpickable history.
 
 ## 4. CI

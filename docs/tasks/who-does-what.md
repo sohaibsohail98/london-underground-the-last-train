@@ -16,6 +16,9 @@ MCP connection at a time. Everything editor-shaped funnels through it.
 
 ## Hard rules (all sessions)
 
+- **Read `docs/known-issues.md` first.** It carries what each lane cannot do,
+  what is committed but unverified, and the open legal flags. Update it when
+  an issue opens or closes.
 - **British spelling** everywhere. **No em or en dashes** in source or docs.
 - Palette is fixed: `#16161C` `#6C4C9C` `#E0A030` `#B02030`.
 - Legal constraints in `CLAUDE.md` are non negotiable: no roundel, no Johnston,
@@ -56,10 +59,19 @@ MCP connection at a time. Everything editor-shaped funnels through it.
 
 ### Asset research
 
-1. Remote spins up a research subagent per `asset-research-phase-f.md` (hard
-   constraints in that file). Output lands in `_incoming_assets/` with
-   `SOURCES.txt` files. Nothing is imported.
-2. CC-in-Unreal triages: imports the useful files into `Content/LastTrain/`,
+**Corrected 2026-09-09 after the first run.** The remote session cannot download:
+its egress proxy refuses every asset host, and `_incoming_assets/` is gitignored
+and dies with the container, so nothing staged there could reach this machine.
+Web search still works, so the research is real. The lane is therefore:
+
+1. Remote spins up research subagents per `asset-research-phase-f.md` (hard
+   constraints in that file) and commits a **source manifest** to `docs/`:
+   sources, asset IDs, licences, what each feeds, what needs inspecting.
+2. A human or CC-in-Unreal runs `tools/asset-fetch/fetch-phase-f.sh` here. It
+   creates `_incoming_assets/<category>/` with a `SOURCES.txt` per category,
+   fetches what has a public API, and prints a manual checklist for the rest.
+   It imports nothing and runs no git.
+3. CC-in-Unreal triages: imports the useful files into `Content/LastTrain/`,
    commits them via LFS.
 
 ### CC-in-Unreal finishes an editor task
@@ -74,7 +86,7 @@ MCP connection at a time. Everything editor-shaped funnels through it.
 |---|---|---|---|
 | 1 | S13 main menu | CC-in-Unreal | in flight |
 | 2 | F5 fix S11 signage (readable, sodium, cookable) | CC-in-Unreal | queued |
-| 3 | asset research for F1/F3/menu | Remote | queued |
+| 3 | asset research for F1/F3/menu | Remote | **done 2026-09-09.** Result is `docs/reference/asset-sources-phase-f.md` plus `tools/asset-fetch/fetch-phase-f.sh`. Nothing downloaded: the remote container cannot reach any asset host, and `_incoming_assets/` would not survive it anyway. Run the script here. |
 | 4 | F1 modular kit | CC-in-Unreal | queued, needs nothing |
 | 5 | F2 lighting + atmosphere | CC-in-Unreal (Fable guidance) | needs F1 |
 | 6 | F3 train exterior | CC-in-Unreal | needs F1 |
