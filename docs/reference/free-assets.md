@@ -41,6 +41,7 @@ pre-import art in its original format with the licence beside it. Read
 | Asset | Where | Licence | State |
 |---|---|---|---|
 | S Stock carriage, 579,544 triangles, animated doors | `SourceArt/ThirdParty/SStock/` | CC-BY-4.0, credit required | De-branded and committed. Not yet imported. **Not the F3 vehicle:** it is sub surface stock, not the Class 345 silhouette the design settled on. Proportion reference, kitbash base and platform blockout. |
+| Overpass, Overpass Mono, Barlow, Barlow Condensed, Public Sans | `Content/LastTrain/UI/Fonts/` | SIL Open Font Licence 1.1, each with its `OFL.txt` beside it | Imported as `Font_` assets. Recorded in `Content/ATTRIBUTION.md` on 2026-09-09, having been imported without a row for some time. **There is no font gap.** One open check: whether the mono face came in as Light, see `../art-direction.md` section 7. |
 
 Two companion documents came out of the same pass:
 

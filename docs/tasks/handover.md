@@ -544,6 +544,32 @@ The first third party art actually in the tree, rather than on a shopping list.
 Open, for the machine with `git-lfs`: `SourceArt/` is committed raw, see
 `known-issues.md` 3.5.
 
+### Second pass the same day: a licence audit, not a haul
+
+Asked whether more could be sourced remotely, the answer turned out to be almost
+nothing, and the useful work was an audit instead.
+
+- **Egress was retested and `known-issues.md` 1.1 rewritten.** Every asset host
+  is still refused, but `raw.githubusercontent.com` and the Google Fonts hosts
+  are reachable, so anything in a public GitHub repository can be fetched from
+  the remote lane. No mesh, texture, audio or HDRI source qualifies.
+- **The fonts were already here.** Overpass, Overpass Mono, Barlow, Barlow
+  Condensed and Public Sans are imported under `Content/LastTrain/UI/Fonts/`
+  with their `OFL.txt` files. **None of the five was in
+  `Content/ATTRIBUTION.md`**, whose own first line says to fill it in at import
+  time. Three rows added, one per family group.
+- **`art-direction.md` section 7 said Overpass "is not present in the project".**
+  That has been false for some time. Rewritten, and it now carries the one open
+  question worth checking in the editor: Overpass Mono ships as a variable font
+  defaulting to **Light 300**, and Unreal imports the default instance, so
+  `Font_UI_OverpassMono` may be too thin. Look at it.
+  `tools/asset-fetch/make-font-instances.py` cuts proper static weights if so.
+- **`rejected-assets.md` recommended the wrong substitute.** It named Hammersmith
+  One without noticing the project had already chosen Overpass. Corrected, with
+  the reason: Hammersmith One has a Reserved Font Name and one weight, Overpass
+  has neither problem. The outline test that settled it is written up there as a
+  reusable procedure, with results for all four fonts.
+
 ## The docs a fresh session needs
 
 - **This file** - the resume point.

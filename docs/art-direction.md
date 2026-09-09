@@ -166,23 +166,29 @@ recycled.
 
 ## 7. UI typeface
 
-Overpass was the intended choice for `WBP_HUD` and all downstream UI: OFL
-licensed, US highway heritage, reads as transit signage without being Johnston
-or a clone of it. It is not present in the project or the engine, and the
-NeoStack editor tooling used to build the HUD has no font import path exposed
-(`AssetImport` can import a `.ttf` given a source file, but none exists in the
-repository yet and fetching one was out of scope for an editor only task).
+Overpass is the choice for `WBP_HUD` and all downstream UI: OFL licensed, US
+highway heritage, reads as transit signage without being Johnston or a clone of
+it. Its lowercase tittle is round, not the straight sided diamond that is
+Johnston's signature, so it passes the test in `reference/rejected-assets.md`
+on the letterforms rather than on the description.
 
-`WBP_HUD` uses the closest clean grotesque already shipped with the engine
-instead: `/Engine/EngineFonts/DroidSansMono.DroidSansMono` for all numeric
-readouts and short labels (round number, points, ammunition, the round label),
-and `/Engine/EngineFonts/Roboto.Roboto` (Regular weight) for body text (player
-name, weapon name, the interaction prompt). Two families is one more than the
-"one family, two weights" target; the mono face carries every tabular number so
-the HUD still reads as one system, and Roboto is confined to plain sentence
-case text where a mono face would look like a debug overlay.
+**It is imported.** `Content/LastTrain/UI/Fonts/` holds Overpass, Overpass Mono,
+Barlow, Barlow Condensed and Public Sans as `Font_` assets, each with its
+`OFL.txt` beside it, all recorded in `Content/ATTRIBUTION.md`. Earlier revisions
+of this section said Overpass was absent. That has not been true for some time.
 
-When Overpass (or Overpass Mono) is sourced as a `.ttf`, import it under
-`/Game/LastTrain/Fonts/` with `AssetImport.import_asset` and swap the two
-`FontObject` references throughout `WBP_HUD`. Nothing else about the HUD
-layout depends on the specific typeface.
+`WBP_HUD` has not caught up. It still references
+`/Engine/EngineFonts/DroidSansMono.DroidSansMono` for numeric readouts and
+`/Engine/EngineFonts/Roboto.Roboto` for body text. Swapping those two
+`FontObject` references to `Font_UI_OverpassMono` and `Font_UI_Overpass` is the
+whole job and it belongs to `tasks/phase-g2-hud.md`, which already specs it.
+Nothing else about the HUD layout depends on the typeface.
+
+**Check before trusting the mono face.** Overpass Mono ships from Google Fonts
+as a variable font whose default instance is Light 300, not Regular 400, and
+Unreal's importer takes the default instance with no way to choose another. So
+if `Font_UI_OverpassMono` was imported from `OverpassMono[wght].ttf` it is Light,
+which is too thin to read at a glance off a HUD readout. Open the asset and look
+at the stroke weight. If it is Light, cut proper static weights with
+`tools/asset-fetch/make-font-instances.py` and re-import. Overpass itself
+defaults to Regular 400 and is unaffected.

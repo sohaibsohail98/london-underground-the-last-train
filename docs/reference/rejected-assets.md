@@ -39,13 +39,26 @@ Two independent reasons it stays out:
    unlicensed 1997 shareware era font is not something to build a shipping
    wayfinding system on.
 
-**Use instead.** Hammersmith One, SIL Open Font Licence, free for commercial
-use, at `https://fonts.google.com/specimen/Hammersmith+One`. It is a humanist
-geometric sans in the same broad tradition without being a revival: round
-tittle, different proportions, no diamond anywhere. Check its lowercase `l` and
-`i` against the mark before adopting it, and if it still reads too close, the
-fallback is any geometric grotesque with a round tittle. The substitution only
-has to be legible and institutional, not familiar.
+**Use instead: Overpass, which the project already chose and already has.**
+`Content/LastTrain/UI/Fonts/` holds Overpass, Overpass Mono, Barlow, Barlow
+Condensed and Public Sans as imported `Font_` assets, all SIL Open Font Licence,
+all with their `OFL.txt` beside them, all listed in `Content/ATTRIBUTION.md`.
+`../art-direction.md` section 7 settles Overpass as the functional face on US
+highway heritage rather than anything in the Johnston line. There is no font gap
+to fill and no need to fetch anything.
+
+Overpass was put through the same outline test as Paddington and passes on the
+letterforms, not on its description. Its tittle is a 13 point curved contour in
+a 218 by 220 unit box, which is a round dot. Overpass Mono matches at 184 by 188.
+Neither has a straight side anywhere in the mark.
+
+For completeness, since it was the original suggestion here: Hammersmith One also
+passes the diamond test, with an 8 point curved tittle. It is still the worse
+choice. Its copyright carries a Reserved Font Name, so the licence forbids a
+modified version keeping the name, and it ships a single weight, which cannot
+satisfy the "emphasise with a different weight" rule in
+`tfl-dimensional-reference.md` section 6. Overpass has no Reserved Font Name and
+a 100 to 900 weight axis. Nothing needs to change.
 
 ## 2. Three textures inside the S Stock carriage
 
@@ -102,3 +115,29 @@ Anything arriving from outside gets three questions before it is committed:
 3. **Can the answer to both be reproduced later?** If the asset needed
    modifying to pass, the modification is a script in `tools/asset-fetch/`, not
    a manual edit somebody remembers doing.
+
+## The outline test, for fonts specifically
+
+A font's name tells you nothing. Run this instead, which is what settled both
+questions above:
+
+```python
+from fontTools.ttLib import TTFont
+from fontTools.pens.recordingPen import RecordingPen
+
+font = TTFont(path)
+pen = RecordingPen()
+font.getGlyphSet()["i"].draw(pen)
+# Rebuild the contours, take the one sitting highest: that is the tittle.
+# Straight sided and at most six points means a diamond, which means Johnston.
+# Curved, in a roughly square box, means a round dot, which does not.
+```
+
+Results so far, all on the lowercase `i` tittle:
+
+| Font | Points | Curved | Box | Verdict |
+|---|---|---|---|---|
+| Overpass | 13 | yes | 218 by 220 | Round. Passes. |
+| Overpass Mono | 13 | yes | 184 by 188 | Round. Passes. |
+| Hammersmith One | 8 | yes | 382 by 382 | Round. Passes, but see above. |
+| Paddington Plain | 6 | no | 152 by 144 | Diamond. Rejected. |

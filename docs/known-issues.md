@@ -26,6 +26,21 @@ same wall.
 Web search still works. So the remote lane can **research** assets and cannot
 **download** them.
 
+**Retested 2026-09-09, and the allowlist is narrower than "GitHub only" but
+wider than nothing.** Reachable: `raw.githubusercontent.com` for individual
+files from any public repository, `fonts.googleapis.com`, `fonts.gstatic.com`,
+and the language package registries. Refused at CONNECT: polyhaven.com,
+ambientcg.com, sketchfab.com, kenney.nl, quaternius.com, itch.io,
+opengameart.org, commons.wikimedia.org, freesound.org. `api.github.com` answers
+but rejects any repository not attached to the session, so directory listings
+need `add_repo` first; raw file fetches do not.
+
+The practical consequence is small but real: **anything living in a public
+GitHub repository can be fetched remotely.** That covers the OFL font families,
+which is how the Overpass variable fonts were checked. It does not cover a
+single one of the texture, mesh, audio or HDRI sources, all of which host their
+own downloads.
+
 **Consequence for task specs:** never ask the remote session to fetch, stage or
 download a file. Ask it for a manifest, and run the fetch here.
 
