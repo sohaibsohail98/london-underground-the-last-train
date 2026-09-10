@@ -353,41 +353,54 @@ should be. Visible in every PIE screenshot from this session.
 
 ---
 
-### 2.12 The F3 door apertures are recesses, not cut through
+### 2.12 The F3 door apertures were recesses, fixed 2026-09-10
 
-Found on 2026-09-10 building F4, the train interior. **The 12 doorways in the
-`L_CanaryWharf_Greybox` train are not openings.** `SM_Train_DoorBay` recesses
-the door bay into the bodyside skin but never cuts the aperture through the
-wall, so with the door leaves slid fully open a player at the doorway looks at
-solid bodyside, not into the saloon.
+Opened building F4, **closed the same day** by re-authoring the mesh. Kept as a
+short record because the fix changed which asset the 12 bays point at.
 
-This is the same trap as 2.9's "a recessed opening shows nothing behind it",
-recurring at the doors. It was invisible until F4 because the closed leaves
-covered the recess, and F3's own acceptance never looked through an open door
-into a lit interior.
+**What was wrong.** `SM_Train_DoorBay` recessed the door bay into the bodyside
+but never cut the aperture through, so with the leaves open a player at the
+doorway looked at solid skin. Traces at door height stopped at `y 5126` while a
+control trace through a window reached past it: the window band was cut, the
+doorways were not.
 
-**Evidence.** Editor traces from the platform (`y 4990`) inward at door height,
-through each doorway centre, doors closed: all 12 stop at `y 5118`, the leaf.
-The same traces in PIE with the train `Dwelling` and the leaves fully parted
-(bay 06 open across `x 5103` to `5247`) stop at **`y 5126`, the body skin**.
-The control trace through a window at `x 2400`, `z 200` to `260` passes the
-skin and reaches `y 5385`, so the window band **is** cut through and the
-contrast is not a tracing artefact.
+**Fix.** The bodyside turned out to be a **zero-thickness surface** at `y 5126`,
+not a solid wall, so no boolean was needed: the near skin was re-tessellated as
+a ring of panels around the aperture. The mesh was authored as an OBJ and
+brought in with `StaticMeshTools.import_file`, which this bridge does expose
+even though it has no geometry-scripting or boolean tools. New asset
+`SM_Train_DoorBay_Open`; all 12 `CW_F3_Body_*` actors now point at it and the
+old `SM_Train_DoorBay` is left in the tree untouched as the record.
 
-**Consequence for F4.** The window band reads correctly (F4's continuous lit
-strip is visible end to end through the glass) but the "stand at the open doors
-and see a bright interior" half of F4's acceptance **cannot pass** until the
-apertures are cut. No amount of interior geometry or lighting behind the skin
-can fix it; the skin is opaque across the whole doorway.
+Collision was rebuilt as **four boxes**: the far wall full length, two near-wall
+pieces flanking the aperture, and a header above it. The original had two boxes,
+one per wall, but each spanned the whole bay **including the doorway**, which is
+2.9's "sealed to the player even though it renders as open" in its exact form.
+Auto-generated convex collision from the import was discarded first.
 
-**Fix, not done here.** Cut the door aperture through `SM_Train_DoorBay` with a
-cut tool **thicker than the wall** (2.9), then rebuild collision as side-wall
-boxes rather than one body box, and re-create the material slot through Python
-before the `configure` path works (2.9 again). That is a geometry-script mesh
-re-author. The MCP bridge available to this session exposes no geometry
-scripting, so F4 stopped at the diagnosis rather than guess at it. Owner: a
-follow-up F3 fix task, ahead of re-running F4's open-door acceptance.
+**Verified.** Past the leaf plane, traces through all 12 doorways reach the F4
+interior (`y 5200` to `5372`); the control trace at solid bodyside beside each
+doorway still stops at `y 5136`. Confirmed visually in PIE with the train
+dwelling and the leaves parted: the aperture is a clear opening with the violet
+surround and reveals, no skin behind it.
 
+**Import traps worth keeping.** `import_file` will not overwrite an existing
+asset (it errors, so a re-author needs a new name), and an OBJ with no normals
+or UVs imports with "degenerate tangent bases" and "nearly zero bi-normals"
+warnings. Writing one normal per face plus planar UVs clears both.
+
+**Still open, and not this fix.** The doorway reads as an opening but the
+interior beyond it still renders dark from the platform, so F4's "bright, high,
+airy" half of the acceptance is **not** met yet. The F4 vestibule pieces
+(`CW_F4_Vest*`) are present, visible and carry the `*Glow` emissive instances,
+and those same materials render bright white elsewhere in the saloon, so this is
+an F4 lighting question at the vestibule, not the aperture. Owner: F4 follow-up.
+
+Note also that `BP_Train`'s `CarriageMesh` placeholder box, hidden by F4 but
+deliberately left colliding (2.11 needs it for the boarding trace), still blocks
+line traces across every doorway at `y ~5100`. It is invisible to the camera, so
+it does not affect the visual read, but it does mean a doorway trace from the
+platform stops there. Trace from inside the leaf plane to probe the aperture.
 
 ### 2.13 Two editor-scripting traps F4 hit
 

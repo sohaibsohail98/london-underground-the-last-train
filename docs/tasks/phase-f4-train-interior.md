@@ -81,23 +81,32 @@ viewport capture in session; the frame is not committed, because `*.png` is
 still outside the LFS filter (see `docs/known-issues.md` 3.4) and F2's two
 acceptance frames already cost 2.7 MB of raw blob.
 
-### Blocked
+### Blocked at the time, unblocked 2026-09-10
 
-**The open-door half of the acceptance cannot pass.** The F3 door apertures are
-recesses, not cut through the bodyside, so with the leaves fully open a player
-at the doorway sees solid skin. Full evidence and the fix in
-`docs/known-issues.md` 2.12. This needs a geometry-script re-author of
-`SM_Train_DoorBay`, which the MCP bridge in this session cannot do, so it was
-diagnosed and written up rather than guessed at.
+**The open-door half of the acceptance could not pass.** The F3 door apertures
+were recesses, not cut through the bodyside, so with the leaves fully open a
+player at the doorway saw solid skin. Diagnosed and written up rather than
+guessed at, because the MCP bridge in that session had no geometry scripting.
 
-Once the apertures are cut, the vestibule pieces already placed
-(`CW_F4_Vest*`: ceiling, floor, reveals and a lit back wall at each doorway)
-should light the opening with no further work, and the open-door view can be
-re-shot to close the acceptance.
+**Fixed the same day** in a follow-up F3 pass: `SM_Train_DoorBay` was
+re-authored as `SM_Train_DoorBay_Open` with the aperture cut through and
+collision rebuilt as side-wall boxes, and all 12 bays repointed at it. All 12
+doorways now trace through into the lit interior. See `docs/known-issues.md`
+2.12 and the F3f row in `docs/tasks/handover.md`.
+
+**The acceptance still does not pass, for a different reason.** With the
+aperture genuinely open, the interior beyond it still renders dark from the
+platform, so "a bright, high, airy suburban train" is not yet met. The
+vestibule pieces (`CW_F4_Vest*`) are present, visible and carry the `*Glow`
+emissive instances, and those same materials render bright white elsewhere in
+the saloon, so this is an F4 lighting question at the vestibule rather than a
+geometry one. That is the remaining work on this task.
 
 ### Not verified
 
-**Map Check was not run.** The MCP bridge this session used exposes no Map
-Check tool (`EditorAppToolset` and `SceneTools` both lack one) and `MAP CHECK`
-as a console exec is banned. The 0/0 figure in the acceptance list is therefore
-outstanding, not passed.
+**Map Check has still not been run.** The MCP bridge exposes no Map Check tool
+(`EditorAppToolset` and `SceneTools` both lack one), and the F3f pass confirmed
+there is also no `LogMapCheck` log category and no MapCheck automation test
+registered in this build, so the automation route does not reach it either.
+`MAP CHECK` as a console exec is banned. The 0/0 figure in the acceptance list
+is therefore outstanding, not passed.
