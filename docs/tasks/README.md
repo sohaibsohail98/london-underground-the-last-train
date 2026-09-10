@@ -56,6 +56,7 @@ reference frame". Phase G makes it a finished thing.
 | `phase-f7-perf-pass.md` | Profile the finished art with a horde, claw back the 60 fps gate | CC-in-Unreal, Fable guidance | F1 to F6 |
 | `asset-research-phase-f.md` | Research subagents: kit reference, trim sheets, train reference, menu assets | Remote | **done 2026-09-09** |
 | `../reference/asset-sources-phase-f.md` | The result: sources, licences, legal flags. `tools/asset-fetch/fetch-phase-f.sh` stages it | reference | - |
+| `phase-f-greybox-station.md` | **`L_GreyboxTest` becomes Paddington.** F1 to F5 only ever touched `L_CanaryWharf_Greybox`; `L_GreyboxTest` is fully playable (rounds, boarding, signage, HUD all pass there) but still on Phase B cube geometry and Phase B/S4 flat lighting, with no train mesh at all. Decided 2026-09-10: full matching pass, both v1 stations equally finished, reusing the kit meshes, materials and train assets already built for Canary Wharf rather than building any of it again from scratch, and given a distinct real identity (Paddington, chosen for visual contrast: a single curved side platform against Canary Wharf's straight island hall) so the two stations do not read as the same place twice. | CC-in-Unreal | F1 to F7 (Canary Wharf) |
 
 ### Phase G
 

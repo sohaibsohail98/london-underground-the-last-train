@@ -8,5 +8,6 @@ public class LastTrainEditorTarget : TargetRules
 		DefaultBuildSettings = BuildSettingsVersion.V7;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_8;
 		ExtraModuleNames.Add("LastTrain");
+		ExtraModuleNames.Add("LastTrainTests");
 	}
 }

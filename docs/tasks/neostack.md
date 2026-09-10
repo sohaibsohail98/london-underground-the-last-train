@@ -5,17 +5,27 @@ it is asset and Blueprint work: no `Source/` change is required by anything in
 this file.
 
 Written for a NeoStack agent driving the editor through `execute_script`, but it
-is equally the checklist for a human doing it by hand in the editor UI. The
-NeoStack trial expired around 2026-09-07, so assume by hand unless a session
-proves otherwise. The generic Lua API lives in the NeoStack skills
-(`neostack-blueprint`, `neostack-level-design`, `neostack-umg-widget`,
-`neostack-umg-design`); this file is the project specific part.
+is equally the checklist for a human doing it by hand in the editor UI, or for
+CC-in-Unreal driving Epic's own free `ModelContextProtocol` plugin (port 8000)
+instead. **The NeoStack trial expired around 2026-09-07 and was never renewed:
+confirmed 2026-09-10, its tool execution is licence gated even for read only
+calls.** CC-in-Unreal now runs against Epic's built in MCP toolsets
+(`AllToolsets`, 52 toolsets covering editor, scene, actor, Blueprint, UMG and
+automation testing) plus a small project specific addition,
+`Plugins/LTPlaytestToolset/`, which injects Enhanced Input actions into a live
+PIE session (button presses, axis moves) since none of Epic's own toolsets can.
+The generic Lua API this file used to lean on (`neostack-blueprint`,
+`neostack-level-design`, `neostack-umg-widget`, `neostack-umg-design`) no longer
+applies; treat the editor-work sections below as the project specific checklist
+and drive them through whichever tool is actually connected.
 
 `docs/tasks/handover.md` is the resume point for the whole project, including the
-C++ side. Read it first: **every C++ system after C1 is written but has never
-been compiled**, and compiling is the gate on all of the work below. An editor
-running the old binary will not even show the new properties this file asks you
-to set.
+C++ side. Read it first for current state: all of Phase A to E and the round
+loop compile and are PIE verified, boarding included (confirmed 2026-09-10 by
+an automation test, `LastTrain.Boarding.TrainInteractableAndBoard`). Compiling
+after any `Source/` change is still the gate on editor work that depends on it:
+an editor running the old binary will not show new properties this file asks
+you to set.
 
 ## Ground rules, every task
 

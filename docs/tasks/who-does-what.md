@@ -8,7 +8,7 @@ what each does and how work moves between them, so nobody steps on anybody.
 | Session | Model | Editor access | Does |
 |---|---|---|---|
 | **Terminal** (this repo, plain `claude`) | Sonnet | no | git, pushes, CI, branch merges, writing task specs, reviewing what comes back, this file |
-| **CC-in-Unreal** (terminal docked in the editor, talks over MCP port 9315) | Opus | **yes, exclusive** | all interactive editor work: placing actors, Blueprint graphs, materials, PIE, screenshots, running Python `execute_script` payloads |
+| **CC-in-Unreal** (terminal docked in the editor, talks over MCP port 8000) | Opus | **yes, exclusive** | all interactive editor work: placing actors, Blueprint graphs, materials, PIE, screenshots, running Python `execute_script` payloads |
 | **Remote** (a remote Claude Code session on the repo) | Opus | no | `Source/` C++ edits, Python editor-script authoring, CI gate runs, asset-research subagents, specs, balance numbers, review |
 
 Only **CC-in-Unreal** may drive the editor, and only one process can hold the
