@@ -266,6 +266,65 @@ recompile once the cause is found.
 
 ---
 
+### 2.11 The F3 bodyshell blocks the boarding interact
+
+Found on 2026-09-10 in the F3-completion follow-up, the PIE session that
+finally exercised boarding. **Boarding is unreachable in
+`L_CanaryWharf_Greybox`.** This is a real gameplay defect, not a test artefact,
+and it is open.
+
+**Symptom.** Standing on the platform facing the train through a full 22 second
+dwell, `ULTInteractionComponent::CurrentInteractable` never populates. The
+"Board train" prompt never appears, so the interact cannot be taken and the C3
+travel path never runs. Sampled every 1.2 s from the first frame of `Dwelling`
+to `Departing`: empty on every sample.
+
+**Cause.** `ULTInteractionComponent` sweeps a 12 uu sphere on `ECC_Visibility`
+for `InteractionRange` 250 uu from the pawn's eyes, takes the **single blocking
+hit**, and only then asks whether that actor implements
+`ULTInteractableInterface`. The first thing the sweep hits is
+`CW_F3_Body_07`, an F3 bodyshell panel, whose face sits at **y 5126**. It is a
+plain `StaticMeshActor` and implements nothing, so the sweep stops there and the
+train is never considered. `ALTTrain` is on `CW_Train`, whose only
+Visibility-blocking component is `CarriageMesh` at **y 5200**. The F3 shell was
+placed 74 uu in front of the actor that owns the interact, and hides it.
+
+Measured from the player's real eye point, control rotation forward:
+
+| Ignore list | First blocking hit |
+|---|---|
+| nothing | reach ~205 uu, `CW_F3_Body_07` |
+| `CW_F3_*` | reach ~275 uu, `CW_Train` |
+
+Ignoring `CW_F3_Body_07` alone takes the hit count to 0; ignoring `CW_Train`
+alone leaves it at 1. That is the proof of which actor blocks.
+
+**The second half of the problem.** With the shell ignored the train is at
+**275 uu**, which is still outside `InteractionRange` 250. So even removing the
+occluder is not sufficient on its own from where the player can comfortably
+stand. The player can close to roughly y 5076 before the shell stops the
+capsule, which puts `CarriageMesh` 124 uu away and inside range, so the shell is
+the primary fault, but the margin is thin.
+
+**`BoardingVolume` cannot help.** `ALTTrain::ALTTrain` sets it `QueryOnly` with
+`ECR_Overlap` on all channels. An overlap response does not block a sweep, so
+the volume is invisible to `SweepSingleByChannel` and contributes nothing to
+finding the interact. Its comment says it only scopes where the aperture is.
+
+**Fixes to consider, none applied.** Any of: give the F3 doorway panels no
+Visibility collision so the sweep passes through the aperture; move the train's
+interact proxy forward to the doorway plane rather than leaving it on
+`CarriageMesh` at y 5200; make `BoardingVolume` block Visibility and sit in the
+doorway; or have the interaction component sweep multi and pick the first hit
+that implements the interface rather than the first hit of any kind. The last is
+a `Source/` change and the most general.
+
+**Also seen, unrelated and minor.** The HUD points label renders an unlocalised
+text key, for example `Mac-5F869E425B10C8`, where the station or player name
+should be. Visible in every PIE screenshot from this session.
+
+---
+
 ## 3. Repo hygiene
 
 ### 3.1 The discarded web build was removed
