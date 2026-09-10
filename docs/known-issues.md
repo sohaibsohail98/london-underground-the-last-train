@@ -277,10 +277,21 @@ sweeps multi and takes the nearest hit that implements
 `ULTInteractableInterface`, not the nearest hit of any kind, so a cosmetic
 Visibility blocker in front of an interactable (the F3 bodyshell panel, a
 pillar in front of a wall buy) is skipped rather than ending the search.
-Compiled clean. **Not yet re-verified in PIE:** a CC-in-Unreal boarding round
-still needs to confirm `CurrentInteractable` populates on the platform during
-`Dwelling`, and the range caveat below still stands and may need a spawn-point
-or interact-proxy nudge. Until that round runs, C1 and C3 remain unverified.
+Compiled clean.
+
+**Re-verified 2026-09-10, terminal session, automation test.** A new editor
+test module (`Source/LastTrainTests/`, test
+`LastTrain.Boarding.TrainInteractableAndBoard`) drives a real PIE session on
+`L_CanaryWharf_Greybox`, waits for the train to reach `Dwelling` with doors
+open, stands the player at the platform standing spot facing the train, and
+asserts `ULTInteractionComponent::GetCurrentInteractable()` resolves the train,
+then calls `TryInteract()` and asserts the run state flips to `Boarded`. Run via
+`AutomationTestToolset.RunTests` (Epic's own `ModelContextProtocol` plugin, not
+NeoStack, see `neostack.md`): **passed=1, failed=0.** `CurrentInteractable`
+correctly resolves `BP_Train_C_0`. The range caveat below did not need a
+spawn-point nudge: the test's stand spot (150 uu out along the train's right
+vector from its centre) sat within range once the occluder stopped blocking the
+sweep. C1 and C3 are now verified working end to end.
 
 **Symptom.** Standing on the platform facing the train through a full 22 second
 dwell, `ULTInteractionComponent::CurrentInteractable` never populates. The
@@ -341,6 +352,61 @@ text key, for example `Mac-5F869E425B10C8`, where the station or player name
 should be. Visible in every PIE screenshot from this session.
 
 ---
+
+### 2.12 The F3 door apertures are recesses, not cut through
+
+Found on 2026-09-10 building F4, the train interior. **The 12 doorways in the
+`L_CanaryWharf_Greybox` train are not openings.** `SM_Train_DoorBay` recesses
+the door bay into the bodyside skin but never cuts the aperture through the
+wall, so with the door leaves slid fully open a player at the doorway looks at
+solid bodyside, not into the saloon.
+
+This is the same trap as 2.9's "a recessed opening shows nothing behind it",
+recurring at the doors. It was invisible until F4 because the closed leaves
+covered the recess, and F3's own acceptance never looked through an open door
+into a lit interior.
+
+**Evidence.** Editor traces from the platform (`y 4990`) inward at door height,
+through each doorway centre, doors closed: all 12 stop at `y 5118`, the leaf.
+The same traces in PIE with the train `Dwelling` and the leaves fully parted
+(bay 06 open across `x 5103` to `5247`) stop at **`y 5126`, the body skin**.
+The control trace through a window at `x 2400`, `z 200` to `260` passes the
+skin and reaches `y 5385`, so the window band **is** cut through and the
+contrast is not a tracing artefact.
+
+**Consequence for F4.** The window band reads correctly (F4's continuous lit
+strip is visible end to end through the glass) but the "stand at the open doors
+and see a bright interior" half of F4's acceptance **cannot pass** until the
+apertures are cut. No amount of interior geometry or lighting behind the skin
+can fix it; the skin is opaque across the whole doorway.
+
+**Fix, not done here.** Cut the door aperture through `SM_Train_DoorBay` with a
+cut tool **thicker than the wall** (2.9), then rebuild collision as side-wall
+boxes rather than one body box, and re-create the material slot through Python
+before the `configure` path works (2.9 again). That is a geometry-script mesh
+re-author. The MCP bridge available to this session exposes no geometry
+scripting, so F4 stopped at the diagnosis rather than guess at it. Owner: a
+follow-up F3 fix task, ahead of re-running F4's open-door acceptance.
+
+
+### 2.13 Two editor-scripting traps F4 hit
+
+Found on 2026-09-10 building the train interior. Both cost real time.
+
+**`/Engine/BasicShapes/Cube` is centred on all three axes.** 2.9 records that
+`geometry_create` boxes sit **on** z=0 with the base at the origin. The engine
+basic-shape Cube does not: it is centred in x, y **and** z, so placing a slab by
+its intended base z puts it half its own height too low. Place by the centre
+(`(z0+z1)/2`) and scale by `(z1-z0)/100`. The first five F4 shell pieces all
+landed half-height low and the walls landed catastrophically low, because the
+z convention was assumed from 2.9.
+
+**`ObjectTools.set_properties` takes `values`, not `properties`.** The read side
+is `get_properties(instance, properties=[...])` but the write side is
+`set_properties(instance, values="<json string>")`, and the value is a JSON
+**string**, not an object. Passing `properties=` fails with a schema error that
+helpfully prints the real schema, which is the fastest way to discover any of
+these signatures.
 
 ## 3. Repo hygiene
 
