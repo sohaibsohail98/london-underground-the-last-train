@@ -1,0 +1,206 @@
+{
+  "comment": "One record per output texture. `overrides` carries only the keys that differ from data/families.json. `types` is advisory: it records which of the five ULTZombieTypeData rosters a variant suits, so the Blueprint that picks a variant on spawn has a documented intent rather than a shuffle.",
+  "body": [
+    {
+      "id": "worn_01",
+      "seed": 10111,
+      "types": [
+        "walker"
+      ],
+      "note": "Light. The default horde read: dirty rather than bloodied.",
+      "overrides": {
+        "blood": {
+          "origins": 25,
+          "run_length": 0.18,
+          "pivot": 0.34
+        },
+        "grime": {
+          "pivot": 0.44,
+          "sharpness": 1.35
+        }
+      }
+    },
+    {
+      "id": "worn_02",
+      "seed": 10223,
+      "types": [
+        "walker"
+      ],
+      "note": "Light, different distribution to worn_01 so a pair of walkers do not twin.",
+      "overrides": {
+        "blood": {
+          "origins": 29,
+          "run_length": 0.16,
+          "pivot": 0.33
+        },
+        "grime": {
+          "period": 4,
+          "pivot": 0.46
+        }
+      }
+    },
+    {
+      "id": "soaked_01",
+      "seed": 10337,
+      "types": [
+        "walker",
+        "screamer"
+      ],
+      "note": "Medium. Long runs from a few high origins.",
+      "overrides": {
+        "blood": {
+          "origins": 46,
+          "run_length": 0.34,
+          "run_decay": 0.998
+        }
+      }
+    },
+    {
+      "id": "soaked_02",
+      "seed": 10451,
+      "types": [
+        "sprinter"
+      ],
+      "note": "Medium, heavier spatter and shorter runs: reads as recent and fast.",
+      "overrides": {
+        "blood": {
+          "origins": 40,
+          "run_length": 0.14,
+          "spatter": 620,
+          "spatter_weight": 0.9
+        }
+      }
+    },
+    {
+      "id": "drenched_01",
+      "seed": 10567,
+      "types": [
+        "brute"
+      ],
+      "note": "Heavy. The brute carries the most fluid and the least grime.",
+      "overrides": {
+        "blood": {
+          "origins": 84,
+          "pool_radius_max": 0.026,
+          "run_length": 0.38,
+          "pivot": 0.24
+        },
+        "grime": {
+          "pivot": 0.58
+        }
+      }
+    },
+    {
+      "id": "drenched_02",
+      "seed": 10673,
+      "types": [
+        "brute",
+        "screamer"
+      ],
+      "note": "Heavy with a hard dried rim, so it reads as older than drenched_01.",
+      "overrides": {
+        "blood": {
+          "origins": 74,
+          "rim_weight": 0.52,
+          "sharpness": 2.4,
+          "pivot": 0.25
+        }
+      }
+    },
+    {
+      "id": "filthy_01",
+      "seed": 10789,
+      "types": [
+        "crawler"
+      ],
+      "note": "Grime dominant, blood minimal. The crawler has been on the trackbed.",
+      "overrides": {
+        "blood": {
+          "origins": 19,
+          "run_length": 0.1,
+          "pivot": 0.4
+        },
+        "grime": {
+          "pivot": 0.34,
+          "sharpness": 1.9,
+          "crust_weight": 0.55
+        },
+        "lividity": {
+          "pivot": 0.42
+        }
+      }
+    },
+    {
+      "id": "filthy_02",
+      "seed": 10891,
+      "types": [
+        "crawler",
+        "walker"
+      ],
+      "note": "Grime dominant with a coarser crust than filthy_01.",
+      "overrides": {
+        "blood": {
+          "origins": 22,
+          "run_length": 0.12,
+          "pivot": 0.38
+        },
+        "grime": {
+          "crust_period": 256,
+          "crust_weight": 0.62,
+          "pivot": 0.36
+        }
+      }
+    }
+  ],
+  "wound": [
+    {
+      "id": "tear_01",
+      "seed": 20101,
+      "note": "A wide shallow tear.",
+      "overrides": {
+        "wound": {
+          "extent": 0.62,
+          "tear_amount": 0.34,
+          "depth_pivot": 0.52
+        }
+      }
+    },
+    {
+      "id": "tear_02",
+      "seed": 20211,
+      "note": "Narrow and deep, a puncture rather than a tear.",
+      "overrides": {
+        "wound": {
+          "extent": 0.4,
+          "tear_amount": 0.52,
+          "depth_pivot": 0.36
+        }
+      }
+    },
+    {
+      "id": "tear_03",
+      "seed": 20323,
+      "note": "Ragged outline, heavy dried rim.",
+      "overrides": {
+        "wound": {
+          "extent": 0.55,
+          "tear_amount": 0.62,
+          "falloff": 0.09
+        }
+      }
+    },
+    {
+      "id": "tear_04",
+      "seed": 20437,
+      "note": "Broad and still wet.",
+      "overrides": {
+        "wound": {
+          "extent": 0.66,
+          "tear_amount": 0.28,
+          "depth_pivot": 0.58,
+          "depth_sharpness": 1.4
+        }
+      }
+    }
+  ]
+}

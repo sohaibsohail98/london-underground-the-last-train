@@ -69,6 +69,21 @@ jobs:
       - name: LFS pointer integrity
         run: python tools/ci/check_content.py
 
+  zombie-surfaces:
+    name: Zombie surface generator
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned generator dependencies
+        run: pip install -r tools/zombie-surfaces/requirements.txt
+      - name: Mask, manifest, determinism and CLI assertions
+        run: python tools/zombie-surfaces/tests/run_assertions.py
+
   compile:
     name: Compile the editor target
     # Unreal Engine cannot be installed on a hosted runner, so a real compile
