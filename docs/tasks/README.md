@@ -42,6 +42,33 @@ reference frame". Phase G makes it a finished thing.
 |---|---|---|---|
 | tracked as **S13** in `handover.md` | Main menu: `L_MainMenu` map, `BP_MenuGameMode`, `WBP_MainMenu`, set as launch map | CC-in-Unreal | in flight |
 
+### Queue order, reordered 2026-09-10
+
+Playtesting on 2026-09-10 found the core combat loop reads unfinished in ways
+that outweigh station art polish: no visible weapon, no fire or reload
+animation, no starting-pistol-then-buy progression, and zombie pacing/health
+that reads as instant contact and too tanky. Fixing the way the game plays is
+ahead of fixing the way the second station looks, so the order below is not
+file order, it is priority order. Do not start a lower item before the ones
+above it are done, same discipline as any other dependency chain in this
+table.
+
+1. **F4 vestibule lighting fix**, in flight, left mid-tune when the
+   2026-09-10 session hit its usage limit (light intensity was overshot to
+   2600 cd testing `Movable`, then the session ended before it was dialled
+   back). Resume from `docs/known-issues.md` 2.12's still-open note; check
+   the vestibule light's current intensity before doing anything else, it may
+   be left in a blown out state.
+2. `phase-h1-zombie-pacing-balance.md` - zombie approach pacing and time to
+   kill. Small, mostly data tuning against existing fields, no new system.
+3. `phase-h1-starting-loadout.md` - starting pistol and wall buy progression
+   design draft (remote), then the editor work to create the weapon data
+   assets and place the wall buys (CC-in-Unreal).
+4. `phase-h-weapon-presentation.md` - visible weapon, fire animation, reload
+   animation, ADS blend. Depends on an FP arms and weapon mesh existing;
+   blocked until that asset research lands.
+5. F5 to F7 below, then the Paddington pass, then Phase G.
+
 ### Phase F
 
 | File | Task | Session | Depends on |
@@ -52,12 +79,20 @@ reference frame". Phase G makes it a finished thing.
 | `phase-f3-train-exterior.md` | Class 345 silhouette exterior, original livery, doors on the `ALTTrain` hooks | CC-in-Unreal | F1 |
 | `phase-f4-train-interior.md` | The visible-through-doors interior slice | CC-in-Unreal | F3 |
 | `phase-f5-signage-wayfinding.md` | Finish and fix S11: readable name boards, wayfinding, the hanging departure board face | CC-in-Unreal | F1 |
-| `phase-f6-zombie-bodies.md` | Varied clothed bodies (City Sample Crowds), keep the five-type split | CC-in-Unreal | do after F1 |
-| `phase-f6a-zombie-surface-masks.md` | Wire the generated per-type zombie surface masks from `tools/zombie-surfaces/` into `M_Zombie_Tintable` | CC-in-Unreal | nothing |
+| `phase-f6-zombie-bodies.md` | Varied clothed bodies (City Sample Crowds), keep the five-type split | CC-in-Unreal | F6a |
+| `phase-f6a-zombie-surface-masks.md` | Wire the generated per-type zombie surface masks from `tools/zombie-surfaces/` into `M_Zombie_Tintable` | CC-in-Unreal | nothing, do before F6 |
 | `phase-f7-perf-pass.md` | Profile the finished art with a horde, claw back the 60 fps gate | CC-in-Unreal, Fable guidance | F1 to F6 |
 | `asset-research-phase-f.md` | Research subagents: kit reference, trim sheets, train reference, menu assets | Remote | **done 2026-09-09** |
 | `../reference/asset-sources-phase-f.md` | The result: sources, licences, legal flags. `tools/asset-fetch/fetch-phase-f.sh` stages it | reference | - |
 | `phase-f-greybox-station.md` | **`L_GreyboxTest` becomes Paddington.** F1 to F5 only ever touched `L_CanaryWharf_Greybox`; `L_GreyboxTest` is fully playable (rounds, boarding, signage, HUD all pass there) but still on Phase B cube geometry and Phase B/S4 flat lighting, with no train mesh at all. Decided 2026-09-10: full matching pass, both v1 stations equally finished, reusing the kit meshes, materials and train assets already built for Canary Wharf rather than building any of it again from scratch, and given a distinct real identity (Paddington, chosen for visual contrast: a single curved side platform against Canary Wharf's straight island hall) so the two stations do not read as the same place twice. | CC-in-Unreal | F1 to F7 (Canary Wharf) |
+
+### Phase H
+
+| File | Task | Session | Depends on |
+|---|---|---|---|
+| `phase-h1-zombie-pacing-balance.md` | Spawn pacing, spawn point sightlines, round 1 time to kill | CC-in-Unreal | nothing |
+| `phase-h1-starting-loadout.md` | Starting pistol and wall buy progression, design draft then editor placement | Remote (draft), CC-in-Unreal (editor) | nothing to start the draft |
+| `phase-h-weapon-presentation.md` | FP arms, fire and reload animation, ADS blend, weapon swap on purchase | CC-in-Unreal | an FP arms/weapon mesh existing |
 
 ### Phase G
 
