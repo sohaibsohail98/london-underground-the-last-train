@@ -269,9 +269,18 @@ recompile once the cause is found.
 ### 2.11 The F3 bodyshell blocks the boarding interact
 
 Found on 2026-09-10 in the F3-completion follow-up, the PIE session that
-finally exercised boarding. **Boarding is unreachable in
-`L_CanaryWharf_Greybox`.** This is a real gameplay defect, not a test artefact,
-and it is open.
+finally exercised boarding. **Boarding was unreachable in
+`L_CanaryWharf_Greybox`.** This was a real gameplay defect, not a test artefact.
+
+**Primary fault fixed 2026-09-10 (`Source/`).** `ULTInteractionComponent` now
+sweeps multi and takes the nearest hit that implements
+`ULTInteractableInterface`, not the nearest hit of any kind, so a cosmetic
+Visibility blocker in front of an interactable (the F3 bodyshell panel, a
+pillar in front of a wall buy) is skipped rather than ending the search.
+Compiled clean. **Not yet re-verified in PIE:** a CC-in-Unreal boarding round
+still needs to confirm `CurrentInteractable` populates on the platform during
+`Dwelling`, and the range caveat below still stands and may need a spawn-point
+or interact-proxy nudge. Until that round runs, C1 and C3 remain unverified.
 
 **Symptom.** Standing on the platform facing the train through a full 22 second
 dwell, `ULTInteractionComponent::CurrentInteractable` never populates. The
@@ -311,13 +320,21 @@ the primary fault, but the margin is thin.
 the volume is invisible to `SweepSingleByChannel` and contributes nothing to
 finding the interact. Its comment says it only scopes where the aperture is.
 
-**Fixes to consider, none applied.** Any of: give the F3 doorway panels no
-Visibility collision so the sweep passes through the aperture; move the train's
-interact proxy forward to the doorway plane rather than leaving it on
-`CarriageMesh` at y 5200; make `BoardingVolume` block Visibility and sit in the
-doorway; or have the interaction component sweep multi and pick the first hit
-that implements the interface rather than the first hit of any kind. The last is
-a `Source/` change and the most general.
+**Fix applied.** The interaction component now sweeps multi and picks the first
+hit that implements the interface rather than the first hit of any kind
+(`SweepMultiByChannel` in `ULTInteractionComponent::TickComponent`). This was
+the most general of the candidates and survives any future geometry in front of
+the train. The three editor-side alternatives (strip Visibility collision from
+the doorway panels, move the interact proxy to the doorway plane, make
+`BoardingVolume` block Visibility) were not needed and were not done.
+
+**Still open: the range caveat.** With the occluder no longer stopping the
+sweep, the train sits at ~275 uu from a comfortable standing spot, just outside
+`InteractionRange` 250. The player can close to ~124 uu before the shell stops
+the capsule, so boarding is reachable, but the margin is thin. If the PIE
+re-verification finds the prompt flickers or needs the player pressed against
+the shell, nudge the platform spawn point forward or move the interact proxy to
+the doorway plane.
 
 **Also seen, unrelated and minor.** The HUD points label renders an unlocalised
 text key, for example `Mac-5F869E425B10C8`, where the station or player name

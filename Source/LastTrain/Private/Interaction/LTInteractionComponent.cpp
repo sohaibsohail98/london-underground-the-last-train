@@ -41,17 +41,26 @@ void ULTInteractionComponent::TickComponent(
 
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(LTInteractionTrace), false, GetOwner());
 
-	FHitResult Hit;
+	// Sweep multi and take the nearest hit that is an interactable, not the nearest
+	// hit of anything. A single blocking sweep stops on the first Visibility blocker,
+	// so cosmetic geometry in front of an interactable (a train bodyshell panel in
+	// front of the boarding actor, a pillar in front of a wall buy) hides the prompt
+	// entirely. Hits come back sorted near to far, so the first match is the closest.
+	TArray<FHitResult> Hits;
 	AActor* NewTarget = nullptr;
 
-	if (World->SweepSingleByChannel(
-			Hit, Origin, End, FQuat::Identity, ECC_Visibility, FCollisionShape::MakeSphere(TraceRadius), Params))
+	if (World->SweepMultiByChannel(
+			Hits, Origin, End, FQuat::Identity, ECC_Visibility, FCollisionShape::MakeSphere(TraceRadius), Params))
 	{
-		AActor* HitActor = Hit.GetActor();
-		if (HitActor && HitActor->Implements<ULTInteractableInterface>() &&
-			ILTInteractableInterface::Execute_CanInteract(HitActor, GetOwner()))
+		for (const FHitResult& Hit : Hits)
 		{
-			NewTarget = HitActor;
+			AActor* HitActor = Hit.GetActor();
+			if (HitActor && HitActor->Implements<ULTInteractableInterface>() &&
+				ILTInteractableInterface::Execute_CanInteract(HitActor, GetOwner()))
+			{
+				NewTarget = HitActor;
+				break;
+			}
 		}
 	}
 
