@@ -1,7 +1,6 @@
 #include "Player/LTPlayerCharacter.h"
 
 #include "Camera/CameraComponent.h"
-#include "Combat/LTGoreDecalSubsystem.h"
 #include "Components/CapsuleComponent.h"
 #include "Core/LTGameMode.h"
 #include "Core/LTGameState.h"
@@ -305,15 +304,13 @@ void ALTPlayerCharacter::PerformMelee()
 	// hit reaction hook, Die() and the FOnZombieDied broadcast all working.
 	Zombie->ReceiveShot(MeleeDamage, bHeadshot, Hit, Direction, this);
 
-	// Gore, through the shared subsystem rather than a second gore path.
-	// ULTGoreDecalSubsystem is on the sibling branch claude/blood-decals-prompt
-	// and is not present here, so this translation unit compiles only once both
-	// branches are on main. That is deliberate: it is called as an external
-	// dependency, not vendored or stubbed. Whoever merges the two should keep
-	// one blood call for the melee path and drop the other, because that branch
-	// also calls SpawnBloodDecalForWorld inside ALTZombieCharacter::ReceiveShot,
-	// which the line above has just gone through.
-	ULTGoreDecalSubsystem::SpawnBloodDecalForWorld(GetWorld(), Hit.ImpactPoint, Hit.ImpactNormal, bHeadshot);
+	// Gore is deliberately not spawned here. ALTZombieCharacter::ReceiveShot,
+	// which the line above has just gone through, already calls the shared
+	// ULTGoreDecalSubsystem on the sibling branch claude/blood-decals-prompt,
+	// and it does so after the brute's armour early-return. Spawning again from
+	// this side would draw two spatters for one strike and would put blood on a
+	// plate that stopped the blow. Routing melee damage through ReceiveShot is
+	// what satisfies the shared gore path: one entry point, one hit, one decal.
 
 	// Kills are awarded from the zombie's death broadcast, so this is the hit
 	// award only, the same way TracePellet does it.

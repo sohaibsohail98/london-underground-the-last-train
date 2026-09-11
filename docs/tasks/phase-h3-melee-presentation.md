@@ -94,11 +94,19 @@ is a contextual bash rather than a weapon slot.
 - Map Check 0 errors, 0 warnings if the session's tooling can obtain a
   reading; note plainly if it cannot.
 
-## Open, for whoever merges the gore branch
+## Gore, and why this branch spawns none of its own
 
-`ALTPlayerCharacter::PerformMelee` calls
-`ULTGoreDecalSubsystem::SpawnBloodDecalForWorld` directly, and the gore
-branch also calls it inside `ALTZombieCharacter::ReceiveShot`, which the
-melee path goes through. Keep one and drop the other or a melee hit spawns
-two spatters. `ReceiveShot`'s is the better placement: it sits after the
-armour plate early return, so a blocked brute hit correctly draws no blood.
+`ALTPlayerCharacter::PerformMelee` deliberately does not call
+`ULTGoreDecalSubsystem::SpawnBloodDecalForWorld`. It does not need to. The
+gore branch calls it from inside `ALTZombieCharacter::ReceiveShot`, which
+the melee path routes its damage through, so a bash already produces the
+same restrained spatter a gunshot does, from the same shared subsystem and
+the same single entry point.
+
+Calling it a second time from the melee side was tried and removed. It drew
+two spatters for one strike, and because the melee side had no sight of the
+brute's armour plate it also drew blood on a blow the plate had stopped.
+`ReceiveShot`'s call sits after that early return and is correct for both
+the hitscan and the melee path. Do not add a melee specific gore call back
+in: if melee ever grows a damage route that bypasses `ReceiveShot`, spawn
+the decal there instead.
