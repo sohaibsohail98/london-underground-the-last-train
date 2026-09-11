@@ -298,8 +298,8 @@ Player coded in `ALTPlayerCharacter`.
   adding either is a proposal, not a confirmed ambiguity, and the sprinter type
   plus arena design are the intended answer to lazy kiting instead.
 - Enhanced Input actions (`Move`, `Look`, `Jump`, `Sprint`, `Fire`, `Aim`,
-  `Reload`, `Interact`) are `EditDefaultsOnly` and null until a Blueprint
-  assigns them.
+  `Reload`, `Interact`, `Melee`) are `EditDefaultsOnly` and null until a
+  Blueprint assigns them.
 
 Weapons coded in `ULTWeaponComponent` + `ULTWeaponData`.
 
@@ -313,8 +313,21 @@ Weapons coded in `ULTWeaponComponent` + `ULTWeaponData`.
 - The full weapon roster (count, archetypes, tiers, which need new code such as a
   projectile system for a crossbow) is a proposal, shape only. The ~130 stat
   numbers are not to be data-entered until Phase G.
-- No melee yet; adding one is a proposal. Two-weapon carry is an unimplemented
-  feature scoped for Phase C/E, not a bug.
+- **Melee is settled and coded** on `ALTPlayerCharacter`, not on the weapon: a
+  contextual bash with whatever is already held, not a weapon slot, not a knife
+  with its own ammunition or equip state. `PerformMelee()` traces `MeleeRange`
+  150 from the view point, applies a flat `MeleeDamage` 50 through the same
+  `ALTZombieCharacter::ReceiveShot` call the hitscan path uses, and is gated
+  only by `MeleeCooldownSeconds` 0.8 and the run state, never by ammunition,
+  because its whole purpose is the moment the magazine and the reserve are both
+  empty. It fires `OnMeleeHitConfirmed` (bool headshot, the same shape as
+  `OnHitConfirmed`) on a connection and the `OnMeleeSwing` Blueprint hook on
+  every allowed strike. All three numbers are `EditDefaultsOnly` and
+  **provisional** pending the Phase G balance pass; 50 damage is three strikes
+  to a round one walker at 150 `BaseHealth`. The key binding, the swing
+  animation and the impact sound are editor work: see
+  `../tasks/phase-h3-melee-presentation.md`.
+- Two-weapon carry is an unimplemented feature scoped for Phase C/E, not a bug.
 
 ---
 
