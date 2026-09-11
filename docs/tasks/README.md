@@ -104,6 +104,7 @@ table.
 | `phase-g2-hud.md` | G2 in full: binding table, layout, downed and run-over states, the 5 open S7 findings | CC-in-Unreal |
 | `phase-g4-pause-menu.md` | G4: the pause menu. The `Source/` hook is written (unverified, uncompiled); the input asset and `WBP_PauseMenu` are editor work | CC-in-Unreal |
 | `phase-g5-save-settings.md` | G5: the settings panel and the best round line. The two save classes and the game instance wiring are already in C++, unverified | CC-in-Unreal |
+| `phase-g6-subtitles.md` | G6: the caption widget, the subtitle table and the settings checkbox. The `Source/` half is written and uncompiled | CC-in-Unreal |
 
 ### Still-relevant references
 
