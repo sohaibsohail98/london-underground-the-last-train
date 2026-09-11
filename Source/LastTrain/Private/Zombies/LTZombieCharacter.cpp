@@ -2,6 +2,7 @@
 
 #include "AIController.h"
 #include "Camera/PlayerCameraManager.h"
+#include "Combat/LTGoreDecalSubsystem.h"
 #include "Components/CapsuleComponent.h"
 #include "Economy/LTPointsComponent.h"
 #include "Engine/World.h"
@@ -540,6 +541,7 @@ void ALTZombieCharacter::ReceiveShot(
 
 			// No health lost and no impulse. A hit reaction Blueprint reads
 			// GetArmourRemaining to play a blocked response rather than a wounded one.
+			// No blood either: the plate stopped the round before it reached flesh.
 			OnHitReaction(Hit, bHeadshot);
 			return;
 		}
@@ -548,6 +550,11 @@ void ALTZombieCharacter::ReceiveShot(
 	Health -= Damage;
 
 	OnHitReaction(Hit, bHeadshot);
+
+	// The Blueprint hook above stays as it is; this is the C++ half of the same
+	// moment. It lives here rather than in ULTWeaponComponent so that a melee
+	// hit, which never goes through the hitscan path, spawns the same gore.
+	ULTGoreDecalSubsystem::SpawnBloodDecalForWorld(GetWorld(), Hit.ImpactPoint, Hit.ImpactNormal, bHeadshot);
 
 	if (Health <= 0.f)
 	{
@@ -606,6 +613,11 @@ void ALTZombieCharacter::Die(const bool bHeadshot, AActor* Killer)
 			OnZombieScreamed.Broadcast(this, 0);
 		}
 	}
+
+	// The pool under the corpse, answering the "death montage and gore" half of
+	// OnDeathPresentation's comment in C++. One larger decal rather than a burst
+	// of them, per art-direction.md section 6. The Blueprint hook still fires.
+	ULTGoreDecalSubsystem::SpawnDeathPoolForWorld(GetWorld(), GetActorLocation(), bHeadshot);
 
 	OnDeathPresentation(bHeadshot);
 	OnZombieDied.Broadcast(this, bHeadshot);
