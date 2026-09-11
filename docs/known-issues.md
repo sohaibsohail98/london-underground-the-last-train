@@ -38,6 +38,16 @@ remote session downloads has no route out **even if 1.1 were fixed.**
 This is the more fundamental of the two, and it applies to any gitignored
 output, not just assets.
 
+**It holds in the other direction too, which is easy to forget when writing a
+task spec.** Nothing staged on the Mac under `_incoming_assets/` is visible to
+a remote session: it is gitignored, so it is not in the clone the container
+gets. A spec that tells the remote lane to "read the staged pack and its
+`SOURCES.txt`" cannot be followed. Phase G1 hit exactly this: the audio spec
+had to be written from the repo's own research docs instead, and
+`docs/tasks/phase-g1-audio.md` step 0 is a reconciliation pass against the real
+`SOURCES` files, to be run here. **Consequence for task specs:** anything the
+remote lane must read has to be in git.
+
 ### 1.3 No compile
 
 Unreal cannot be installed in the container, and the external Xcode mount is not

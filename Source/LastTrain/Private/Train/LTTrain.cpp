@@ -4,6 +4,7 @@
 #include "Core/LTGameMode.h"
 #include "Core/LTGameState.h"
 #include "EngineUtils.h"
+#include "Kismet/GameplayStatics.h"
 #include "LastTrain.h"
 #include "Rounds/LTRoundManager.h"
 #include "Rounds/LTStationHeat.h"
@@ -129,6 +130,21 @@ void ALTTrain::EnterPhase(const ELTTrainPhase NewPhase, const float NewPhaseTime
 	OnTrainPhaseChanged.Broadcast(NewPhase, OldPhase);
 }
 
+void ALTTrain::PlayTrainSound(USoundBase* Sound) const
+{
+	// Optional, like every other presentation hook on this actor: the train runs
+	// its cycle silently until a Blueprint assigns the sounds.
+	if (!Sound)
+	{
+		return;
+	}
+
+	// Positioned at the train actor, which is the platform edge. A sound that has
+	// to come from one specific door leaf is Blueprint work on the matching hook,
+	// not something this state machine can know about.
+	UGameplayStatics::PlaySoundAtLocation(this, Sound, GetActorLocation());
+}
+
 void ALTTrain::Tick(const float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
@@ -178,6 +194,7 @@ void ALTTrain::TickAway()
 
 		EnterPhase(ELTTrainPhase::Approaching, ArrivalSlideSeconds);
 		OnArrivalStarted();
+		PlayTrainSound(ArrivalSound);
 	}
 }
 
@@ -199,11 +216,13 @@ void ALTTrain::TickDwelling()
 	{
 		bDoorsOpen = true;
 		OnDoorsOpen();
+		PlayTrainSound(DoorOpenSound);
 	}
 	else if (bDoorsOpen && PhaseTimer <= DoorCloseLeadSeconds)
 	{
 		bDoorsOpen = false;
 		OnDoorsClose();
+		PlayTrainSound(DoorCloseSound);
 		OnDepartureAnnouncement();
 	}
 
@@ -211,6 +230,7 @@ void ALTTrain::TickDwelling()
 	{
 		EnterPhase(ELTTrainPhase::Departing, DepartureSlideSeconds);
 		OnDepartureStarted();
+		PlayTrainSound(DepartureSound);
 
 		if (!bDepartureHeatApplied)
 		{

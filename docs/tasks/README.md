@@ -99,6 +99,7 @@ table.
 | File | Task | Session |
 |---|---|---|
 | `phase-g-audio-hud-balance.md` | The Phase G plan: G1 audio, G2 restrained HUD, G3 balance | mixed |
+| `phase-g1-audio.md` | G1 in full: the 17 new `USoundBase` hooks, which staged pack goes on each, import and concurrency settings, attribution | CC-in-Unreal |
 | `phase-g2-hud.md` | G2 in full: binding table, layout, downed and run-over states, the 5 open S7 findings | CC-in-Unreal |
 
 ### Still-relevant references

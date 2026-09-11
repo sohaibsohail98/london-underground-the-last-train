@@ -7,6 +7,7 @@
 
 class UBoxComponent;
 class ULTStationHeat;
+class USoundBase;
 
 /** Where the train is in its cycle. Drives presentation and the boarding window. */
 UENUM(BlueprintType)
@@ -79,6 +80,26 @@ public:
 		governs every cycle after it. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Train")
 	float FirstTrainStopSeconds = 30.f;
+
+	/** One shot, played with OnArrivalStarted as the inbound slide begins. The
+		sustained rumble bed under the slide belongs on the Blueprint hook, which
+		can stop it again; this is the arrival itself. Null is silent, as are all
+		four. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> ArrivalSound;
+
+	/** Played with OnDoorsOpen. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> DoorOpenSound;
+
+	/** Played with OnDoorsClose. Not an operator's door chime: original material
+		only, see the legal section of CLAUDE.md. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> DoorCloseSound;
+
+	/** Played with OnDepartureStarted as the outbound slide begins. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> DepartureSound;
 
 	/** True while the arrival still warrants the full spectacle. Cleared after the
 		third arrival so a Blueprint can pick a shorter cycle. Timing is unaffected. */
@@ -174,6 +195,11 @@ private:
 	/** The round manager's heat component if there is one, otherwise any heat
 		component in the level. Null on a heat-less test level. */
 	ULTStationHeat* FindStationHeat() const;
+
+	/** Plays one of the four cycle sounds at the train's own location. Null is a
+		no-op. The announcements deliberately have no property here: their content
+		is a later authoring task and the Blueprint hooks already carry them. */
+	void PlayTrainSound(USoundBase* Sound) const;
 
 	void TickAway();
 	void TickApproaching();

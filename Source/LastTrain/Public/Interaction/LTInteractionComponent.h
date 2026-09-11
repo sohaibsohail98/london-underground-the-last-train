@@ -4,6 +4,8 @@
 #include "Components/ActorComponent.h"
 #include "LTInteractionComponent.generated.h"
 
+class USoundBase;
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnInteractableChanged, const FText&, Prompt, bool, bAvailable);
 
 /** Traces ahead of the owning pawn for an interactable and holds the current one. */
@@ -25,6 +27,13 @@ public:
 	/** Sphere sweep radius, so small anchors are not fiddly to look at. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction")
 	float TraceRadius = 12.f;
+
+	/** The generic confirm, played on any interact that actually goes through.
+		One sound for every interactable: a wall buy that wants its own purchase
+		sound plays that from its own Interact, this only says the press landed.
+		Null is silent. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> InteractSound;
 
 	virtual void
 	TickComponent(float DeltaSeconds, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;

@@ -6,6 +6,7 @@
 #include "LTZombieCharacter.generated.h"
 
 class ULTPointsComponent;
+class USoundBase;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnZombieDied, ALTZombieCharacter*, Zombie, bool, bHeadshot);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnZombieScreamed, ALTZombieCharacter*, Screamer, int32, WalkerCount);
@@ -153,6 +154,33 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Zombie")
 	float CorpseLifetime = 6.f;
 
+	/** The default vocal set, used by any zombie whose type asset leaves the
+		matching field null. All four are null until a Blueprint assigns them, and
+		a null sound is silent rather than an error. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> IdleVocalSound;
+
+	/** Played once on spawn. See ULTZombieTypeData::AggroVocalSound. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> AggroVocalSound;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> AttackVocalSound;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> DeathVocalSound;
+
+	/** Seconds between idle vocals. Zero or less silences them. Deliberately long:
+		at the live cap of 24 a short cadence is a wall of noise, and silence is
+		the point of the system. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	float IdleVocalIntervalSeconds = 7.f;
+
+	/** Fraction of the interval added as a random per-instance offset, so the
+		crowd does not moan in chorus. Same trick as RepathJitterFraction. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	float IdleVocalJitterFraction = 0.5f;
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -201,6 +229,17 @@ private:
 		fires the scream once it holds long enough. */
 	void UpdateScream(float DeltaSeconds);
 
+	/** The spawn vocal on the first tick, then the idle cadence. Deliberately not
+		in BeginPlay: the round manager applies the type asset immediately after
+		spawning, which is after BeginPlay has already run, so a spawn vocal fired
+		there would always use the character default and never the type's own. */
+	void UpdateVocals(float DeltaSeconds);
+
+	/** Plays one vocal at the zombie's location. Null is a no-op. Positioned, and
+		deliberately not attached: an attached sound costs an audio component per
+		call, which at the live cap is a lot of allocation for a one shot. */
+	void PlayVocal(USoundBase* Sound) const;
+
 	/** Trace origin for the line-of-sight test: the first head bone the skeleton
 		actually has, or the eye height if it has none of them. */
 	FVector GetHeadLocation() const;
@@ -226,6 +265,13 @@ private:
 	void DriveStallNudge();
 
 	float RepathTimer = 0.f;
+
+	/** Seconds until the next idle vocal. */
+	float IdleVocalTimer = 0.f;
+
+	/** True once the spawn vocal has been played, so it fires exactly once. */
+	bool bAggroVocalPlayed = false;
+
 	float StallTimer = 0.f;
 	bool bStallRecovering = false;
 

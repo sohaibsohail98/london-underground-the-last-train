@@ -4,6 +4,8 @@
 #include "Components/ActorComponent.h"
 #include "LTStationHeat.generated.h"
 
+class USoundBase;
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHeatChanged, int32, NewHeat);
 
 /** Station heat. Rises by one each time the player lets a train leave without
@@ -31,6 +33,13 @@ public:
 	/** Upper bound on heat, so the numbers stay sane on a very long stay. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Rounds")
 	int32 MaximumHeat = 10;
+
+	/** Played once each time heat actually rises, which is the only discrete
+		event this component has: the player let a train go. A fall to zero on
+		travel is deliberately silent, the station is being torn down anyway.
+		Null is silent. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> HeatRiseSound;
 
 	/** Raises heat by one, clamped to MaximumHeat. Call when a train departs
 		with the player still in the station. */

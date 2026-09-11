@@ -58,6 +58,10 @@ void ALTZombieCharacter::BeginPlay()
 	// A fixed per-instance sign, so a stalled zombie always shoulders past on the
 	// same side and the queue fans out instead of oscillating in place.
 	StallLateralSign = FMath::RandBool() ? 1.f : -1.f;
+
+	// Spread the first idle vocal over the whole interval, or a wave spawned
+	// together would breathe in unison.
+	IdleVocalTimer = FMath::FRandRange(0.f, FMath::Max(0.f, IdleVocalIntervalSeconds));
 }
 
 void ALTZombieCharacter::ApplyRoundScaling(const int32 Round)
@@ -178,6 +182,30 @@ void ALTZombieCharacter::ApplyTypeData(const ULTZombieTypeData* Data)
 		}
 	}
 
+	// Each vocal falls through to the character's own sound when the type leaves
+	// it null, so a roster asset only carries what it actually changes.
+	if (Data->IdleVocalSound)
+	{
+		IdleVocalSound = Data->IdleVocalSound;
+	}
+	if (Data->AggroVocalSound)
+	{
+		AggroVocalSound = Data->AggroVocalSound;
+	}
+	if (Data->AttackVocalSound)
+	{
+		AttackVocalSound = Data->AttackVocalSound;
+	}
+	if (Data->DeathVocalSound)
+	{
+		DeathVocalSound = Data->DeathVocalSound;
+	}
+	if (Data->IdleVocalIntervalOverride > 0.f)
+	{
+		IdleVocalIntervalSeconds = Data->IdleVocalIntervalOverride;
+		IdleVocalTimer = FMath::Min(IdleVocalTimer, IdleVocalIntervalSeconds);
+	}
+
 	AnimPlayRate = Data->AnimPlayRate;
 	bRagdollOnDeath = Data->bRagdollOnDeath;
 	DeathScreenShakeRadius = Data->DeathScreenShakeRadius;
@@ -249,6 +277,8 @@ void ALTZombieCharacter::Tick(const float DeltaSeconds)
 	{
 		UpdateScream(DeltaSeconds);
 	}
+
+	UpdateVocals(DeltaSeconds);
 
 	TryAttack();
 }
@@ -431,6 +461,7 @@ void ALTZombieCharacter::TryAttack()
 	AttackCooldown = AttackCooldownSeconds;
 
 	OnAttackWindUp();
+	PlayVocal(AttackVocalSound);
 
 	// A short forward lunge, so a sprinter's swing closes the last of the gap
 	// rather than swiping at air the player has already left.
@@ -443,6 +474,45 @@ void ALTZombieCharacter::TryAttack()
 	}
 
 	UGameplayStatics::ApplyDamage(CurrentTarget, AttackDamage, GetController(), this, nullptr);
+}
+
+void ALTZombieCharacter::UpdateVocals(const float DeltaSeconds)
+{
+	// First tick, so the type asset the round manager applies after BeginPlay is
+	// already in place and the spawn vocal is this type's own.
+	if (!bAggroVocalPlayed)
+	{
+		bAggroVocalPlayed = true;
+		PlayVocal(AggroVocalSound);
+	}
+
+	if (!IdleVocalSound || IdleVocalIntervalSeconds <= 0.f)
+	{
+		return;
+	}
+
+	IdleVocalTimer -= DeltaSeconds;
+	if (IdleVocalTimer > 0.f)
+	{
+		return;
+	}
+
+	PlayVocal(IdleVocalSound);
+
+	const float Jitter = IdleVocalIntervalSeconds * IdleVocalJitterFraction;
+	IdleVocalTimer = FMath::Max(0.1f, IdleVocalIntervalSeconds + FMath::FRandRange(-Jitter, Jitter));
+}
+
+void ALTZombieCharacter::PlayVocal(USoundBase* Sound) const
+{
+	// Every vocal is optional. Nothing is assigned until a Blueprint or a type
+	// asset carries one, and the horde is silent until then.
+	if (!Sound)
+	{
+		return;
+	}
+
+	UGameplayStatics::PlaySoundAtLocation(this, Sound, GetActorLocation());
 }
 
 void ALTZombieCharacter::UpdateScream(const float DeltaSeconds)
@@ -608,6 +678,7 @@ void ALTZombieCharacter::Die(const bool bHeadshot, AActor* Killer)
 	}
 
 	OnDeathPresentation(bHeadshot);
+	PlayVocal(DeathVocalSound);
 	OnZombieDied.Broadcast(this, bHeadshot);
 
 	SetLifeSpan(TypeCorpseLifetime > 0.f ? TypeCorpseLifetime : CorpseLifetime);
