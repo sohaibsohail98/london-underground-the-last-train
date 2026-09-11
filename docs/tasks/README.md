@@ -100,6 +100,7 @@ table.
 |---|---|---|
 | `phase-g-audio-hud-balance.md` | The Phase G plan: G1 audio, G2 restrained HUD, G3 balance | mixed |
 | `phase-g2-hud.md` | G2 in full: binding table, layout, downed and run-over states, the 5 open S7 findings | CC-in-Unreal |
+| `phase-g6-subtitles.md` | G6: the caption widget, the subtitle table and the settings checkbox. The `Source/` half is written and uncompiled | CC-in-Unreal |
 
 ### Still-relevant references
 
