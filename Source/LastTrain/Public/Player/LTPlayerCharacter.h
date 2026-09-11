@@ -94,9 +94,17 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement")
 	float SprintSpeed = 640.f;
 
-	/** Wide, so the platform reads. */
+	/** Wide, so the platform reads. The Blueprint's default; a saved player
+		setting replaces it on BeginPlay through SetBaseFieldOfView. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Camera")
 	float BaseFieldOfView = 95.f;
+
+	/** Sets the hip field of view and pushes it at the camera immediately, so a
+		settings panel changing it mid-run is visible without a level load. The aim
+		blend narrows from this value, so this is the one a setting moves. Ignores
+		a value of zero or less. */
+	UFUNCTION(BlueprintCallable, Category = "Camera")
+	void SetBaseFieldOfView(float NewFieldOfView);
 
 protected:
 	virtual void BeginPlay() override;
