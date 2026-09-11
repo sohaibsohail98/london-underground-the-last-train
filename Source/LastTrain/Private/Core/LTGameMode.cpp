@@ -94,6 +94,10 @@ void ALTGameMode::StartRun()
 			// A cold start is a new run, so any station history from a previous run
 			// in this session goes.
 			GameInstance->ClearRunHistory();
+
+			// Only a cold start is a run beginning here. An arrival by train
+			// continues the run it came from and must not be counted twice.
+			GameInstance->RecordRunStarted(FName(*UGameplayStatics::GetCurrentLevelName(this, true)));
 		}
 	}
 }
@@ -169,6 +173,8 @@ void ALTGameMode::NotifyPlayerDied()
 	{
 		Rounds->StopRounds();
 	}
+
+	RecordRunOutcome(false);
 }
 
 void ALTGameMode::NotifyPlayerDowned()
@@ -241,6 +247,10 @@ void ALTGameMode::NotifyPlayerBoarded(AActor* Boarder)
 	}
 
 	SetState(ELTRunState::Boarded);
+
+	// Before the travel, because the payload leaves this level and the round
+	// number that goes with it belongs to this station.
+	RecordRunOutcome(true);
 
 	LT_LOG(Log, TEXT("Player boarded. Run state Boarded, rounds stopped, reserve refilled, heat reset."));
 
@@ -319,6 +329,22 @@ FName ALTGameMode::ResolveDestinationMap() const
 	}
 
 	return NextStationMap;
+}
+
+void ALTGameMode::RecordRunOutcome(const bool bBoarded) const
+{
+	ULTGameInstance* GameInstance = GetGameInstance<ULTGameInstance>();
+	if (!GameInstance)
+	{
+		return;
+	}
+
+	// StopRounds leaves CurrentRound alone precisely so it can still be read
+	// here: it is the round the run reached, which is the thing worth keeping.
+	const ALTRoundManager* Rounds = FindRoundManager();
+	const int32 RoundReached = Rounds ? Rounds->GetCurrentRound() : 0;
+
+	GameInstance->RecordRunEnded(FName(*UGameplayStatics::GetCurrentLevelName(this, true)), RoundReached, bBoarded);
 }
 
 void ALTGameMode::SetState(const ELTRunState NewState)

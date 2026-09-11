@@ -2,6 +2,7 @@
 
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Core/LTGameInstance.h"
 #include "Core/LTGameMode.h"
 #include "Core/LTGameState.h"
 #include "Economy/LTPointsComponent.h"
@@ -71,6 +72,14 @@ void ALTPlayerCharacter::BeginPlay()
 		Camera->SetFieldOfView(BaseFieldOfView);
 	}
 
+	// The player's saved field of view outranks the Blueprint's default. Pulled
+	// here as well as pushed by ULTGameInstance on a map load, because a pawn
+	// possessed late would otherwise miss the push.
+	if (const ULTGameInstance* GameInstance = GetGameInstance<ULTGameInstance>())
+	{
+		SetBaseFieldOfView(GameInstance->GetGameSettings().FieldOfView);
+	}
+
 	if (const APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
@@ -81,6 +90,23 @@ void ALTPlayerCharacter::BeginPlay()
 				Subsystem->AddMappingContext(InputMapping, 0);
 			}
 		}
+	}
+}
+
+void ALTPlayerCharacter::SetBaseFieldOfView(const float NewFieldOfView)
+{
+	if (NewFieldOfView <= 0.f)
+	{
+		return;
+	}
+
+	BaseFieldOfView = NewFieldOfView;
+
+	if (Camera)
+	{
+		// Tick re-applies the aim blend from here every frame while the player is
+		// alive, but a dead or weaponless pawn never reaches that, so set it now.
+		Camera->SetFieldOfView(BaseFieldOfView);
 	}
 }
 

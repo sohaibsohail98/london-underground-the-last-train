@@ -102,6 +102,7 @@ table.
 | `phase-g1-audio.md` | G1 in full: the 17 new `USoundBase` hooks, which staged pack goes on each, import and concurrency settings, attribution | CC-in-Unreal |
 | `phase-g2-hud.md` | G2 in full: binding table, layout, downed and run-over states, the 5 open S7 findings | CC-in-Unreal |
 | `phase-g4-pause-menu.md` | G4: the pause menu. The `Source/` hook is written (unverified, uncompiled); the input asset and `WBP_PauseMenu` are editor work | CC-in-Unreal |
+| `phase-g5-save-settings.md` | G5: the settings panel and the best round line. The two save classes and the game instance wiring are already in C++, unverified | CC-in-Unreal |
 
 ### Still-relevant references
 
