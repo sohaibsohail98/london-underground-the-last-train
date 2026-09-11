@@ -37,7 +37,13 @@ Development build.
   (skeletal crowd bodies, foliage-style clutter) dominating.
 - **Crowd**: LOD distances and screen sizes on the F6 bodies, animation update
   rate off-screen, `URO` (update rate optimisation), draw call count for 40
-  distinct bodies.
+  distinct bodies. Try the engine's **Animation Budget Allocator** before hand
+  tuning URO per component: it throttles skeletal mesh tick rate by a
+  significance evaluator (screen size, distance, visibility), which is a
+  closer match to "many zombies behind a pillar or far down the platform"
+  than a flat URO setting, and needs no `Source/` change, only a project
+  setting and a significance function. Confirm it is actually cheaper than
+  URO for this scene rather than assuming it, both are on the table.
 - **Light count** and overlap down the platform. Shadowed vs unshadowed.
 - **Translucency / decals**: the blood, the wet-floor puddle mask, any glass.
 - **Post process** cost (bloom, grain).
