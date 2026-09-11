@@ -53,6 +53,23 @@ both stations.
 
 **Accept:** a competent first run dies around 12 to 15, not 5 and not 40.
 
+## G4: the pause menu (spec written: `phase-g4-pause-menu.md`)
+
+Added 2026-09-11. Escape pauses the run and opens a menu with resume, settings
+and quit to the main menu. This closes the S13 follow-up that there is no route
+back to `L_MainMenu` from a live run; G2's run-over card closes the other half
+of it.
+
+The `Source/` hook is already written: `PauseAction`, `TogglePause()`,
+`RequestPause()`, `RequestResume()`, `CanPause()` and an `OnPauseStateChanged`
+delegate on `ALTPlayerCharacter`. It is unverified and uncompiled, so compile
+before the editor work. Everything else is `WBP_PauseMenu` and the input asset.
+One open question is flagged in the spec: whether pause should be reachable
+while the player is `Downed`.
+
+**Accept:** Escape stops the run and gets you out of it, and does nothing at
+all once the run is over.
+
 ## Not in Phase G
 
 A third station (out of v1 scope: v1 ships 2 stations). Perks, the upgrade
