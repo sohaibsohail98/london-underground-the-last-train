@@ -93,6 +93,7 @@ table.
 | `phase-h1-zombie-pacing-balance.md` | Spawn pacing, spawn point sightlines, round 1 time to kill | CC-in-Unreal | nothing |
 | `phase-h1-starting-loadout.md` | Starting pistol and wall buy progression, design draft then editor placement | Remote (draft), CC-in-Unreal (editor) | nothing to start the draft |
 | `phase-h-weapon-presentation.md` | FP arms, fire and reload animation, ADS blend, weapon swap on purchase | CC-in-Unreal | an FP arms/weapon mesh existing |
+| `phase-h2-gore-system.md` | Blood and gore decals: the `Source/` half is done (`ULTGoreDecalSubsystem`, wired into `ALTZombieCharacter`), what remains is the decal materials, the `MaxActiveDecals` performance number and the PIE read | CC-in-Unreal | nothing |
 
 ### Phase G
 
