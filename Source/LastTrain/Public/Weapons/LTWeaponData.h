@@ -4,6 +4,8 @@
 #include "Engine/DataAsset.h"
 #include "LTWeaponData.generated.h"
 
+class USoundBase;
+
 /** Every tunable property of a weapon. See docs/brief-v3-unreal.md for the aiming model. */
 UCLASS(BlueprintType)
 class LASTTRAIN_API ULTWeaponData : public UPrimaryDataAsset
@@ -104,8 +106,25 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Presentation")
 	TObjectPtr<USkeletalMesh> Mesh;
 
+	/** One shot, played at the muzzle on every shot. Null is silent. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Presentation")
 	TObjectPtr<USoundBase> FireSound;
+
+	/** Played once when a reload begins: magazine out. Null is silent. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Presentation")
+	TObjectPtr<USoundBase> ReloadStartSound;
+
+	/** Played once when the reload completes: magazine in, bolt forward. A cue
+		with the whole reload baked into it belongs on ReloadStartSound instead,
+		with this one left null. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Presentation")
+	TObjectPtr<USoundBase> ReloadCompleteSound;
+
+	/** Played when the trigger is pulled with an empty magazine and nothing left
+		in reserve to reload from. The only feedback that the run is out of
+		ammunition, so it earns its own sound rather than sharing the fire cue. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Presentation")
+	TObjectPtr<USoundBase> DryFireSound;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Presentation")
 	TObjectPtr<UParticleSystem> MuzzleFlash;

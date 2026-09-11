@@ -6,6 +6,7 @@
 
 class ULTWeaponData;
 class ULTPointsComponent;
+class USoundBase;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAmmoChanged, int32, Magazine, int32, Reserve);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHitConfirmed, bool, bHeadshot);
@@ -90,6 +91,13 @@ private:
 
 	/** Camera location and forward vector, or the actor's if there is no view. */
 	void GetViewPoint(FVector& OutLocation, FVector& OutDirection) const;
+
+	/** Plays one of the weapon data's sounds at the owner's view point. Null is a
+		no-op, so an unassigned sound is silent rather than an error. */
+	void PlayWeaponSound(USoundBase* Sound) const;
+
+	/** As above, at a location already worked out by the caller. */
+	void PlayWeaponSound(USoundBase* Sound, const FVector& Location) const;
 
 	UPROPERTY() int32 Magazine = 0;
 	UPROPERTY() int32 Reserve = 0;

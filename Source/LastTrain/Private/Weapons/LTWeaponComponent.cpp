@@ -100,6 +100,13 @@ void ULTWeaponComponent::StartFiring()
 
 	if (Magazine <= 0)
 	{
+		// Reserve empty means StartReload is a no-op, so without this the trigger
+		// pull on a spent weapon gives no feedback at all.
+		if (Reserve <= 0)
+		{
+			PlayWeaponSound(WeaponData->DryFireSound);
+		}
+
 		StartReload();
 		return;
 	}
@@ -127,6 +134,8 @@ void ULTWeaponComponent::StartReload()
 	bReloading = true;
 	bFiring = false;
 	ReloadRemaining = WeaponData->ReloadSeconds;
+
+	PlayWeaponSound(WeaponData->ReloadStartSound);
 }
 
 void ULTWeaponComponent::FinishReload()
@@ -144,6 +153,8 @@ void ULTWeaponComponent::FinishReload()
 
 	Magazine += Taken;
 	Reserve -= Taken;
+
+	PlayWeaponSound(WeaponData->ReloadCompleteSound);
 
 	OnAmmoChanged.Broadcast(Magazine, Reserve);
 }
@@ -181,6 +192,32 @@ float ULTWeaponComponent::GetCurrentSpreadDegrees() const
 float ULTWeaponComponent::GetMoveScale() const
 {
 	return WeaponData ? FMath::Lerp(1.f, WeaponData->AimedMoveScale, AimAlpha) : 1.f;
+}
+
+void ULTWeaponComponent::PlayWeaponSound(USoundBase* Sound) const
+{
+	FVector Origin;
+	FVector Forward;
+	GetViewPoint(Origin, Forward);
+
+	PlayWeaponSound(Sound, Origin);
+}
+
+void ULTWeaponComponent::PlayWeaponSound(USoundBase* Sound, const FVector& Location) const
+{
+	// Every weapon sound is optional: nothing is assigned until a data asset
+	// carries one, and the game runs silent until then.
+	if (!Sound)
+	{
+		return;
+	}
+
+	// Positioned rather than 2D. The origin is the owner's own view point, so for
+	// the holder it is a hair from the listener and reads as a 2D sound anyway,
+	// while still going through the level's reverb and still being audible from
+	// where it happened to anybody else. PlaySound2D would give up both for
+	// nothing.
+	UGameplayStatics::PlaySoundAtLocation(this, Sound, Location);
 }
 
 void ULTWeaponComponent::GetViewPoint(FVector& OutLocation, FVector& OutDirection) const
@@ -239,10 +276,7 @@ void ULTWeaponComponent::FireOnce()
 
 	BloomDegrees = FMath::Min(WeaponData->BloomMaxDegrees, BloomDegrees + WeaponData->BloomPerShotDegrees);
 
-	if (WeaponData->FireSound)
-	{
-		UGameplayStatics::PlaySoundAtLocation(this, WeaponData->FireSound, Origin);
-	}
+	PlayWeaponSound(WeaponData->FireSound, Origin);
 
 	OnAmmoChanged.Broadcast(Magazine, Reserve);
 
