@@ -1,6 +1,7 @@
 #include "Rounds/LTRoundManager.h"
 
 #include "EngineUtils.h"
+#include "Kismet/GameplayStatics.h"
 #include "LastTrain.h"
 #include "NavigationSystem.h"
 #include "Rounds/LTSpawnPoint.h"
@@ -400,12 +401,26 @@ void ALTRoundManager::StartRound(const int32 Round)
 			*SpecialTag.ToString());
 	}
 
+	PlayStinger(RoundStartSound);
+
 	OnRoundStarted.Broadcast(Round);
+}
+
+void ALTRoundManager::PlayStinger(USoundBase* Sound) const
+{
+	if (!Sound)
+	{
+		return;
+	}
+
+	UGameplayStatics::PlaySound2D(this, Sound);
 }
 
 void ALTRoundManager::EndRound()
 {
 	// Exactly once per round.
+	PlayStinger(RoundEndSound);
+
 	OnRoundEnded.Broadcast(CurrentRound);
 
 	bInBreather = true;

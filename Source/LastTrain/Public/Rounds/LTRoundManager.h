@@ -8,6 +8,7 @@ class ALTZombieCharacter;
 class ALTSpawnPoint;
 class ULTStationHeat;
 class ULTZombieTypeData;
+class USoundBase;
 enum class ELTZombieType : uint8;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRoundStarted, int32, Round);
@@ -180,11 +181,23 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Rounds")
 	float SpawnCapsuleLift = 90.f;
 
+	/** Stinger on the first spawn of a new round. Null is silent. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> RoundStartSound;
+
+	/** Stinger when the last zombie of a round dies and the breather begins. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> RoundEndSound;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(EEndPlayReason::Type EndPlayReason) override;
 
 private:
+	/** Plays a round stinger. Null is a no-op. 2D, not positioned: a round
+		boundary happens to the run, not at a place in the station. */
+	void PlayStinger(USoundBase* Sound) const;
+
 	void StartRound(int32 Round);
 	void EndRound();
 	void TrySpawnOne();

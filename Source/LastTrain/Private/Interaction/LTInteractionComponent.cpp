@@ -2,6 +2,7 @@
 
 #include "GameFramework/Pawn.h"
 #include "Interaction/LTInteractableInterface.h"
+#include "Kismet/GameplayStatics.h"
 #include "LastTrain.h"
 
 ULTInteractionComponent::ULTInteractionComponent()
@@ -117,6 +118,15 @@ void ULTInteractionComponent::TryInteract()
 	if (!ILTInteractableInterface::Execute_CanInteract(CurrentInteractable, GetOwner()))
 	{
 		return;
+	}
+
+	// Before the interact, not after. Boarding the train tears the arena down and
+	// travels to the next station, so a confirm played afterwards would be cut
+	// off by the level change on exactly the interact that most wants one.
+	// 2D: it is the press being confirmed, not a thing happening in the world.
+	if (InteractSound)
+	{
+		UGameplayStatics::PlaySound2D(this, InteractSound);
 	}
 
 	ILTInteractableInterface::Execute_Interact(CurrentInteractable, GetOwner());
