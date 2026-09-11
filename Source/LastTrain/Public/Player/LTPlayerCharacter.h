@@ -14,6 +14,7 @@ class ULTInteractionComponent;
 struct FInputActionValue;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHealthChanged, float, HealthFraction);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPauseStateChanged, bool, bPaused);
 
 /** First person player. Sprinting forces hip fire. Zero health goes down rather
 	than dead: bleed-out runs, and a revive brings the run back. */
@@ -27,6 +28,11 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Health")
 	FOnHealthChanged OnHealthChanged;
+
+	/** Fires only when the pause actually changed, so a menu widget can show and
+		hide itself off this rather than polling. */
+	UPROPERTY(BlueprintAssignable, Category = "Pause")
+	FOnPauseStateChanged OnPauseStateChanged;
 
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
@@ -59,6 +65,26 @@ public:
 		downed. The seam for a self-revive item or a co-op revive. */
 	UFUNCTION(BlueprintCallable, Category = "Downed")
 	void Revive();
+
+	/** True while the run allows a pause. False once the run is over or the
+		player has boarded: both of those own the whole screen already. */
+	UFUNCTION(BlueprintPure, Category = "Pause")
+	bool CanPause() const;
+
+	/** The pause key routes here: pauses if the run allows it, resumes if
+		already paused. */
+	UFUNCTION(BlueprintCallable, Category = "Pause")
+	void TogglePause();
+
+	/** Pauses the run and hands input to the menu. Refused while Dead or
+		Boarded, and a no-op if already paused. */
+	UFUNCTION(BlueprintCallable, Category = "Pause")
+	void RequestPause();
+
+	/** Returns to play and takes input back off the menu. A no-op if not
+		paused. The pause menu's resume button calls this. */
+	UFUNCTION(BlueprintCallable, Category = "Pause")
+	void RequestResume();
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Health")
 	float MaxHealth = 100.f;
@@ -174,6 +200,11 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> InteractAction;
 
+	/** Null until a Blueprint assigns it, like every other action here. The
+		asset needs its Trigger When Paused flag set or the key cannot unpause. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> PauseAction;
+
 private:
 	/** Zero health goes here, not straight to Die. Immobile, no weapon, bleeding
 		out. No-op if already downed or dead. */
@@ -181,6 +212,10 @@ private:
 
 	/** Ends the run. Reached from bleed-out expiry, never from damage directly. */
 	void Die();
+
+	/** Hands input to the menu or back to the game. Mirrors the cursor and input
+		mode sequence BP_MenuGameMode already uses on the main menu. */
+	void ApplyPauseInputMode(bool bPaused);
 
 	float Health = 0.f;
 	float TimeSinceDamage = 0.f;

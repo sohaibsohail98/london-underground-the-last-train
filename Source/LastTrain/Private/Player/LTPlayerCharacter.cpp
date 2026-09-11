@@ -10,6 +10,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "Interaction/LTInteractionComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "LastTrain.h"
 #include "Weapons/LTWeaponComponent.h"
 #include "Weapons/LTWeaponData.h"
@@ -130,6 +131,10 @@ void ALTPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 	{
 		Input->BindAction(InteractAction, ETriggerEvent::Started, this, &ALTPlayerCharacter::Interact);
 	}
+	if (PauseAction)
+	{
+		Input->BindAction(PauseAction, ETriggerEvent::Started, this, &ALTPlayerCharacter::TogglePause);
+	}
 }
 
 void ALTPlayerCharacter::Move(const FInputActionValue& Value)
@@ -219,6 +224,113 @@ void ALTPlayerCharacter::Interact()
 	if (!bDead && !bDowned && Interaction)
 	{
 		Interaction->TryInteract();
+	}
+}
+
+bool ALTPlayerCharacter::CanPause() const
+{
+	// Dead and Boarded each already own the whole screen: the run-over card and
+	// the travel fade. A pause overlay on top of either is two menus and a frozen
+	// transition. PreGame, Active and Downed all pause.
+	if (bDead)
+	{
+		return false;
+	}
+
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return false;
+	}
+
+	if (const ALTGameState* State = World->GetGameState<ALTGameState>())
+	{
+		const ELTRunState RunState = State->GetRunState();
+		if (RunState == ELTRunState::Dead || RunState == ELTRunState::Boarded)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+void ALTPlayerCharacter::TogglePause()
+{
+	if (UGameplayStatics::IsGamePaused(this))
+	{
+		RequestResume();
+	}
+	else
+	{
+		RequestPause();
+	}
+}
+
+void ALTPlayerCharacter::RequestPause()
+{
+	if (UGameplayStatics::IsGamePaused(this))
+	{
+		return;
+	}
+
+	if (!CanPause())
+	{
+		LT_LOG(Log, TEXT("Pause refused: the run is over or the player has boarded."));
+		return;
+	}
+
+	// Ask first, dress after. A game mode with bPauseable cleared refuses, and
+	// handing input to a menu that never opens would lock the player out.
+	if (!UGameplayStatics::SetGamePaused(this, true))
+	{
+		LT_LOG(Warning, TEXT("SetGamePaused refused the pause. Input mode left alone."));
+		return;
+	}
+
+	ApplyPauseInputMode(true);
+
+	OnPauseStateChanged.Broadcast(true);
+}
+
+void ALTPlayerCharacter::RequestResume()
+{
+	if (!UGameplayStatics::IsGamePaused(this))
+	{
+		return;
+	}
+
+	if (!UGameplayStatics::SetGamePaused(this, false))
+	{
+		LT_LOG(Warning, TEXT("SetGamePaused refused the resume. The game is still paused."));
+		return;
+	}
+
+	ApplyPauseInputMode(false);
+
+	OnPauseStateChanged.Broadcast(false);
+}
+
+void ALTPlayerCharacter::ApplyPauseInputMode(const bool bPaused)
+{
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC)
+	{
+		return;
+	}
+
+	// Cursor first, then the input mode, the same order BP_MenuGameMode uses on
+	// the main menu. No focus widget is named here: the pause widget sets its own
+	// desired focus when it is built, and this class must not know about it.
+	PC->bShowMouseCursor = bPaused;
+
+	if (bPaused)
+	{
+		PC->SetInputMode(FInputModeUIOnly());
+	}
+	else
+	{
+		PC->SetInputMode(FInputModeGameOnly());
 	}
 }
 
