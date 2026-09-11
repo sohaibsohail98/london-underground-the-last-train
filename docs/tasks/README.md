@@ -100,6 +100,7 @@ table.
 |---|---|---|
 | `phase-g-audio-hud-balance.md` | The Phase G plan: G1 audio, G2 restrained HUD, G3 balance | mixed |
 | `phase-g2-hud.md` | G2 in full: binding table, layout, downed and run-over states, the 5 open S7 findings | CC-in-Unreal |
+| `phase-g5-save-settings.md` | G5: the settings panel and the best round line. The two save classes and the game instance wiring are already in C++, unverified | CC-in-Unreal |
 
 ### Still-relevant references
 
