@@ -1,6 +1,7 @@
 #include "Zombies/LTZombieCharacter.h"
 
 #include "AIController.h"
+#include "Audio/LTSubtitleSubsystem.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Components/CapsuleComponent.h"
 #include "Economy/LTPointsComponent.h"
@@ -488,6 +489,14 @@ void ALTZombieCharacter::UpdateScream(const float DeltaSeconds)
 	ScreamStartTime = World->GetTimeSeconds();
 
 	OnScream();
+
+	// The scream stays on its own Blueprint hook rather than AttackVocalSound,
+	// per the G1 spec, so this is the one zombie caption wired today. It earns it
+	// where an idle moan would not: it is rare, it is the loudest thing in the
+	// station, and it means a wave has just been called.
+	ULTSubtitleSubsystem::ShowSubtitleForWorld(
+		GetWorld(), LTSubtitleKeys::ZombieScream, ELTSubtitleCategory::Zombie,
+		NSLOCTEXT("LastTrain", "SubtitleZombieScream", "[A scream carries down the platform]"));
 
 	if (ScreamWalkerCount > 0)
 	{

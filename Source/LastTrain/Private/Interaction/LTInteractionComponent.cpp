@@ -1,5 +1,6 @@
 #include "Interaction/LTInteractionComponent.h"
 
+#include "Audio/LTSubtitleSubsystem.h"
 #include "GameFramework/Pawn.h"
 #include "Interaction/LTInteractableInterface.h"
 #include "LastTrain.h"
@@ -118,6 +119,14 @@ void ULTInteractionComponent::TryInteract()
 	{
 		return;
 	}
+
+	// Before the interact, not after, matching where InteractSound plays on
+	// branch claude/phase-g1-audio-prompt and for the same reason: boarding the
+	// train tears this arena down, so anything that happens after the interact
+	// may never happen at all.
+	ULTSubtitleSubsystem::ShowSubtitleForWorld(
+		GetWorld(), LTSubtitleKeys::InteractConfirm, ELTSubtitleCategory::Interaction,
+		NSLOCTEXT("LastTrain", "SubtitleInteractConfirm", "[Confirm tone]"));
 
 	ILTInteractableInterface::Execute_Interact(CurrentInteractable, GetOwner());
 }

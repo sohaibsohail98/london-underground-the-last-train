@@ -1,5 +1,6 @@
 #include "Rounds/LTRoundManager.h"
 
+#include "Audio/LTSubtitleSubsystem.h"
 #include "EngineUtils.h"
 #include "LastTrain.h"
 #include "NavigationSystem.h"
@@ -400,11 +401,23 @@ void ALTRoundManager::StartRound(const int32 Round)
 			*SpecialTag.ToString());
 	}
 
+	// Beside RoundStartSound on branch claude/phase-g1-audio-prompt, which plays
+	// before the broadcast for the same reason: the stinger belongs to the round
+	// starting, not to whatever the HUD does about it.
+	ULTSubtitleSubsystem::ShowSubtitleForWorld(
+		GetWorld(), LTSubtitleKeys::RoundStart, ELTSubtitleCategory::Round,
+		NSLOCTEXT("LastTrain", "SubtitleRoundStart", "[Low tone: the next round begins]"));
+
 	OnRoundStarted.Broadcast(Round);
 }
 
 void ALTRoundManager::EndRound()
 {
+	// Beside RoundEndSound on branch claude/phase-g1-audio-prompt.
+	ULTSubtitleSubsystem::ShowSubtitleForWorld(
+		GetWorld(), LTSubtitleKeys::RoundEnd, ELTSubtitleCategory::Round,
+		NSLOCTEXT("LastTrain", "SubtitleRoundEnd", "[Falling tone: the platform is clear]"));
+
 	// Exactly once per round.
 	OnRoundEnded.Broadcast(CurrentRound);
 

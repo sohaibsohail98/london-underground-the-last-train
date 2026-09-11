@@ -1,5 +1,6 @@
 #include "Train/LTTrain.h"
 
+#include "Audio/LTSubtitleSubsystem.h"
 #include "Components/BoxComponent.h"
 #include "Core/LTGameMode.h"
 #include "Core/LTGameState.h"
@@ -166,6 +167,16 @@ void ALTTrain::TickAway()
 	{
 		bInboundAnnouncementFired = true;
 		OnInboundAnnouncement();
+
+		// The three announcement hooks carry no sound property, by design: their
+		// wording is original work and a later authoring task. They are still the
+		// most important thing on this actor to caption, because they are the only
+		// speech in the game and speech is what a subtitle is chiefly for. The
+		// fallback text below is a placeholder in the project's voice, replaced by
+		// the table row once the announcements themselves are written.
+		ULTSubtitleSubsystem::ShowSubtitleForWorld(
+			GetWorld(), LTSubtitleKeys::TrainInboundAnnouncement, ELTSubtitleCategory::Announcement,
+			NSLOCTEXT("LastTrain", "SubtitleTrainInbound", "Platform announcement: the next train is approaching."));
 	}
 
 	if (PhaseTimer <= 0.f)
@@ -178,6 +189,11 @@ void ALTTrain::TickAway()
 
 		EnterPhase(ELTTrainPhase::Approaching, ArrivalSlideSeconds);
 		OnArrivalStarted();
+
+		// Beside ArrivalSound on branch claude/phase-g1-audio-prompt.
+		ULTSubtitleSubsystem::ShowSubtitleForWorld(
+			GetWorld(), LTSubtitleKeys::TrainArrival, ELTSubtitleCategory::Train,
+			NSLOCTEXT("LastTrain", "SubtitleTrainArrival", "[The train rumbles into the platform]"));
 	}
 }
 
@@ -188,6 +204,10 @@ void ALTTrain::TickApproaching()
 		// Stopped. The doors stay shut until DoorOpenDelaySeconds into the dwell.
 		EnterPhase(ELTTrainPhase::Dwelling, DwellDuration);
 		OnArrivalComplete();
+
+		ULTSubtitleSubsystem::ShowSubtitleForWorld(
+			GetWorld(), LTSubtitleKeys::TrainArrivalAnnouncement, ELTSubtitleCategory::Announcement,
+			NSLOCTEXT("LastTrain", "SubtitleTrainArrived", "Platform announcement: this train is ready to board."));
 	}
 }
 
@@ -199,18 +219,36 @@ void ALTTrain::TickDwelling()
 	{
 		bDoorsOpen = true;
 		OnDoorsOpen();
+
+		// Beside DoorOpenSound on branch claude/phase-g1-audio-prompt.
+		ULTSubtitleSubsystem::ShowSubtitleForWorld(
+			GetWorld(), LTSubtitleKeys::TrainDoorsOpen, ELTSubtitleCategory::Train,
+			NSLOCTEXT("LastTrain", "SubtitleTrainDoorsOpen", "[Carriage doors slide open]"));
 	}
 	else if (bDoorsOpen && PhaseTimer <= DoorCloseLeadSeconds)
 	{
 		bDoorsOpen = false;
 		OnDoorsClose();
 		OnDepartureAnnouncement();
+
+		// One caption for this moment, not two. DoorCloseSound and the departure
+		// announcement fire on the same frame, and the announcement says what the
+		// door close says and more, so the closing doors are folded into it rather
+		// than flashing a caption the announcement would immediately replace.
+		ULTSubtitleSubsystem::ShowSubtitleForWorld(
+			GetWorld(), LTSubtitleKeys::TrainDepartureAnnouncement, ELTSubtitleCategory::Announcement,
+			NSLOCTEXT("LastTrain", "SubtitleTrainDoorsClosing", "Platform announcement: the doors are closing."));
 	}
 
 	if (PhaseTimer <= 0.f)
 	{
 		EnterPhase(ELTTrainPhase::Departing, DepartureSlideSeconds);
 		OnDepartureStarted();
+
+		// Beside DepartureSound on branch claude/phase-g1-audio-prompt.
+		ULTSubtitleSubsystem::ShowSubtitleForWorld(
+			GetWorld(), LTSubtitleKeys::TrainDeparture, ELTSubtitleCategory::Train,
+			NSLOCTEXT("LastTrain", "SubtitleTrainDeparture", "[The train pulls away into the tunnel]"));
 
 		if (!bDepartureHeatApplied)
 		{
