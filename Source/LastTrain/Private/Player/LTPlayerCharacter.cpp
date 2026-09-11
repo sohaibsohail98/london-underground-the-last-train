@@ -1,10 +1,12 @@
 #include "Player/LTPlayerCharacter.h"
 
 #include "Camera/CameraComponent.h"
+#include "Combat/LTGoreDecalSubsystem.h"
 #include "Components/CapsuleComponent.h"
 #include "Core/LTGameMode.h"
 #include "Core/LTGameState.h"
 #include "Economy/LTPointsComponent.h"
+#include "Engine/World.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -13,6 +15,7 @@
 #include "LastTrain.h"
 #include "Weapons/LTWeaponComponent.h"
 #include "Weapons/LTWeaponData.h"
+#include "Zombies/LTZombieCharacter.h"
 
 ALTPlayerCharacter::ALTPlayerCharacter()
 {
@@ -130,6 +133,10 @@ void ALTPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 	{
 		Input->BindAction(InteractAction, ETriggerEvent::Started, this, &ALTPlayerCharacter::Interact);
 	}
+	if (MeleeAction)
+	{
+		Input->BindAction(MeleeAction, ETriggerEvent::Started, this, &ALTPlayerCharacter::PerformMelee);
+	}
 }
 
 void ALTPlayerCharacter::Move(const FInputActionValue& Value)
@@ -222,6 +229,102 @@ void ALTPlayerCharacter::Interact()
 	}
 }
 
+void ALTPlayerCharacter::PerformMelee()
+{
+	// Note what is deliberately absent from this gate: any reference to the
+	// weapon's Magazine or Reserve. The bash exists for the moment both are
+	// empty, so ammunition must never be able to refuse it.
+	if (bDead || bDowned || MeleeCooldownRemaining > 0.f)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	// Refused in the same two run states the pause action is refused in: the run
+	// is over, or the player is aboard and travelling. Both already own the
+	// screen, and neither wants a swing going on behind it. PreGame, Active and
+	// Downed are all fine, and Downed is already caught by the flag above, the
+	// same way firing, aiming and interacting are.
+	if (const ALTGameState* State = World->GetGameState<ALTGameState>())
+	{
+		const ELTRunState RunState = State->GetRunState();
+		if (RunState == ELTRunState::Dead || RunState == ELTRunState::Boarded)
+		{
+			return;
+		}
+	}
+
+	MeleeCooldownRemaining = MeleeCooldownSeconds;
+
+	// The animation plays on a miss too, so this fires before the trace. The
+	// delegate below is the narrower signal and only fires on a connection.
+	OnMeleeSwing();
+
+	// The same view point ULTWeaponComponent::GetViewPoint resolves for a pawn
+	// owner, so a bash starts where a shot would.
+	FVector Origin;
+	FRotator ViewRotation;
+	GetActorEyesViewPoint(Origin, ViewRotation);
+
+	const FVector Direction = ViewRotation.Vector();
+	const FVector End = Origin + Direction * MeleeRange;
+
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(LTMeleeTrace), true, this);
+	Params.bReturnPhysicalMaterial = false;
+	Params.bTraceComplex = true;
+
+	// One trace, no pellets and no penetration budget: a shove stops at the
+	// first thing it meets, where a bullet may pass through.
+	FHitResult Hit;
+	if (!World->LineTraceSingleByChannel(Hit, Origin, End, ECC_GameTraceChannel1, Params))
+	{
+		return;
+	}
+
+	ALTZombieCharacter* Zombie = Cast<ALTZombieCharacter>(Hit.GetActor());
+	if (!Zombie)
+	{
+		// A wall, a wall buy or the train. It swung, it just met nothing that bleeds.
+		return;
+	}
+
+	// Reported honestly rather than forced false, so the hit marker, the gore
+	// and the kill award all read the same as they do for a shot. The damage
+	// itself carries no headshot multiplier: a bash to the skull is still a
+	// bash, and MeleeDamage is meant to stay one number.
+	const bool bHeadshot = Zombie->IsHeadBone(Hit.BoneName);
+
+	// Exactly the call ULTWeaponComponent::TracePellet makes, with a flat figure
+	// in place of the weapon's scaled one. Routing through ReceiveShot rather
+	// than a melee-only damage path is what keeps the brute's armour plate, the
+	// hit reaction hook, Die() and the FOnZombieDied broadcast all working.
+	Zombie->ReceiveShot(MeleeDamage, bHeadshot, Hit, Direction, this);
+
+	// Gore, through the shared subsystem rather than a second gore path.
+	// ULTGoreDecalSubsystem is on the sibling branch claude/blood-decals-prompt
+	// and is not present here, so this translation unit compiles only once both
+	// branches are on main. That is deliberate: it is called as an external
+	// dependency, not vendored or stubbed. Whoever merges the two should keep
+	// one blood call for the melee path and drop the other, because that branch
+	// also calls SpawnBloodDecalForWorld inside ALTZombieCharacter::ReceiveShot,
+	// which the line above has just gone through.
+	ULTGoreDecalSubsystem::SpawnBloodDecalForWorld(GetWorld(), Hit.ImpactPoint, Hit.ImpactNormal, bHeadshot);
+
+	// Kills are awarded from the zombie's death broadcast, so this is the hit
+	// award only, the same way TracePellet does it.
+	if (Points && !Zombie->IsDead())
+	{
+		Points->AwardHit();
+	}
+
+	OnMeleeHitConfirmed.Broadcast(bHeadshot);
+}
+
 void ALTPlayerCharacter::Tick(const float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
@@ -230,6 +333,10 @@ void ALTPlayerCharacter::Tick(const float DeltaSeconds)
 	{
 		return;
 	}
+
+	// Counted down before the downed branch returns, so a player who goes down
+	// mid-cooldown comes back up with the bash ready rather than frozen.
+	MeleeCooldownRemaining = FMath::Max(0.f, MeleeCooldownRemaining - DeltaSeconds);
 
 	// The aim blend keeps running even while down. The weapon component decays its
 	// own alpha when Down clears aiming, and if nothing applied it the camera would
