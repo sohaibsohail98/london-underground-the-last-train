@@ -14,9 +14,16 @@ class ULTInteractionComponent;
 struct FInputActionValue;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHealthChanged, float, HealthFraction);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPauseStateChanged, bool, bPaused);
+
+/** Shape deliberately identical to ULTWeaponComponent's FOnHitConfirmed, so the
+	HUD's existing hit marker binding works off either without a second path. */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMeleeHitConfirmed, bool, bHeadshot);
 
 /** First person player. Sprinting forces hip fire. Zero health goes down rather
-	than dead: bleed-out runs, and a revive brings the run back. */
+	than dead: bleed-out runs, and a revive brings the run back. Carries the
+	contextual melee bash, which is a property of the player rather than of the
+	weapon: see PerformMelee. */
 UCLASS()
 class LASTTRAIN_API ALTPlayerCharacter : public ACharacter
 {
@@ -27,6 +34,16 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Health")
 	FOnHealthChanged OnHealthChanged;
+
+	/** Fires only when the pause actually changed, so a menu widget can show and
+		hide itself off this rather than polling. */
+	UPROPERTY(BlueprintAssignable, Category = "Pause")
+	FOnPauseStateChanged OnPauseStateChanged;
+
+	/** A melee strike connected with a zombie. Not fired on a miss, and not
+		fired on a strike the cooldown or the run state refused. */
+	UPROPERTY(BlueprintAssignable, Category = "Melee")
+	FOnMeleeHitConfirmed OnMeleeHitConfirmed;
 
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
@@ -59,6 +76,40 @@ public:
 		downed. The seam for a self-revive item or a co-op revive. */
 	UFUNCTION(BlueprintCallable, Category = "Downed")
 	void Revive();
+
+	/** True while the run allows a pause. False once the run is over or the
+		player has boarded: both of those own the whole screen already. */
+	UFUNCTION(BlueprintPure, Category = "Pause")
+	bool CanPause() const;
+
+	/** The pause key routes here: pauses if the run allows it, resumes if
+		already paused. */
+	UFUNCTION(BlueprintCallable, Category = "Pause")
+	void TogglePause();
+
+	/** Pauses the run and hands input to the menu. Refused while Dead or
+		Boarded, and a no-op if already paused. */
+	UFUNCTION(BlueprintCallable, Category = "Pause")
+	void RequestPause();
+
+	/** Returns to play and takes input back off the menu. A no-op if not
+		paused. The pause menu's resume button calls this. */
+	UFUNCTION(BlueprintCallable, Category = "Pause")
+	void RequestResume();
+
+	/** One contextual bash with whatever is already held. Deliberately not a
+		weapon slot, not a knife and not an equip state: a short trace straight
+		out of the view for a flat MeleeDamage, so it reads the same whatever is
+		in the player's hands. Ungated by ammunition on purpose, since the whole
+		point of it is the moment the magazine and the reserve are both empty.
+		A no-op while down, dead, on cooldown, or once the run is over. */
+	UFUNCTION(BlueprintCallable, Category = "Melee")
+	void PerformMelee();
+
+	/** Seconds until the next strike is allowed, 0 when ready. For a HUD or an
+		animation Blueprint that wants to grey the prompt out. */
+	UFUNCTION(BlueprintPure, Category = "Melee")
+	float GetMeleeCooldownRemaining() const { return MeleeCooldownRemaining; }
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Health")
 	float MaxHealth = 100.f;
@@ -94,9 +145,37 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement")
 	float SprintSpeed = 640.f;
 
-	/** Wide, so the platform reads. */
+	/** Wide, so the platform reads. The Blueprint's default; a saved player
+		setting replaces it on BeginPlay through SetBaseFieldOfView. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Camera")
 	float BaseFieldOfView = 95.f;
+
+	/** Sets the hip field of view and pushes it at the camera immediately, so a
+		settings panel changing it mid-run is visible without a level load. The aim
+		blend narrows from this value, so this is the one a setting moves. Ignores
+		a value of zero or less. */
+	UFUNCTION(BlueprintCallable, Category = "Camera")
+	void SetBaseFieldOfView(float NewFieldOfView);
+
+	/** Trace length for the bash, from the view point. Short by design: the
+		zombie's own AttackRange is 130 root to root, so 150 reaches anything
+		already close enough to be hitting the player and nothing beyond it.
+		Far inside every weapon's FalloffStart, so no distance falloff applies. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Melee")
+	float MeleeRange = 150.f;
+
+	/** Flat, and never scaled off the held weapon's BaseDamage: the bash is a
+		constant fallback rather than a second damage curve to balance per gun.
+		Three strikes kill a round one walker at BaseHealth 150, which is a real
+		way out of a corner and still far below the starting pistol's output. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Melee")
+	float MeleeDamage = 50.f;
+
+	/** Seconds between strikes. Long enough that spamming it cannot stand in
+		for a weapon's rate of fire, short enough to land one swing inside a
+		zombie's 1.3s AttackCooldownSeconds and break a pin. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Melee")
+	float MeleeCooldownSeconds = 0.8f;
 
 protected:
 	virtual void BeginPlay() override;
@@ -131,6 +210,12 @@ protected:
 	/** Bleed-out ran out. Fired immediately before the death path. */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Downed")
 	void OnBleedOutExpired();
+
+	/** The bash animation and its audio. Fired on every strike the cooldown and
+		the run state allowed, hit or miss, because the swing plays either way.
+		OnMeleeHitConfirmed is the separate, narrower "it landed" signal. */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Melee")
+	void OnMeleeSwing();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	TObjectPtr<UCameraComponent> Camera;
@@ -174,6 +259,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> InteractAction;
 
+	/** Null until a Blueprint assigns it, like every other action here. The
+		asset needs its Trigger When Paused flag set or the key cannot unpause. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> PauseAction;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> MeleeAction;
+
 private:
 	/** Zero health goes here, not straight to Die. Immobile, no weapon, bleeding
 		out. No-op if already downed or dead. */
@@ -182,10 +275,18 @@ private:
 	/** Ends the run. Reached from bleed-out expiry, never from damage directly. */
 	void Die();
 
+	/** Hands input to the menu or back to the game. Mirrors the cursor and input
+		mode sequence BP_MenuGameMode already uses on the main menu. */
+	void ApplyPauseInputMode(bool bPaused);
+
 	float Health = 0.f;
 	float TimeSinceDamage = 0.f;
 	float BleedOutRemaining = 0.f;
 	float SoloReviveRemaining = 0.f;
+
+	/** Counted down in Tick, checked before a strike. The same one-clock shape
+		ULTWeaponComponent uses for TimeUntilNextShot rather than a timer handle. */
+	float MeleeCooldownRemaining = 0.f;
 	bool bSprinting = false;
 	bool bDowned = false;
 	bool bDead = false;

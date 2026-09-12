@@ -1,5 +1,7 @@
 #include "Rounds/LTStationHeat.h"
 
+#include "Audio/LTSubtitleSubsystem.h"
+#include "Kismet/GameplayStatics.h"
 #include "LastTrain.h"
 
 ULTStationHeat::ULTStationHeat()
@@ -25,10 +27,30 @@ void ULTStationHeat::SetHeat(const int32 NewHeat)
 		return;
 	}
 
+	const bool bRose = Clamped > Heat;
+
 	Heat = Clamped;
+
+	// 2D. Heat is a property of the run, not of a place on the platform.
+	if (bRose && HeatRiseSound)
+	{
+		UGameplayStatics::PlaySound2D(this, HeatRiseSound);
+	}
+
 	LT_LOG(
 		Log, TEXT("Station heat now %d. Live cap bonus %d, spawn rate x%.2f."), Heat, GetLiveCapBonus(),
 		GetSpawnRateMultiplier());
+
+	if (bRose)
+	{
+		// Beside HeatRiseSound on branch claude/phase-g1-audio-prompt, and on a
+		// rise only: the reset to zero on travel is silent there and silent here.
+		// This is the only feedback a player gets that letting the train go cost
+		// them something, so it is worth a caption to somebody who cannot hear it.
+		ULTSubtitleSubsystem::ShowSubtitleForWorld(
+			GetWorld(), LTSubtitleKeys::HeatRise, ELTSubtitleCategory::Round,
+			NSLOCTEXT("LastTrain", "SubtitleHeatRise", "[Rising tone: the station is growing restless]"));
+	}
 
 	OnHeatChanged.Broadcast(Heat);
 }

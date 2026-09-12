@@ -1,6 +1,8 @@
 #include "Rounds/LTRoundManager.h"
 
+#include "Audio/LTSubtitleSubsystem.h"
 #include "EngineUtils.h"
+#include "Kismet/GameplayStatics.h"
 #include "LastTrain.h"
 #include "NavigationSystem.h"
 #include "Rounds/LTSpawnPoint.h"
@@ -400,12 +402,34 @@ void ALTRoundManager::StartRound(const int32 Round)
 			*SpecialTag.ToString());
 	}
 
+	PlayStinger(RoundStartSound);
+	ULTSubtitleSubsystem::ShowSubtitleForWorld(
+		GetWorld(), LTSubtitleKeys::RoundStart, ELTSubtitleCategory::Round,
+		NSLOCTEXT("LastTrain", "SubtitleRoundStart", "[Low tone: the next round begins]"));
+
 	OnRoundStarted.Broadcast(Round);
+}
+
+void ALTRoundManager::PlayStinger(USoundBase* Sound) const
+{
+	if (!Sound)
+	{
+		return;
+	}
+
+	UGameplayStatics::PlaySound2D(this, Sound);
 }
 
 void ALTRoundManager::EndRound()
 {
+	// Beside RoundEndSound on branch claude/phase-g1-audio-prompt.
+	ULTSubtitleSubsystem::ShowSubtitleForWorld(
+		GetWorld(), LTSubtitleKeys::RoundEnd, ELTSubtitleCategory::Round,
+		NSLOCTEXT("LastTrain", "SubtitleRoundEnd", "[Falling tone: the platform is clear]"));
+
 	// Exactly once per round.
+	PlayStinger(RoundEndSound);
+
 	OnRoundEnded.Broadcast(CurrentRound);
 
 	bInBreather = true;

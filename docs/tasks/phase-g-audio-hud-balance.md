@@ -7,13 +7,23 @@ Written 2026-09-09. Runs after Phase F (the art pass). Read
 Split: most of Phase G design and the C++ is editor-free and can be done by a
 remote session; the widget assembly and audio placement need the editor.
 
-## G1: audio (`phase-g1-audio.md` when written)
+## G1: audio (spec written: `phase-g1-audio.md`)
 
 Ambience, train hum, original announcements, zombie vocals, weapon audio,
 interaction stingers, round stingers. "Silence is a tool." Priority order from
 the brief. Kenney CC0 audio is staged in `_incoming_assets/audio/`. Original
 announcement phrasing only, no transcribed operator recordings, no operator
 chimes.
+
+The `Source/` half is **done**, unlike G2 which needs none: 17 optional
+`USoundBase` properties on the weapon data asset, the zombie character and its
+type asset, the train, the round manager, station heat and the interaction
+component, all null by default and null checked at the call site, so the game
+still runs silently with nothing assigned. Written with no engine available and
+**not compiled**. `phase-g1-audio.md` carries the rest, which is all editor
+work: which staged pack goes on which hook, the import and concurrency
+settings a 40 strong horde needs, the assignment order, and the attribution
+that has to travel with the two CC-BY assets.
 
 **Accept:** you can tell what is happening behind you with your eyes closed.
 
@@ -52,6 +62,23 @@ achievement. Profile before optimising. Spawn fairness. Weapon feel. Tune across
 both stations.
 
 **Accept:** a competent first run dies around 12 to 15, not 5 and not 40.
+
+## G4: the pause menu (spec written: `phase-g4-pause-menu.md`)
+
+Added 2026-09-11. Escape pauses the run and opens a menu with resume, settings
+and quit to the main menu. This closes the S13 follow-up that there is no route
+back to `L_MainMenu` from a live run; G2's run-over card closes the other half
+of it.
+
+The `Source/` hook is already written: `PauseAction`, `TogglePause()`,
+`RequestPause()`, `RequestResume()`, `CanPause()` and an `OnPauseStateChanged`
+delegate on `ALTPlayerCharacter`. It is unverified and uncompiled, so compile
+before the editor work. Everything else is `WBP_PauseMenu` and the input asset.
+One open question is flagged in the spec: whether pause should be reachable
+while the player is `Downed`.
+
+**Accept:** Escape stops the run and gets you out of it, and does nothing at
+all once the run is over.
 
 ## Not in Phase G
 

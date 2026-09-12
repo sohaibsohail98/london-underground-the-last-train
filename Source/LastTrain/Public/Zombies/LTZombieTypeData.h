@@ -4,6 +4,8 @@
 #include "Engine/DataAsset.h"
 #include "LTZombieTypeData.generated.h"
 
+class USoundBase;
+
 /** The five types brief-v2 names. There is one rigged humanoid mesh: a type is
 	scale, tint, play rate and behaviour, not a bespoke character. */
 UENUM(BlueprintType)
@@ -156,6 +158,31 @@ public:
 		the summoned wave is cancelled. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Behaviour")
 	float ScreamCancelWindowSeconds = 0.5f;
+
+	/** When set, replaces the character's IdleVocalSound. The periodic breath or
+		moan that tells the player something is behind them. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> IdleVocalSound;
+
+	/** When set, replaces the character's AggroVocalSound. Played once on spawn:
+		a zombie here is hostile from the moment it exists, so the spawn is the
+		aggro moment and there is no separate acquisition event to hang it on. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> AggroVocalSound;
+
+	/** When set, replaces the character's AttackVocalSound. Played on the attack
+		wind-up, with OnAttackWindUp. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> AttackVocalSound;
+
+	/** When set, replaces the character's DeathVocalSound. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> DeathVocalSound;
+
+	/** Above zero, replaces IdleVocalIntervalSeconds. A brute wants a slower,
+		heavier cadence than a sprinter. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	float IdleVocalIntervalOverride = 0.f;
 
 	/** Read by the death Blueprint. A walker or sprinter snaps to a settled pose
 		rather than going fully limp, and a crawler is already prone. */

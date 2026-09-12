@@ -6,7 +6,7 @@ does not rediscover them and so nothing quietly rots.
 **Update this whenever an issue is closed or a new one is found.** An issue that
 is fixed gets deleted from here, not ticked: git history is the record.
 
-Last updated 2026-09-09.
+Last updated 2026-09-11.
 
 ---
 
@@ -37,6 +37,16 @@ remote session downloads has no route out **even if 1.1 were fixed.**
 
 This is the more fundamental of the two, and it applies to any gitignored
 output, not just assets.
+
+**It holds in the other direction too, which is easy to forget when writing a
+task spec.** Nothing staged on the Mac under `_incoming_assets/` is visible to
+a remote session: it is gitignored, so it is not in the clone the container
+gets. A spec that tells the remote lane to "read the staged pack and its
+`SOURCES.txt`" cannot be followed. Phase G1 hit exactly this: the audio spec
+had to be written from the repo's own research docs instead, and
+`docs/tasks/phase-g1-audio.md` step 0 is a reconciliation pass against the real
+`SOURCES` files, to be run here. **Consequence for task specs:** anything the
+remote lane must read has to be in git.
 
 ### 1.3 No compile
 
@@ -576,6 +586,32 @@ is `get_properties(instance, properties=[...])` but the write side is
 **string**, not an object. Passing `properties=` fails with a schema error that
 helpfully prints the real schema, which is the fastest way to discover any of
 these signatures.
+
+### 2.14 The save and settings C++ has never been compiled
+
+Written 2026-09-11 in a remote session with no engine, per 1.3. All five gates
+pass, which per 1.4 says nothing about whether it builds. New files
+`Source/LastTrain/Public/Core/LTSaveGame.h`, `LTSettingsSaveGame.h` and their
+two `.cpp`, plus wiring in `LTGameInstance`, `LTGameMode` and
+`LTPlayerCharacter`. No `LastTrain.Build.cs` change was needed: `USaveGame`,
+`UGameplayStatics` and `FAudioDevice` are all in `Engine`, and
+`UEnhancedInputUserSettings` is in `EnhancedInput`, both already in
+`PublicDependencyModuleNames`.
+
+**Three calls to check first if it does not build**, all in
+`Private/Core/LTGameInstance.cpp`, and all written from memory of the 5.x API
+rather than from a header:
+
+1. `World->GetAudioDevice()` into an `FAudioDeviceHandle`, then
+   `SetTransientPrimaryVolume`. The UE4 spelling was
+   `SetTransientMasterVolume`; if 5.8 has moved it again, this is the line.
+2. `UEnhancedInputLocalPlayerSubsystem::GetUserSettings()`, and
+   `ApplySettings()` and `SaveSettings()` on what it returns.
+3. `#include "UserSettings/EnhancedInputUserSettings.h"`, the path to that
+   class inside the EnhancedInput module.
+
+None of the three is load bearing for progression saving: cutting all of them
+leaves the round records, the field of view setting and both slots working.
 
 ## 3. Repo hygiene
 

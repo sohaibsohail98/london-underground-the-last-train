@@ -1,7 +1,9 @@
 #include "Interaction/LTInteractionComponent.h"
 
+#include "Audio/LTSubtitleSubsystem.h"
 #include "GameFramework/Pawn.h"
 #include "Interaction/LTInteractableInterface.h"
+#include "Kismet/GameplayStatics.h"
 #include "LastTrain.h"
 
 ULTInteractionComponent::ULTInteractionComponent()
@@ -118,6 +120,18 @@ void ULTInteractionComponent::TryInteract()
 	{
 		return;
 	}
+
+	// Before the interact, not after. Boarding the train tears the arena down and
+	// travels to the next station, so anything played or shown afterwards would
+	// be cut off by the level change on exactly the interact that most wants one.
+	// Sound is 2D: it is the press being confirmed, not a thing happening in the world.
+	if (InteractSound)
+	{
+		UGameplayStatics::PlaySound2D(this, InteractSound);
+	}
+	ULTSubtitleSubsystem::ShowSubtitleForWorld(
+		GetWorld(), LTSubtitleKeys::InteractConfirm, ELTSubtitleCategory::Interaction,
+		NSLOCTEXT("LastTrain", "SubtitleInteractConfirm", "[Confirm tone]"));
 
 	ILTInteractableInterface::Execute_Interact(CurrentInteractable, GetOwner());
 }

@@ -2,17 +2,21 @@
 
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Core/LTGameInstance.h"
 #include "Core/LTGameMode.h"
 #include "Core/LTGameState.h"
 #include "Economy/LTPointsComponent.h"
+#include "Engine/World.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "Interaction/LTInteractionComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "LastTrain.h"
 #include "Weapons/LTWeaponComponent.h"
 #include "Weapons/LTWeaponData.h"
+#include "Zombies/LTZombieCharacter.h"
 
 ALTPlayerCharacter::ALTPlayerCharacter()
 {
@@ -70,6 +74,14 @@ void ALTPlayerCharacter::BeginPlay()
 		Camera->SetFieldOfView(BaseFieldOfView);
 	}
 
+	// The player's saved field of view outranks the Blueprint's default. Pulled
+	// here as well as pushed by ULTGameInstance on a map load, because a pawn
+	// possessed late would otherwise miss the push.
+	if (const ULTGameInstance* GameInstance = GetGameInstance<ULTGameInstance>())
+	{
+		SetBaseFieldOfView(GameInstance->GetGameSettings().FieldOfView);
+	}
+
 	if (const APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
@@ -80,6 +92,23 @@ void ALTPlayerCharacter::BeginPlay()
 				Subsystem->AddMappingContext(InputMapping, 0);
 			}
 		}
+	}
+}
+
+void ALTPlayerCharacter::SetBaseFieldOfView(const float NewFieldOfView)
+{
+	if (NewFieldOfView <= 0.f)
+	{
+		return;
+	}
+
+	BaseFieldOfView = NewFieldOfView;
+
+	if (Camera)
+	{
+		// Tick re-applies the aim blend from here every frame while the player is
+		// alive, but a dead or weaponless pawn never reaches that, so set it now.
+		Camera->SetFieldOfView(BaseFieldOfView);
 	}
 }
 
@@ -129,6 +158,14 @@ void ALTPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 	if (InteractAction)
 	{
 		Input->BindAction(InteractAction, ETriggerEvent::Started, this, &ALTPlayerCharacter::Interact);
+	}
+	if (PauseAction)
+	{
+		Input->BindAction(PauseAction, ETriggerEvent::Started, this, &ALTPlayerCharacter::TogglePause);
+	}
+	if (MeleeAction)
+	{
+		Input->BindAction(MeleeAction, ETriggerEvent::Started, this, &ALTPlayerCharacter::PerformMelee);
 	}
 }
 
@@ -222,6 +259,207 @@ void ALTPlayerCharacter::Interact()
 	}
 }
 
+bool ALTPlayerCharacter::CanPause() const
+{
+	// Dead and Boarded each already own the whole screen: the run-over card and
+	// the travel fade. A pause overlay on top of either is two menus and a frozen
+	// transition. PreGame, Active and Downed all pause.
+	if (bDead)
+	{
+		return false;
+	}
+
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return false;
+	}
+
+	if (const ALTGameState* State = World->GetGameState<ALTGameState>())
+	{
+		const ELTRunState RunState = State->GetRunState();
+		if (RunState == ELTRunState::Dead || RunState == ELTRunState::Boarded)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+void ALTPlayerCharacter::TogglePause()
+{
+	if (UGameplayStatics::IsGamePaused(this))
+	{
+		RequestResume();
+	}
+	else
+	{
+		RequestPause();
+	}
+}
+
+void ALTPlayerCharacter::RequestPause()
+{
+	if (UGameplayStatics::IsGamePaused(this))
+	{
+		return;
+	}
+
+	if (!CanPause())
+	{
+		LT_LOG(Log, TEXT("Pause refused: the run is over or the player has boarded."));
+		return;
+	}
+
+	// Ask first, dress after. A game mode with bPauseable cleared refuses, and
+	// handing input to a menu that never opens would lock the player out.
+	if (!UGameplayStatics::SetGamePaused(this, true))
+	{
+		LT_LOG(Warning, TEXT("SetGamePaused refused the pause. Input mode left alone."));
+		return;
+	}
+
+	ApplyPauseInputMode(true);
+
+	OnPauseStateChanged.Broadcast(true);
+}
+
+void ALTPlayerCharacter::RequestResume()
+{
+	if (!UGameplayStatics::IsGamePaused(this))
+	{
+		return;
+	}
+
+	if (!UGameplayStatics::SetGamePaused(this, false))
+	{
+		LT_LOG(Warning, TEXT("SetGamePaused refused the resume. The game is still paused."));
+		return;
+	}
+
+	ApplyPauseInputMode(false);
+
+	OnPauseStateChanged.Broadcast(false);
+}
+
+void ALTPlayerCharacter::ApplyPauseInputMode(const bool bPaused)
+{
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC)
+	{
+		return;
+	}
+
+	// Cursor first, then the input mode, the same order BP_MenuGameMode uses on
+	// the main menu. No focus widget is named here: the pause widget sets its own
+	// desired focus when it is built, and this class must not know about it.
+	PC->bShowMouseCursor = bPaused;
+
+	if (bPaused)
+	{
+		PC->SetInputMode(FInputModeUIOnly());
+	}
+	else
+	{
+		PC->SetInputMode(FInputModeGameOnly());
+	}
+}
+
+void ALTPlayerCharacter::PerformMelee()
+{
+	// Note what is deliberately absent from this gate: any reference to the
+	// weapon's Magazine or Reserve. The bash exists for the moment both are
+	// empty, so ammunition must never be able to refuse it.
+	if (bDead || bDowned || MeleeCooldownRemaining > 0.f)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	// Refused in the same two run states the pause action is refused in: the run
+	// is over, or the player is aboard and travelling. Both already own the
+	// screen, and neither wants a swing going on behind it. PreGame, Active and
+	// Downed are all fine, and Downed is already caught by the flag above, the
+	// same way firing, aiming and interacting are.
+	if (const ALTGameState* State = World->GetGameState<ALTGameState>())
+	{
+		const ELTRunState RunState = State->GetRunState();
+		if (RunState == ELTRunState::Dead || RunState == ELTRunState::Boarded)
+		{
+			return;
+		}
+	}
+
+	MeleeCooldownRemaining = MeleeCooldownSeconds;
+
+	// The animation plays on a miss too, so this fires before the trace. The
+	// delegate below is the narrower signal and only fires on a connection.
+	OnMeleeSwing();
+
+	// The same view point ULTWeaponComponent::GetViewPoint resolves for a pawn
+	// owner, so a bash starts where a shot would.
+	FVector Origin;
+	FRotator ViewRotation;
+	GetActorEyesViewPoint(Origin, ViewRotation);
+
+	const FVector Direction = ViewRotation.Vector();
+	const FVector End = Origin + Direction * MeleeRange;
+
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(LTMeleeTrace), true, this);
+	Params.bReturnPhysicalMaterial = false;
+	Params.bTraceComplex = true;
+
+	// One trace, no pellets and no penetration budget: a shove stops at the
+	// first thing it meets, where a bullet may pass through.
+	FHitResult Hit;
+	if (!World->LineTraceSingleByChannel(Hit, Origin, End, ECC_GameTraceChannel1, Params))
+	{
+		return;
+	}
+
+	ALTZombieCharacter* Zombie = Cast<ALTZombieCharacter>(Hit.GetActor());
+	if (!Zombie)
+	{
+		// A wall, a wall buy or the train. It swung, it just met nothing that bleeds.
+		return;
+	}
+
+	// Reported honestly rather than forced false, so the hit marker, the gore
+	// and the kill award all read the same as they do for a shot. The damage
+	// itself carries no headshot multiplier: a bash to the skull is still a
+	// bash, and MeleeDamage is meant to stay one number.
+	const bool bHeadshot = Zombie->IsHeadBone(Hit.BoneName);
+
+	// Exactly the call ULTWeaponComponent::TracePellet makes, with a flat figure
+	// in place of the weapon's scaled one. Routing through ReceiveShot rather
+	// than a melee-only damage path is what keeps the brute's armour plate, the
+	// hit reaction hook, Die() and the FOnZombieDied broadcast all working.
+	Zombie->ReceiveShot(MeleeDamage, bHeadshot, Hit, Direction, this);
+
+	// Gore is deliberately not spawned here. ALTZombieCharacter::ReceiveShot,
+	// which the line above has just gone through, already calls the shared
+	// ULTGoreDecalSubsystem on the sibling branch claude/blood-decals-prompt,
+	// and it does so after the brute's armour early-return. Spawning again from
+	// this side would draw two spatters for one strike and would put blood on a
+	// plate that stopped the blow. Routing melee damage through ReceiveShot is
+	// what satisfies the shared gore path: one entry point, one hit, one decal.
+
+	// Kills are awarded from the zombie's death broadcast, so this is the hit
+	// award only, the same way TracePellet does it.
+	if (Points && !Zombie->IsDead())
+	{
+		Points->AwardHit();
+	}
+
+	OnMeleeHitConfirmed.Broadcast(bHeadshot);
+}
+
 void ALTPlayerCharacter::Tick(const float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
@@ -230,6 +468,10 @@ void ALTPlayerCharacter::Tick(const float DeltaSeconds)
 	{
 		return;
 	}
+
+	// Counted down before the downed branch returns, so a player who goes down
+	// mid-cooldown comes back up with the bash ready rather than frozen.
+	MeleeCooldownRemaining = FMath::Max(0.f, MeleeCooldownRemaining - DeltaSeconds);
 
 	// The aim blend keeps running even while down. The weapon component decays its
 	// own alpha when Down clears aiming, and if nothing applied it the camera would

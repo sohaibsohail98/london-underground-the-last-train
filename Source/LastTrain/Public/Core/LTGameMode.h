@@ -107,6 +107,11 @@ private:
 	/** The route for this map, else NextStationMap, else None. */
 	FName ResolveDestinationMap() const;
 
+	/** Hands the finished run to the game instance, which folds it into the
+		progression save and writes it out. Called on a death and on a boarding,
+		the two ends of a run ELTRunState already distinguishes. */
+	void RecordRunOutcome(bool bBoarded) const;
+
 	/** The round manager's heat component if there is one, otherwise any heat
 		component in the level. Null on a heat-less test level. */
 	ULTStationHeat* FindStationHeat() const;
