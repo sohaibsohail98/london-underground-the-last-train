@@ -646,6 +646,13 @@ Both fixed 2026-09-09 by pointing at the retiring commit instead. Listed here so
 the pattern is recognised: **when a task file is retired, grep for its name
 first.**
 
+Commit `bf04ca1` retired six more: the `remote-brief-*.md` handoff prompts for
+the seven branches merged into `main` on 2026-09-11 (`docs(handover):
+session close 2026-09-12` and the commits before it). Each was a one-time
+prompt for a remote session; once its branch merged, the brief described
+nothing still open. Grepped clean before removal, nothing else pointed at
+them.
+
 ### 3.3 Not dead, do not "fix"
 
 Two families of reference look broken to a link checker and are deliberate:
