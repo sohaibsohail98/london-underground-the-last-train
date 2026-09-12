@@ -389,18 +389,174 @@ asset (it errors, so a re-author needs a new name), and an OBJ with no normals
 or UVs imports with "degenerate tangent bases" and "nearly zero bi-normals"
 warnings. Writing one normal per face plus planar UVs clears both.
 
-**Still open, and not this fix.** The doorway reads as an opening but the
-interior beyond it still renders dark from the platform, so F4's "bright, high,
-airy" half of the acceptance is **not** met yet. The F4 vestibule pieces
-(`CW_F4_Vest*`) are present, visible and carry the `*Glow` emissive instances,
-and those same materials render bright white elsewhere in the saloon, so this is
-an F4 lighting question at the vestibule, not the aperture. Owner: F4 follow-up.
+**Still open after a lighting pass on 2026-09-11.** F4's "bright, high, airy"
+half of the acceptance is **still not met**. What the pass established:
 
-Note also that `BP_Train`'s `CarriageMesh` placeholder box, hidden by F4 but
-deliberately left colliding (2.11 needs it for the boarding trace), still blocks
-line traces across every doorway at `y ~5100`. It is invisible to the camera, so
-it does not affect the visual read, but it does mean a doorway trace from the
-platform stops there. Trace from inside the leaf plane to probe the aperture.
+- **Light placement is not the cause.** Every one of the 12 vestibules has a
+  ceiling point light within 25 to 175 in x, all inside the 520 attenuation
+  radius, and the 6 `CW_F4_LED_*` runs per side tile `x 1050` to `10050` with no
+  break at any doorway. Coverage over the vestibule zone was never missing.
+- **`CarriageMesh` is ruled out as a visual cause, verified not assumed.** It
+  reads `bVisible false` with `bCastHiddenShadow false`, so it casts no shadow
+  while hidden. It still blocks traces, as 2.11 needs. It spans `x 4550` to
+  `6550`, straddling vestibules 05 to 07, so those three are poor probe sites:
+  use 01, 02 or 12 instead.
+- **All 151 F4 surfaces had `bEmissiveLightSource` false**, so the `*Glow`
+  instances rendered bright but contributed nothing to Lumen. The saloon looked
+  lit only because 52 point lights at 1400 cd lit it directly. The flag was set
+  true on the 24 fittings that should emit (12 `CW_F4_LED_*` runs, 12
+  `CW_F4_VestCeil_*`), read back true on all 24, and the level is saved. The
+  other 127 pieces (walls at `Brightness` 3.4, floors at 1.2) were deliberately
+  left non-emitting: turning the whole shell into emitters is what produced the
+  blown-out white of the previous attempt.
+- **That change did not fix the acceptance.** Verified in PIE, train `Dwelling`,
+  leaf fully open (`CW_F3_DoorL_01` `xmin 1281` against a closed 1353), phase
+  re-read as `Dwelling` after the capture.
+
+**Geometry occlusion is ruled out, checked 2026-09-11.** The question was whether
+the door leaf or the bodyside occludes the aperture at platform eye height. It
+does not, on four independent measurements:
+
+- `SM_Train_DoorBay_Open`'s asset thumbnail shows the doorway aperture cut
+  through the bodyside panel, with the window band either side.
+- Traces from `y 5128` (just past the bodyside plane) inward reach the far wall
+  at `y 5372`, at bays 01, 02, 03 and 12, at `z 100`, `150` and `200`. 2.12's
+  original verification reproduces exactly.
+- The mesh's four collision boxes map to world `x 1050` to `1353` and `x 1497`
+  to `1800` on the near wall, leaving a **144-wide gap at `x 1353` to `1497`**
+  with only a header above `z 266`. Collision does not seal the doorway.
+- Leaf travel is 72 (`doorClosedX` 1389, `doorOpenX` 1317). Open, the leaves sit
+  at `x 1281` to `1353` and `x 1497` to `1569`, each still overlapping the
+  `1324` to `1526` reveal span by 29, leaving 144 of 202 clear. That matches the
+  collision gap. The leaves slide clear of the opening.
+
+**What the doorway actually looks like during dwell.** A close capture from the
+platform at `x 1425, y 5080, z 150`, doors open, shows the two leaves as dark
+slabs left and right with the opening between them running floor to ceiling, the
+lit window band above, and **the interior visible through the gap but dim and
+brown**, not the near-white the saloon reads as from inside. The earlier
+"solid dark slab" reading in this section was taken from `y 4990`, too far out
+and too wide a framing to resolve the opening, and was wrong.
+
+So the aperture is open and the interior is visible through it.
+
+**Direct light reach is ruled out too, measured 2026-09-11. The vestibule is
+better lit than the saloon.** Correcting an error earlier in this section
+first: **there are no vestibule lights.** All 52 are `CW_F4_SaloonP_*` and
+`CW_F4_SaloonF_*` at `y 5185` and `y 5345`, two continuous rows the length of
+the carriage. The earlier claim of "a light within 25 to 175 of each vestibule"
+measured **x-distance only** and ignored y, which made the saloon rows passing
+overhead look like dedicated local fittings. They are not.
+
+Contribution at `z 150` under one falloff model, same 52 lights:
+
+| sample point | reach | lights in radius |
+|---|---|---|
+| vestibule mid `1425, 5200` | 553 | 6 |
+| vestibule back `1425, 5300` | 565 | 6 |
+| vestibule mouth `1425, 5150` | 463 | 6 |
+| saloon centre `1700, 5265` | 366 | 6 |
+| saloon platform side `1700, 5185` | 332 | 5 |
+
+The vestibule gets about 1.5x the saloon mid-panel's direct contribution, and
+every vestibule centre has its nearest light 142 to 224 away in true 3D, well
+inside the 520 radius. Line of sight is clear on all 8 traces from the two
+nearest lights into 4 vestibule sample points, while the saloon control traces
+hit bench backs and near-wall panels at 32 and 48. The vestibule is the least
+obstructed part of the carriage, being the gap between seating bays.
+
+**No change was made.** There is no underpowered vestibule light to raise, and
+raising the saloon rows would brighten the already-brighter region and blow out
+the saloon.
+
+**Exposure is ruled out, measured 2026-09-11. F4 closes here, unfixed.**
+The suspicion was that the platform's hard `CW_F3_TrainWash_*` spots were
+driving auto-exposure to adapt and crushing the interior by comparison. They are
+not, because nothing in this level adapts.
+
+There is exactly **one** post process volume in the map, `PostProcessVolume_0`
+(the actor labelled `CW_D_PostProcess`), found both by label and by a
+class-wide sweep, so there is no second volume and no camera-component override
+competing with it. It reads `bUnbound true`, `blendWeight 1`, `bEnabled true`,
+`priority 0`: it applies to every camera in the level, platform and interior
+alike, through one identical transfer curve.
+
+Its exposure settings, read off the `Settings` struct with the override flags
+that decide whether a value does anything at all:
+
+| property | value | overridden |
+|---|---|---|
+| `autoExposureMethod` | `AEM_Manual` | true |
+| `autoExposureMinBrightness` | 1 | true |
+| `autoExposureMaxBrightness` | 1 | true |
+| `autoExposureBias` | -1.35 | true |
+| `autoExposureApplyPhysicalCameraExposure` | false | true |
+| `bOverride_LocalExposure*` | all defaults | all false |
+| `bOverride_HistogramLogMin/Max` | -8 / 4 | both false |
+
+Manual metering does not read scene luminance. Min and max brightness are both
+pinned to 1, so adaptation is frozen even arithmetically. Local exposure, the
+one feature that could darken a dim region against a bright one inside a single
+frame, is entirely unoverridden. `r.DefaultFeature.AutoExposure.ExtendDefaultLuminanceRange`
+is `False` in `Config/DefaultEngine.ini`, so those brightness numbers are not
+EV100-scaled.
+
+**The measurement that settles it.** Two editor viewport captures, same map,
+same unbound volume, same 90 degree FOV, seconds apart. Mean and median of
+Rec. 709 luma over the frame:
+
+| capture | pose | whole-frame mean | median | middle band mean |
+|---|---|---|---|---|
+| saloon, from inside | `1700, 5265, 150` yaw 180 | 164.4 | 226.2 | 178.8 |
+| doorway, from platform | `1425, 5080, 150` yaw 90 | 14.7 | 1.2 | **1.88** |
+
+The aperture region reads mean 1.88, median 1.21, max 11.91 out of 255: not
+"dim brown", effectively black. The same geometry from inside sits at median
+226. A single global exposure setting cannot produce that split, because a
+uniform bias scales both frames together; the interior-to-platform ratio within
+a frame is what is wrong, and no global exposure control touches a ratio. The
+doorway frame does show a blown platform floor strip (lower band p95 233) and a
+lit band at the top, so the tone mapper is passing bright surfaces through
+normally. Almost no interior light is reaching the camera through the aperture.
+
+**No change was made.** Raising `autoExposureBias` off -1.35 would lift the
+whole frame, platform included, and make a capture look brighter without
+touching the mechanism. That is a cosmetic edit to a setting that is not the
+cause, so it was not done. The volume is untouched and the map was not saved.
+
+**What is left**, now two candidates rather than three:
+
+1. **Glow parameter levels.** `MI_TrainInt_FloorGlow` `Brightness` 1.2 and
+   `MI_TrainInt_WallGlow` 3.4 against `MI_TrainInt_LEDStrip` 34. The surfaces
+   facing the doorway may simply be dim by parameter.
+2. **Lumen indirect** in the recess. The saloon's brightness is carried by 51
+   direct point lights that do not throw toward the doorway plane; whatever
+   should fill the vestibule is indirect, and the measurement above is
+   consistent with that indirect contribution being near zero.
+
+Owner: F4 follow-up. Do not re-run the light-placement, `CarriageMesh`,
+geometry-occlusion, direct-light-reach, or exposure checks; all five are
+settled above.
+
+**Count correction.** A label sweep for `CW_F4_Saloon` returns **51** point
+lights, not the 52 stated further up this section. One sampled component reads
+`intensity 1400`, `Unitless`, radius 520, `Movable`, matching the recorded
+figures exactly, so the map has not diverged: the 52 is a miscount, not a
+missing light.
+
+**Trace caution.** `SceneTools.trace_world` tests collision, not visibility. A
+platform-side trace at door height stops at `y 5126` across the whole bay even
+with the doors open, because it meets the near-wall collision boxes and the
+bodyside plane. Do not read a stopped trace as "the view is blocked": the mesh
+renders the aperture open where collision reports solid. Confirm every visual
+claim with a capture.
+
+There is no 2600 cd light in the level. All 52 point lights read exactly
+`1400 cd`, `Movable`, radius 520. An earlier interrupted attempt is recorded as
+having pushed one to 2600 cd, but that was never saved and is not present.
+
+Map Check remains unavailable: no Map Check tool on any registered toolset, no
+`LogMapCheck` category, no MapCheck automation test. Unchanged from F4 and F3f.
 
 ### 2.13 Two editor-scripting traps F4 hit
 

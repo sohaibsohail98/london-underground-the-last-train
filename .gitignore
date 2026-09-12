@@ -90,3 +90,4 @@ skills-lock.json
 /build/
 __pycache__/
 *.pyc
+docs/tasks/EDITOR-QUEUE.md
